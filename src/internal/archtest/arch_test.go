@@ -281,7 +281,9 @@ func TestQueriesOnlyWriteTheirOwnTables(t *testing.T) {
 		"audit":    {"audit_entry"},
 		"user":     {"app_user"},
 		// code_sequence es compartida: cada feature reserva ahí sus IDs legibles.
-		"change": {"change", "code_sequence"},
+		"change":      {"change", "code_sequence"},
+		"requirement": {"requirement", "requirement_link", "requirement_entry_check", "code_sequence"},
+		"risk":        {"risk_assessment", "risk_quality_characteristic", "code_sequence"},
 	}
 	root := filepath.Join("..", "feature")
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {

@@ -15,6 +15,8 @@ import (
 	"kaoru/internal/core/pkg/problem"
 	"kaoru/internal/feature/audit"
 	"kaoru/internal/feature/change"
+	"kaoru/internal/feature/requirement"
+	"kaoru/internal/feature/risk"
 	"kaoru/internal/feature/user"
 	"kaoru/internal/feature/workflow"
 )
@@ -55,6 +57,23 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 	if err != nil {
 		return nil, err
 	}
+	requirementModule, err := requirement.New(requirement.Deps{
+		Database: d.Database, Clock: d.Clock, IdGenerator: d.IdGenerator,
+		Workflow: workflowModule.UseCases, Audit: auditModule.UseCases,
+	})
+	if err != nil {
+		return nil, err
+	}
+	riskModule, err := risk.New(risk.Deps{
+		Database: d.Database, Clock: d.Clock, IdGenerator: d.IdGenerator,
+		Workflow: workflowModule.UseCases, Audit: auditModule.UseCases, Requirements: requirementModule.UseCases,
+	})
+	if err != nil {
+		return nil, err
+	}
+	// Las reglas de bloqueo del REQ necesitan hechos de features que dependen de él:
+	// se conectan después de armar todos (reglas §A.7, decisión D36).
+	requirementModule.ConnectRisk(riskModule.UseCases)
 
 	gin.SetMode(gin.ReleaseMode)
 	engine := gin.New()
@@ -77,5 +96,7 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 	workflowModule.RegisterAPI(api)
 	auditModule.RegisterAPI(api)
 	changeModule.RegisterAPI(api)
+	requirementModule.RegisterAPI(api)
+	riskModule.RegisterAPI(api)
 	return engine, nil
 }

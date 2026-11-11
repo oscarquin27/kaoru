@@ -211,3 +211,16 @@ Tomadas el 11 nov 2026 al construir el core y el primer corte vertical (`workflo
 - **Contexto:** reglas §A.14 y §A.18.
 - **Pendiente:** `golangci-lint` (no está instalado; hoy corren `gofmt` y `go vet`), `sqlc vet`, el lint completo de OpenAPI y las métricas Prometheus de §A.14. El `staticcheck` instalado es de Go 1.24 y no analiza un módulo de Go 1.26.
 - **Motivo de registrarlo:** no dar por cumplido lo que no se ejecutó.
+
+### D36 — Los hechos de las reglas de bloqueo se conectan al arrancar
+- **Fecha:** 11 nov 2026
+- **Contexto:** aprobar o entregar un REQ exige mirar su RISK, su cobertura y sus defectos, pero `risk`, `testdesign`, `execution` y `defect` dependen de `requirement`, no al revés. Las reglas (§A.7) piden dependencias de un solo sentido y dan una única salida para un ciclo.
+- **Decisión:** `requirement` declara el puerto `Facts` y evalúa las reglas en su dominio. Su adaptador `adapter/facts` llama a los casos de uso de los otros features, y `bootstrap` conecta cada fuente después de armar todos los módulos (`requirementModule.ConnectRisk(…)`). Una fuente sin conectar responde «no hay»: sin RISK, sin TC y sin defectos, que es lo que bloquea.
+- **Motivo:** es la salida que dan las reglas, deja la evaluación en el dominio del REQ y mantiene a `traceability` como solo lectura. Costo: `requirement` y esos features se conocen en los dos sentidos, solo a través de casos de uso.
+- **Estado:** `[SUPUESTO]` hasta que dev la revise. Conectado hoy: `risk`.
+
+### D37 — El nivel de riesgo no viaja dentro del REQ
+- **Fecha:** 11 nov 2026
+- **Contexto:** el contrato traía `riskLevel` en el REQ. La llave va de `risk_assessment` a `requirement`, así que `requirement` no puede leer esa tabla (reglas §A.7).
+- **Decisión:** se quitó `riskLevel` del esquema `Requirement`. El riesgo se lee en `/api/requirements/{code}/risk`; la ficha consolidada y la matriz, que arma `traceability`, lo incluyen.
+- **Motivo:** el mismo de D32.

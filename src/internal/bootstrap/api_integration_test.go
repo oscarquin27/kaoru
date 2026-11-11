@@ -35,6 +35,7 @@ var users = tokenVerifier{
 	"manager": {Sub: "sub-manager", Username: "cmora", Name: "C. Mora", Email: "cmora@lab.invalid", Roles: []string{"change-manager", "offline_access"}},
 	"qa":      {Sub: "sub-qa", Username: "arojas", Name: "A. Rojas", Roles: []string{"qa"}},
 	"ops":     {Sub: "sub-ops", Username: "lpaz", Name: "L. Paz", Roles: []string{"ops"}},
+	"dev":     {Sub: "sub-dev", Username: "jdiaz", Name: "J. Díaz", Roles: []string{"dev"}},
 	"auditor": {Sub: "sub-auditor", Username: "vsoto", Name: "V. Soto", Roles: []string{"auditor"}},
 }
 
@@ -360,7 +361,16 @@ func TestAuditChainSurvivesConcurrencyAndDetectsTampering(t *testing.T) {
 	a.call("ops", "GET", "/api/audit/verification", nil, 403, nil)
 
 	// Alguien con acceso de dueño altera un registro: la verificación lo detecta.
-	a.asOwner(`UPDATE audit_entry SET new_value = 'alterado' WHERE seq = (SELECT min(seq) + 3 FROM audit_entry)`)
+	// Al terminar se restaura, porque las demás pruebas comparten la base.
+	const target = `WHERE seq = (SELECT min(seq) + 3 FROM audit_entry)`
+	a.asOwner(`UPDATE audit_entry SET new_value = coalesce(new_value, '') || '·alterado' ` + target)
+	t.Cleanup(func() {
+		a.asOwner(`UPDATE audit_entry SET new_value = nullif(replace(new_value, '·alterado', ''), '') ` + target)
+		a.call("auditor", "GET", "/api/audit/verification", nil, 200, &v)
+		if !v.Intact {
+			t.Errorf("al restaurar el registro la cadena debe volver a estar íntegra: %+v", v)
+		}
+	})
 	a.call("auditor", "GET", "/api/audit/verification", nil, 200, &v)
 	if v.Intact || v.FirstBrokenSeq == nil {
 		t.Fatalf("debía detectar el registro alterado: %+v", v)

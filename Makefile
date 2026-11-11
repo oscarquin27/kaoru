@@ -18,9 +18,9 @@ check-go:
 	cd src && go vet ./... && go vet -tags integration ./...
 	cd src && go test ./...
 
-# El código generado está versionado y al día.
-check-generated: generate
-	git diff --exit-code -- src
+# El código generado está al día: sqlc compara lo que generaría con lo que hay en disco.
+check-generated:
+	cd src && sqlc diff
 
 check-openapi:
 	ruby tools/check-openapi.rb api/openapi.yaml
