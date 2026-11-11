@@ -1,0 +1,54 @@
+version: "2"
+overrides:
+  go:
+    overrides:
+      - db_type: "uuid"
+        go_type: "github.com/google/uuid.UUID"
+      - db_type: "uuid"
+        nullable: true
+        go_type: "github.com/google/uuid.NullUUID"
+      - db_type: "timestamptz"
+        go_type: "time.Time"
+      - db_type: "timestamptz"
+        nullable: true
+        go_type:
+          import: "time"
+          type: "Time"
+          pointer: true
+sql:
+  - engine: postgresql
+    schema: migrations
+    queries: internal/feature/workflow/adapter/postgres/queries
+    gen:
+      go:
+        package: sqlcgen
+        out: internal/feature/workflow/adapter/postgres/sqlcgen
+        sql_package: pgx/v5
+        emit_pointers_for_null_types: true
+  - engine: postgresql
+    schema: migrations
+    queries: internal/feature/audit/adapter/postgres/queries
+    gen:
+      go:
+        package: sqlcgen
+        out: internal/feature/audit/adapter/postgres/sqlcgen
+        sql_package: pgx/v5
+        emit_pointers_for_null_types: true
+  - engine: postgresql
+    schema: migrations
+    queries: internal/feature/user/adapter/postgres/queries
+    gen:
+      go:
+        package: sqlcgen
+        out: internal/feature/user/adapter/postgres/sqlcgen
+        sql_package: pgx/v5
+        emit_pointers_for_null_types: true
+  - engine: postgresql
+    schema: migrations
+    queries: internal/feature/change/adapter/postgres/queries
+    gen:
+      go:
+        package: sqlcgen
+        out: internal/feature/change/adapter/postgres/sqlcgen
+        sql_package: pgx/v5
+        emit_pointers_for_null_types: true
