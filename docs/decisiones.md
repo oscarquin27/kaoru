@@ -163,3 +163,51 @@ Tomadas el 11 nov 2026 para poder avanzar con el diseño mientras la fase 0 sigu
 - **Contexto:** `make check` necesita versiones concretas, y el lint de OpenAPI no se pudo ejecutar en esta sesión.
 - **Propuesta:** PostgreSQL 17 y goose 3.24.1 para probar migraciones; el realm se probó en Keycloak 26.0. El contrato se comprueba con `tools/check-openapi.rb` (sintaxis, referencias, `operationId`), que no reemplaza al lint de §A.18. Las versiones definitivas, con digest, se fijan en el Compose de la fase 2.
 - **Motivo:** tener una comprobación real hoy sin fijar todavía la infraestructura.
+
+## Aprobación del diseño de la fase 1
+
+### D28 — Esquema y boceto aprobados
+- **Fecha:** 11 nov 2026
+- **Contexto:** criterio de salida de la fase 1.
+- **Decisión:** se aprueban el esquema y el boceto para pasar a la fase 2. Con el esquema quedan vigentes D16 a D21, D23, D25 y D26.
+- **Motivo:** aprobación dada en la sesión de trabajo. `[SUPUESTO]` El requerimiento pide la aprobación de QA y dev: falta dejar constancia de quién firma por cada uno.
+- **Siguen como propuesta:** D12, D13, D14, D15, D22, D24 y D27. De ellas, D12, D13, D15 y D22 ya están aplicadas en el código de la fase 2; si alguna se rechaza, hay que deshacerla.
+
+## Decisiones de la fase 2 (cimientos del backend)
+
+Tomadas el 11 nov 2026 al construir el core y el primer corte vertical (`workflow`, `audit`, `user`, `change`). `[SUPUESTO]` hasta que dev las revise.
+
+### D29 — Core propio mínimo y sus librerías
+- **Contexto:** sin respuesta a la pregunta 15 (D22). Reglas §A.1.1: sumar una herramienta se justifica aquí.
+- **Decisión:** `internal/core/pkg/` con `axis` (errores con código), `problem` (RFC 9457), `httpserver`, `oidc`, `postgres`, `uow`, `clock`, `idgen` y `logging`. Librerías: gin (router), pgx v5 + sqlc (base), goose (migraciones), `coreos/go-oidc` (firma, emisor y vigencia del token, con JWKS en caché), `google/uuid` (UUIDv7) y `x/sync` (errgroup). Logs con `log/slog` de la biblioteca estándar.
+- **Motivo:** una herramienta por problema y nada propio donde hay una librería conocida. Si se adopta el core de la empresa, el cambio queda dentro de `core/`.
+
+### D30 — `audit` y `user` dependen de `workflow` para los permisos
+- **Contexto:** las reglas piden construir `user`, `audit` y `workflow` primero, y que los permisos se comprueben con la tabla de `workflow`.
+- **Decisión:** orden `workflow` → `audit` → `user` → resto. Hoy `workflow` solo lee, así que no audita nada y no hay ciclo.
+- **Pendiente conocido:** cuando `qa-admin` pueda editar flujos y permisos, `workflow` tendrá que auditar y aparecerá el ciclo `workflow` ↔ `audit`. La salida prevista es la de reglas §A.7: un puerto que `bootstrap` conecta después de armar los dos.
+
+### D31 — Cada feature reserva sus IDs legibles en `code_sequence`
+- **Contexto:** `code_sequence` es una tabla compartida y las reglas prohíben escribir en la tabla de otro feature.
+- **Decisión:** `code_sequence` no es de ningún feature. Cada uno tiene su consulta `NextCode` (dos líneas de SQL) y `archtest` la declara como tabla permitida.
+- **Motivo:** regla de tres. Al tercer feature que la repita se evalúa subirla a un lugar común.
+
+### D32 — El CHG no devuelve cuántos REQ agrupa
+- **Contexto:** el contrato traía `requirementCount` en el CHG. La llave va de `requirement` a `change`, y las reglas (§A.7) solo permiten leer la tabla de otro feature en la dirección de la llave.
+- **Decisión:** se quitó `requirementCount` del contrato. La ficha del CHG lista sus REQ con `/api/requirements?change=…`; el conteo consolidado, si hace falta, lo da `traceability`.
+- **Motivo:** no romper la dependencia de un solo sentido entre features.
+
+### D33 — Imagen `scratch` con healthcheck propio
+- **Contexto:** todos los servicios del Compose necesitan healthcheck, y una imagen de un solo binario no trae `curl` ni shell.
+- **Decisión:** `kaoru-api healthcheck` consulta `/readyz` del proceso local y sale con 0 o 1. La imagen corre como usuario sin privilegios.
+- **Motivo:** menos superficie y nada que actualizar dentro de la imagen.
+
+### D34 — El perfil del usuario se guarda al llegar la petición
+- **Contexto:** la auditoría y los responsables referencian a `app_user`, pero los usuarios nacen en Keycloak.
+- **Decisión:** un middleware de `user` guarda el perfil del token la primera vez que lo ve en el proceso, y de nuevo si cambia.
+- **Motivo:** ningún feature tiene que preocuparse de que el usuario exista.
+
+### D35 — Lo que `make check` todavía no cubre
+- **Contexto:** reglas §A.14 y §A.18.
+- **Pendiente:** `golangci-lint` (no está instalado; hoy corren `gofmt` y `go vet`), `sqlc vet`, el lint completo de OpenAPI y las métricas Prometheus de §A.14. El `staticcheck` instalado es de Go 1.24 y no analiza un módulo de Go 1.26.
+- **Motivo de registrarlo:** no dar por cumplido lo que no se ejecutó.

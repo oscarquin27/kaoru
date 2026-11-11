@@ -1,28 +1,14 @@
 #!/usr/bin/env bash
-# Comprueba las migraciones sobre un Postgres limpio y desechable:
+# Comprueba las migraciones sobre el Postgres limpio de tools/with-postgres.sh:
 # suben, bajan a cero, vuelven a subir, y `kaoru_app` no puede alterar lo inmutable.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
-image="${POSTGRES_IMAGE:-postgres:17-alpine}"
 goose="github.com/pressly/goose/v3/cmd/goose@${GOOSE_VERSION:-v3.24.1}"
-name="kaoru-check-migrations-$$"
-port="${CHECK_PG_PORT:-55432}"
 
-docker run -d --rm --name "$name" -e POSTGRES_PASSWORD=lab -e POSTGRES_DB=kaoru \
-    -p "127.0.0.1:$port:5432" "$image" >/dev/null
-trap 'docker stop "$name" >/dev/null' EXIT
+psql_as() { docker exec -i -e PGPASSWORD=lab "$KAORU_TEST_PG" psql -h 127.0.0.1 -U "$1" -d kaoru -v ON_ERROR_STOP=1 -qAt "${@:2}"; }
 
-until docker exec "$name" psql -U postgres -d kaoru -qc 'select 1' >/dev/null 2>&1; do sleep 1; done
-
-psql_as() { docker exec -i -e PGPASSWORD=lab "$name" psql -h 127.0.0.1 -U "$1" -d kaoru -v ON_ERROR_STOP=1 -qAt "${@:2}"; }
-
-psql_as postgres -v owner_password=lab -v app_password=lab <"$root/infra/postgres/init.sql"
-
-run_goose() {
-    (cd "$root/src/migrations" && go run "$goose" postgres \
-        "postgres://kaoru_owner:lab@127.0.0.1:$port/kaoru?sslmode=disable" "$@")
-}
+run_goose() { (cd "$root/src/migrations" && go run "$goose" postgres "$KAORU_TEST_OWNER_URL" "$@" 2>&1 | grep -v ' OK ' || true); }
 
 run_goose up
 run_goose down-to 0
