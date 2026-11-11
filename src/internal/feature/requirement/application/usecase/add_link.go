@@ -49,6 +49,9 @@ func (uc *AddLink) Execute(ctx context.Context, in AddLinkInput) (domain.LinkSna
 		return domain.LinkSnapshot{}, err
 	}
 	err = uc.d.UnitOfWork.Within(ctx, func(ctx context.Context) error {
+		if err := uc.d.Repository.Lock(ctx, s.Code); err != nil {
+			return err
+		}
 		if err := uc.d.Repository.InsertLink(ctx, link); err != nil {
 			return err
 		}

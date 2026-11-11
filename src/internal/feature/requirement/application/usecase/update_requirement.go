@@ -53,7 +53,7 @@ func (uc *UpdateRequirement) Execute(ctx context.Context, in UpdateRequirementIn
 
 	var out domain.Snapshot
 	err = uc.d.UnitOfWork.Within(ctx, func(ctx context.Context) error {
-		requirement, err := findRequirement(ctx, uc.d.Repository, in.Code)
+		requirement, err := lockRequirement(ctx, uc.d.Repository, in.Code)
 		if err != nil {
 			return err
 		}

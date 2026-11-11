@@ -31,6 +31,8 @@ type Repository interface {
 
 	Insert(ctx context.Context, requirement domain.Requirement) error
 	Update(ctx context.Context, requirement domain.Requirement) error
+	// Lock bloquea la entidad hasta el fin de la transacción en curso. Devuelve NOT_FOUND_RESOURCE si no existe.
+	Lock(ctx context.Context, code shared.Code) error
 	FindByCode(ctx context.Context, code shared.Code) (domain.Requirement, error)
 	List(ctx context.Context, filter Filter) (requirements []domain.Requirement, total int, err error)
 

@@ -580,3 +580,9 @@ func TestNothingIsSavedIfAuditFails(t *testing.T) {
 		t.Error("si la auditoría falla, nada debe quedar guardado")
 	}
 }
+
+// Lock no hace nada en memoria: el doble ya ejecuta una transacción a la vez.
+func (w *world) Lock(ctx context.Context, code shared.Code) error {
+	_, err := w.FindByCode(ctx, code)
+	return err
+}

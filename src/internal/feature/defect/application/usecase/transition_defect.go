@@ -35,7 +35,7 @@ func (uc *TransitionDefect) Execute(ctx context.Context, in TransitionDefectInpu
 	var defect domain.Defect
 	err := uc.d.UnitOfWork.Within(ctx, func(ctx context.Context) error {
 		var err error
-		if defect, err = findDefect(ctx, uc.d.Repository, in.Code); err != nil {
+		if defect, err = lockDefect(ctx, uc.d.Repository, in.Code); err != nil {
 			return err
 		}
 		transition, err := uc.d.Workflow.ResolveTransition(ctx, defect.Snapshot().State.Key, in.To, in.Actor.Roles)

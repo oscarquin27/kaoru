@@ -20,6 +20,7 @@ import (
 
 	"kaoru/internal/core/pkg/clock"
 	"kaoru/internal/core/pkg/filestore"
+	"kaoru/internal/core/pkg/httpserver"
 	"kaoru/internal/core/pkg/idgen"
 	corepg "kaoru/internal/core/pkg/postgres"
 	"kaoru/migrations"
@@ -67,7 +68,7 @@ func newAPI(t *testing.T) *api {
 		t.Fatal(err)
 	}
 	router, err := NewRouter(RouterDeps{
-		Config: testConfig(), Database: corepg.NewDatabase(pool), FileStore: files, Verifier: users,
+		Config: testConfig(), Database: corepg.NewDatabase(pool), FileStore: files, Metrics: httpserver.NewMetrics(), Verifier: users,
 		Logger: newLogger(testWriter{t}, "text"), Clock: clock.System{}, IdGenerator: idgen.UUIDv7{},
 	})
 	if err != nil {

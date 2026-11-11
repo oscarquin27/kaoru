@@ -80,3 +80,10 @@ WHERE (sqlc.narg(state_key)::text IS NULL OR st.key = sqlc.narg(state_key))
   AND (sqlc.narg(assignee_id)::text IS NULL OR d.assignee_id = sqlc.narg(assignee_id))
   AND (NOT sqlc.arg(only_open)::boolean OR NOT st.is_final)
   AND (sqlc.narg(query)::text IS NULL OR d.title ILIKE '%' || sqlc.narg(query) || '%' OR d.code = sqlc.narg(query));
+
+-- name: LockDefect :one
+-- Bloquea la fila hasta el fin de la transacción: dos escrituras sobre la misma entidad van una tras otra.
+SELECT id
+FROM defect
+WHERE code = $1
+    FOR UPDATE;

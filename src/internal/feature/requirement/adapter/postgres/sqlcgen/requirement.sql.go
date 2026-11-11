@@ -568,6 +568,21 @@ func (q *Queries) ListRequirements(ctx context.Context, arg ListRequirementsPara
 	return items, nil
 }
 
+const lockRequirement = `-- name: LockRequirement :one
+SELECT id
+FROM requirement
+WHERE code = $1
+    FOR UPDATE
+`
+
+// Bloquea la fila hasta el fin de la transacción: dos escrituras sobre la misma entidad van una tras otra.
+func (q *Queries) LockRequirement(ctx context.Context, code string) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, lockRequirement, code)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const nextCode = `-- name: NextCode :one
 INSERT INTO code_sequence (prefix, year, last_value)
 VALUES ($1, $2, 1)

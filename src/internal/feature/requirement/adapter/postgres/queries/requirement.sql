@@ -147,3 +147,10 @@ DELETE
 FROM requirement_entry_check
 WHERE requirement_id = $1
   AND item_key = $2;
+
+-- name: LockRequirement :one
+-- Bloquea la fila hasta el fin de la transacción: dos escrituras sobre la misma entidad van una tras otra.
+SELECT id
+FROM requirement
+WHERE code = $1
+    FOR UPDATE;

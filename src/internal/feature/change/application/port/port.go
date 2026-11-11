@@ -31,6 +31,8 @@ type Repository interface {
 	FindSystem(ctx context.Context, key string) (domain.System, error)
 	Insert(ctx context.Context, change domain.Change) error
 	Update(ctx context.Context, change domain.Change) error
+	// Lock bloquea la entidad hasta el fin de la transacción en curso. Devuelve NOT_FOUND_RESOURCE si no existe.
+	Lock(ctx context.Context, code shared.Code) error
 	FindByCode(ctx context.Context, code shared.Code) (ChangeView, error)
 	List(ctx context.Context, filter Filter) (changes []ChangeView, total int, err error)
 }

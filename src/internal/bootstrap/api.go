@@ -49,6 +49,11 @@ func RunAPI(ctx context.Context) error {
 		return fmt.Errorf("la base no responde: %w", err)
 	}
 
+	metrics := httpserver.NewMetrics()
+	if err := corepg.RegisterPoolMetrics(metrics.Registry(), pool); err != nil {
+		return fmt.Errorf("registrar métricas del pool: %w", err)
+	}
+
 	files, err := filestore.NewLocal(cfg.Documents.Dir)
 	if err != nil {
 		return err
@@ -58,6 +63,7 @@ func RunAPI(ctx context.Context) error {
 		Config:    cfg,
 		Database:  database,
 		FileStore: files,
+		Metrics:   metrics,
 		Verifier: oidc.NewVerifier(ctx, oidc.Config{
 			Issuer: cfg.OIDC.Issuer, JWKSURL: cfg.OIDC.JWKSURL, ClientID: cfg.OIDC.ClientID,
 		}),
@@ -71,7 +77,7 @@ func RunAPI(ctx context.Context) error {
 
 	health := httpserver.NewHealth(database.Ping)
 	public := &http.Server{Addr: cfg.HTTP.Addr, Handler: router, ReadHeaderTimeout: readHeaderTimeout}
-	internal := &http.Server{Addr: cfg.HTTP.InternalAddr, Handler: health.Handler(), ReadHeaderTimeout: readHeaderTimeout}
+	internal := &http.Server{Addr: cfg.HTTP.InternalAddr, Handler: health.Handler(metrics.Handler()), ReadHeaderTimeout: readHeaderTimeout}
 
 	group, groupCtx := errgroup.WithContext(ctx)
 	for _, server := range []*http.Server{public, internal} {

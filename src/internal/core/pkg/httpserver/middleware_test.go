@@ -159,10 +159,11 @@ func TestRecoveryAndLogs(t *testing.T) {
 
 func TestHealth(t *testing.T) {
 	var pingErr error
+	metrics := httpserver.NewMetrics()
 	health := httpserver.NewHealth(func(context.Context) error { return pingErr })
 	status := func(path string) int {
 		rec := httptest.NewRecorder()
-		health.Handler().ServeHTTP(rec, httptest.NewRequest("GET", path, nil))
+		health.Handler(metrics.Handler()).ServeHTTP(rec, httptest.NewRequest("GET", path, nil))
 		return rec.Code
 	}
 	if status("/livez") != 200 || status("/readyz") != 200 {
@@ -176,5 +177,31 @@ func TestHealth(t *testing.T) {
 	health.Drain()
 	if status("/readyz") != 503 {
 		t.Error("al apagar, /readyz pasa a 503")
+	}
+}
+
+func TestMetricsUseTheRouteTemplate(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	metrics := httpserver.NewMetrics()
+	engine := gin.New()
+	engine.Use(metrics.Middleware())
+	engine.GET("/api/requirements/:code", func(c *gin.Context) { c.Status(http.StatusOK) })
+	for _, path := range []string{"/api/requirements/REQ-2026-0001", "/api/requirements/REQ-2026-0002", "/no-existe"} {
+		engine.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", path, nil))
+	}
+	rec := httptest.NewRecorder()
+	metrics.Handler().ServeHTTP(rec, httptest.NewRequest("GET", "/metrics", nil))
+	body := rec.Body.String()
+	for _, want := range []string{
+		`http_server_requests_total{method="GET",route="/api/requirements/:code",status="200"} 2`,
+		`http_server_requests_total{method="GET",route="sin_ruta",status="404"} 1`,
+		`http_server_request_duration_seconds_count{method="GET",route="/api/requirements/:code"} 2`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("falta en /metrics: %s", want)
+		}
+	}
+	if strings.Contains(body, "REQ-2026-0001") {
+		t.Error("la etiqueta route debe ser la plantilla, nunca la URL")
 	}
 }

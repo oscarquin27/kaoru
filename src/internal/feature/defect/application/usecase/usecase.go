@@ -67,6 +67,22 @@ type DefectOutput struct {
 	DaysInState float64
 }
 
+// lockDefect bloquea la entidad y la lee: se usa dentro de la transacción de todo caso de uso que
+// escribe, para que dos cambios simultáneos sobre la misma entidad no se pisen.
+func lockDefect(ctx context.Context, repo port.Repository, raw string) (domain.Defect, error) {
+	code, err := shared.ParseCode(raw)
+	if err != nil {
+		return domain.Defect{}, ErrDefectNotFound
+	}
+	if err := repo.Lock(ctx, code); err != nil {
+		if axis.IsCode(err, axis.NotFoundResource) {
+			return domain.Defect{}, ErrDefectNotFound
+		}
+		return domain.Defect{}, err
+	}
+	return findDefect(ctx, repo, raw)
+}
+
 func findDefect(ctx context.Context, repo port.Repository, raw string) (domain.Defect, error) {
 	code, err := shared.ParseCode(raw)
 	if err != nil {

@@ -311,6 +311,21 @@ func (q *Queries) ListDefects(ctx context.Context, arg ListDefectsParams) ([]Lis
 	return items, nil
 }
 
+const lockDefect = `-- name: LockDefect :one
+SELECT id
+FROM defect
+WHERE code = $1
+    FOR UPDATE
+`
+
+// Bloquea la fila hasta el fin de la transacción: dos escrituras sobre la misma entidad van una tras otra.
+func (q *Queries) LockDefect(ctx context.Context, code string) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, lockDefect, code)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const nextCode = `-- name: NextCode :one
 INSERT INTO code_sequence (prefix, year, last_value)
 VALUES ($1, $2, 1)

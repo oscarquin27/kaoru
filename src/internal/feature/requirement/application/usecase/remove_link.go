@@ -44,7 +44,7 @@ func (uc *RemoveLink) Execute(ctx context.Context, in RemoveLinkInput) error {
 
 // findLink lee el REQ y uno de sus enlaces.
 func findLink(ctx context.Context, repo port.Repository, code, linkId string) (domain.Requirement, domain.Link, error) {
-	requirement, err := findRequirement(ctx, repo, code)
+	requirement, err := lockRequirement(ctx, repo, code)
 	if err != nil {
 		return domain.Requirement{}, domain.Link{}, err
 	}

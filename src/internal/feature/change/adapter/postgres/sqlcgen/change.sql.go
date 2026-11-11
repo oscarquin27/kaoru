@@ -245,6 +245,21 @@ func (q *Queries) ListChanges(ctx context.Context, arg ListChangesParams) ([]Lis
 	return items, nil
 }
 
+const lockChange = `-- name: LockChange :one
+SELECT id
+FROM change
+WHERE code = $1
+    FOR UPDATE
+`
+
+// Bloquea la fila hasta el fin de la transacción: dos escrituras sobre la misma entidad van una tras otra.
+func (q *Queries) LockChange(ctx context.Context, code string) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, lockChange, code)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const nextCode = `-- name: NextCode :one
 INSERT INTO code_sequence (prefix, year, last_value)
 VALUES ($1, $2, 1)

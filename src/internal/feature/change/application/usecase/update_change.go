@@ -28,7 +28,7 @@ func (uc *UpdateChange) Execute(ctx context.Context, in UpdateChangeInput) (Chan
 	var view port.ChangeView
 	err := uc.d.UnitOfWork.Within(ctx, func(ctx context.Context) error {
 		var err error
-		if view, err = findChange(ctx, uc.d.Repository, in.Code); err != nil {
+		if view, err = lockChange(ctx, uc.d.Repository, in.Code); err != nil {
 			return err
 		}
 		change := view.Change

@@ -43,7 +43,7 @@ func (uc *UncheckEntryItem) Execute(ctx context.Context, in UncheckEntryItemInpu
 
 // findEntryItem lee el REQ y un ítem de su contrato de entrada.
 func findEntryItem(ctx context.Context, repo port.Repository, code, itemKey string) (domain.Requirement, domain.EntryItem, error) {
-	requirement, err := findRequirement(ctx, repo, code)
+	requirement, err := lockRequirement(ctx, repo, code)
 	if err != nil {
 		return domain.Requirement{}, domain.EntryItem{}, err
 	}

@@ -275,3 +275,11 @@ Tomadas el 11 nov 2026 al construir el core y el primer corte vertical (`workflo
 - **Respaldo.** `pg_dump` de las dos bases y un `tar.gz` del volumen de documentos, con sumas de comprobación. La restauración reemplaza todo y se niega a correr con un respaldo dañado.
 - **TLS.** `tools/make-lab-cert.sh` genera un certificado autofirmado solo para laboratorio. Cuál se usa en el banco sigue `[POR DEFINIR]` (pregunta 12).
 - **El front es un marcador de posición.** Nginx sirve una página mínima detrás de la sesión hasta que exista la SPA.
+
+### D43 — Deuda cerrada al preparar la entrega
+- **Fecha:** 11 nov 2026
+- **Un DEF exige un RUN de un TC de su REQ.** Cierra la deuda de D39: ya no se puede abrir un defecto en un REQ con la evidencia de otro.
+- **Escrituras simultáneas.** Todo caso de uso que escribe sobre un CHG, un REQ o un DEF bloquea su fila (`SELECT … FOR UPDATE`) al empezar la transacción. Dos cambios sobre la misma entidad van uno tras otro y el segundo ve lo que dejó el primero. Cierra la deuda de D39.
+- **Métricas Prometheus** en el puerto interno (`/metrics`): peticiones y duración por método, plantilla de ruta y código, y las estadísticas del pool de Postgres (reglas §A.14). Cierra parte de D35.
+- **Pruebas unitarias de casos de uso** agregadas en `risk` y `defect`. Siguen pendientes en `user`, `testdesign`, `execution`, `document`, `comment`, `traceability` y la administración de `workflow` (D41).
+- **Siguen sin correr:** `golangci-lint`, `sqlc vet` y el lint completo de OpenAPI (D35).

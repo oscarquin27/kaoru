@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// Health sirve /livez y /readyz en el puerto interno, que Nginx no publica.
+// Health sirve /livez, /readyz y /metrics en el puerto interno, que Nginx no publica.
 type Health struct {
 	ping     func(ctx context.Context) error
 	draining atomic.Bool
@@ -21,9 +21,12 @@ func NewHealth(ping func(ctx context.Context) error) *Health {
 // Drain hace que /readyz responda 503: el proceso se está apagando.
 func (h *Health) Drain() { h.draining.Store(true) }
 
-// Handler devuelve las rutas de salud.
-func (h *Health) Handler() http.Handler {
+// Handler devuelve las rutas del puerto interno: salud y, si se pasan, las métricas.
+func (h *Health) Handler(metrics http.Handler) http.Handler {
 	mux := http.NewServeMux()
+	if metrics != nil {
+		mux.Handle("GET /metrics", metrics)
+	}
 	mux.HandleFunc("GET /livez", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})

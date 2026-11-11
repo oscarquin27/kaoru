@@ -185,3 +185,9 @@ func nullable(s string) *string {
 	}
 	return &s
 }
+
+// Lock bloquea la entidad hasta el fin de la transacción en curso.
+func (r *Repository) Lock(ctx context.Context, code shared.Code) error {
+	_, err := r.queries(ctx).LockDefect(ctx, code.String())
+	return corepg.TranslateError(err)
+}

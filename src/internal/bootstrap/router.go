@@ -36,6 +36,7 @@ type RouterDeps struct {
 	Database    *corepg.Database
 	FileStore   *filestore.Local
 	Verifier    oidc.Verifier
+	Metrics     *httpserver.Metrics
 	Logger      logging.Logger
 	Clock       clock.Clock
 	IdGenerator idgen.IdGenerator
@@ -146,6 +147,7 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 	}
 	engine.Use(
 		httpserver.RequestID(),
+		d.Metrics.Middleware(),
 		httpserver.AccessLog(d.Logger),
 		httpserver.Recovery(d.Logger),
 		httpserver.MaxBody(d.Config.HTTP.MaxBodyBytes, d.Config.Documents.MaxBytes),

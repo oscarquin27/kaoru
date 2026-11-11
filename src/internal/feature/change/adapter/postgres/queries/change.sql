@@ -60,3 +60,10 @@ FROM change c
 WHERE (sqlc.narg(system_key)::text IS NULL OR s.key = sqlc.narg(system_key))
   AND (sqlc.narg(state_key)::text IS NULL OR st.key = sqlc.narg(state_key))
   AND (sqlc.narg(query)::text IS NULL OR c.title ILIKE '%' || sqlc.narg(query) || '%' OR c.code = sqlc.narg(query));
+
+-- name: LockChange :one
+-- Bloquea la fila hasta el fin de la transacción: dos escrituras sobre la misma entidad van una tras otra.
+SELECT id
+FROM change
+WHERE code = $1
+    FOR UPDATE;

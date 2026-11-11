@@ -12,6 +12,7 @@ import (
 	"kaoru/internal/core/pkg/axis"
 	"kaoru/internal/core/pkg/clock"
 	"kaoru/internal/core/pkg/filestore"
+	"kaoru/internal/core/pkg/httpserver"
 	"kaoru/internal/core/pkg/idgen"
 	"kaoru/internal/core/pkg/oidc"
 	corepg "kaoru/internal/core/pkg/postgres"
@@ -59,7 +60,7 @@ func TestRegisteredRoutesAreInTheContract(t *testing.T) {
 		t.Fatal(err)
 	}
 	router, err := NewRouter(RouterDeps{
-		Config: testConfig(), Database: corepg.NewDatabase(nil), FileStore: files, Verifier: tokenVerifier{},
+		Config: testConfig(), Database: corepg.NewDatabase(nil), FileStore: files, Metrics: httpserver.NewMetrics(), Verifier: tokenVerifier{},
 		Logger: newLogger(os.Stderr, "text"), Clock: clock.System{}, IdGenerator: idgen.UUIDv7{},
 	})
 	if err != nil {

@@ -27,6 +27,22 @@ func (uc *GetChange) Execute(ctx context.Context, in GetChangeInput) (ChangeOutp
 	return toOutput(view), err
 }
 
+// lockChange bloquea la entidad y la lee: se usa dentro de la transacción de todo caso de uso que
+// escribe, para que dos cambios simultáneos sobre la misma entidad no se pisen.
+func lockChange(ctx context.Context, repo port.Repository, raw string) (port.ChangeView, error) {
+	code, err := shared.ParseCode(raw)
+	if err != nil {
+		return port.ChangeView{}, ErrChangeNotFound
+	}
+	if err := repo.Lock(ctx, code); err != nil {
+		if axis.IsCode(err, axis.NotFoundResource) {
+			return port.ChangeView{}, ErrChangeNotFound
+		}
+		return port.ChangeView{}, err
+	}
+	return findChange(ctx, repo, raw)
+}
+
 // findChange valida el código y lee el CHG; un código mal formado tampoco existe.
 func findChange(ctx context.Context, repo port.Repository, raw string) (port.ChangeView, error) {
 	code, err := shared.ParseCode(raw)

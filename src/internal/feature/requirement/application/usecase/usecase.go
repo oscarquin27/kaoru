@@ -76,6 +76,22 @@ func New(d Deps) (*UseCases, error) {
 	}, nil
 }
 
+// lockRequirement bloquea la entidad y la lee: se usa dentro de la transacción de todo caso de uso que
+// escribe, para que dos cambios simultáneos sobre la misma entidad no se pisen.
+func lockRequirement(ctx context.Context, repo port.Repository, raw string) (domain.Requirement, error) {
+	code, err := shared.ParseCode(raw)
+	if err != nil {
+		return domain.Requirement{}, ErrRequirementNotFound
+	}
+	if err := repo.Lock(ctx, code); err != nil {
+		if axis.IsCode(err, axis.NotFoundResource) {
+			return domain.Requirement{}, ErrRequirementNotFound
+		}
+		return domain.Requirement{}, err
+	}
+	return findRequirement(ctx, repo, raw)
+}
+
 // findRequirement valida el código y lee el REQ; un código mal formado tampoco existe.
 func findRequirement(ctx context.Context, repo port.Repository, raw string) (domain.Requirement, error) {
 	code, err := shared.ParseCode(raw)

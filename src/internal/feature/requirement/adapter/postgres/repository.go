@@ -269,3 +269,9 @@ func (r *Repository) UncheckEntryItem(ctx context.Context, requirementId, itemKe
 	rows, err := r.queries(ctx).DeleteEntryCheck(ctx, sqlcgen.DeleteEntryCheckParams{RequirementID: requirementID, ItemKey: itemKey})
 	return affected(rows, err)
 }
+
+// Lock bloquea la entidad hasta el fin de la transacción en curso.
+func (r *Repository) Lock(ctx context.Context, code shared.Code) error {
+	_, err := r.queries(ctx).LockRequirement(ctx, code.String())
+	return corepg.TranslateError(err)
+}

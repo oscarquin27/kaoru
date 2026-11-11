@@ -41,7 +41,7 @@ func (uc *UpdateDefect) Execute(ctx context.Context, in UpdateDefectInput) (Defe
 	var defect domain.Defect
 	err := uc.d.UnitOfWork.Within(ctx, func(ctx context.Context) error {
 		var err error
-		if defect, err = findDefect(ctx, uc.d.Repository, in.Code); err != nil {
+		if defect, err = lockDefect(ctx, uc.d.Repository, in.Code); err != nil {
 			return err
 		}
 		changes, err := defect.Apply(edit, uc.d.Clock.Now())

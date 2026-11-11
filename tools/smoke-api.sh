@@ -35,6 +35,13 @@ case "$body" in
     *) fail "el 401 no es problem+json: $body" ;;
 esac
 
+metrics="$(curl -s http://127.0.0.1:59091/metrics)"
+case "$metrics" in
+    *'http_server_requests_total{method="GET",route="/api/me",status="401"}'*'db_pool_max_connections'*) ;;
+    *) fail "/metrics no trae las métricas HTTP con la plantilla de ruta ni las del pool" ;;
+esac
+[ "$(status http://127.0.0.1:58081/metrics)" = 404 ] || fail "el puerto público no debe servir /metrics"
+
 docker exec "$name" /kaoru-api healthcheck || fail "el healthcheck del contenedor falló"
 migrations="$(ls "$(dirname "$0")/../src/migrations"/*.sql | wc -l | tr -d ' ')"
 docker logs "$name" 2>&1 | grep -q "\"msg\":\"migraciones al día\",\"applied\":$migrations" || fail "no aplicó las $migrations migraciones al arrancar"
