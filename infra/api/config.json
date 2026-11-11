@@ -1,0 +1,23 @@
+{
+  "http": {
+    "addr": ":8080",
+    "internalAddr": ":9090",
+    "publicOrigin": "${KAORU_PUBLIC_URL}",
+    "trustedProxies": ["172.16.0.0/12"],
+    "maxBodyBytes": 1048576
+  },
+  "postgres": {
+    "ownerUrl": "postgres://kaoru_owner:${POSTGRES_OWNER_PASSWORD}@${POSTGRES_HOST}/kaoru",
+    "appUrl": "postgres://kaoru_app:${POSTGRES_APP_PASSWORD}@${POSTGRES_HOST}/kaoru"
+  },
+  "oidc": {
+    "issuer": "${KEYCLOAK_ISSUER}",
+    "jwksUrl": "${KEYCLOAK_JWKS_URL}",
+    "clientId": "kaoru-web",
+    "logoutUrl": "/oauth2/sign_out",
+    "accountUrl": "${KEYCLOAK_ISSUER}/account"
+  },
+  "log": {
+    "format": "json"
+  }
+}
