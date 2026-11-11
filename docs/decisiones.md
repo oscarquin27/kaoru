@@ -99,3 +99,67 @@ El requerimiento (§0, puntos 3 y 7) pide señalar las contradicciones y propone
 - **Contexto:** la carpeta traía un `go.mod` en la raíz (`module kaoru`, sin versión de Go); reglas §A.3 pone el módulo Go en `src/go.mod`.
 - **Propuesta:** crear el módulo en `src/` al empezar el código y quitar el de la raíz. Mientras tanto, el de la raíz no se versiona ni se toca.
 - **Motivo:** las reglas mandan; la raíz queda para `docs/`, `infra/`, `api/`, `web/` y `tools/`.
+
+## Propuestas `[SUPUESTO]` — diseño de la fase 1, por aprobar por QA y dev
+
+Tomadas el 11 nov 2026 para poder avanzar con el diseño mientras la fase 0 sigue abierta. Ninguna está aprobada.
+
+### D16 — El esquema de la fase 1 cubre solo el MVP `[SUPUESTO]`
+- **Contexto:** la fase 1 pide el esquema SQL; las reglas (§A.1.1, §A.3) piden no escribir lo que ninguna fase usa todavía.
+- **Propuesta:** las migraciones crean las tablas de la fase 2. Las entidades de las fases 3 y 4 quedan diseñadas en `docs/modelo-datos.md` y `docs/flujos.md`, sin tablas.
+- **Motivo:** KISS; una migración aplicada no se edita, así que conviene no adelantar tablas que van a cambiar.
+
+### D17 — Estados del CHG `[SUPUESTO]`
+- **Contexto:** el requerimiento pide la máquina de estados del CHG pero solo define sus rutas (§8.2).
+- **Propuesta:** `Registrado → Aprobado → En curso → Liberado → Cerrado`, más `Rechazado`. La ruta no cambia los estados, sino las reglas que aplican.
+- **Motivo:** lo mínimo que permite aprobar y seguir un cambio. Lo decide change management.
+
+### D18 — Dos roles de base y tablas de solo inserción `[SUPUESTO]`
+- **Contexto:** la regla de negocio 9 pide que el usuario de la aplicación no tenga `UPDATE` ni `DELETE` sobre la auditoría, pero la aplicación aplica sus migraciones al arrancar, y el dueño de una tabla siempre puede darse permisos.
+- **Propuesta:** `kaoru_owner` migra y `kaoru_app` ejecuta. `kaoru_app` solo inserta y lee en `audit_entry`, `test_run`, `document_version` y `comment`. `kaoru-api` recibe dos cadenas de conexión.
+- **Motivo:** es la única forma de que la restricción sea real. `make check` la comprueba.
+
+### D19 — El tiempo en cada estado sale de la auditoría `[SUPUESTO]`
+- **Contexto:** la línea de vida y los defectos muestran el tiempo en cada estado.
+- **Propuesta:** se calcula al leer, con las filas `action = 'transition'` de `audit_entry`. No hay tabla de historial de estados.
+- **Motivo:** una sola fuente (DRY) y reglas §A.11: lo que depende del día se calcula al leer. Si la medición de la fase 2 lo pide, se agrega un índice o una tabla.
+
+### D20 — La API direcciona por código `[SUPUESTO]`
+- **Contexto:** los IDs legibles son únicos e inmutables, y las migas de pan y la búsqueda los usan.
+- **Propuesta:** `/api/requirements/REQ-2026-0042`. El `uuid` sigue siendo la llave interna y solo se expone en recursos hijos sin código (enlaces, comentarios).
+- **Motivo:** las URL del front y de la API coinciden y se ahorra una consulta de traducción.
+
+### D21 — RUN y EXP guardan BUILD y ambiente como texto hasta la fase 3 `[SUPUESTO]`
+- **Contexto:** el MVP registra RUN «por BUILD y ENV», pero BUILD- y ENV- son de la fase 3.
+- **Propuesta:** `build_version`, `build_checksum` y `environment_name` como texto; la fase 3 los cambia por llaves foráneas con una migración.
+- **Motivo:** no adelantar dos features. Costo: hasta la fase 3 el checksum del BUILD se registra, pero no se verifica contra un artefacto.
+
+### D22 — Core mínimo propio `[SUPUESTO]`
+- **Contexto:** la pregunta 15 (reutilizar el core de Aldía) sigue abierta.
+- **Propuesta:** si no hay respuesta al empezar la fase 2, se escribe un core mínimo con la misma forma (reglas §A.4).
+- **Motivo:** no bloquear la fase 2. Si después se adopta el core de la empresa, el cambio queda dentro de `core/`.
+
+### D23 — Comentarios como feature propio `[SUPUESTO]`
+- **Contexto:** la pestaña Actividad muestra comentarios y `dev` comenta los DEF, pero la lista de features (§A.4.1) no dice quién es dueño de los comentarios.
+- **Propuesta:** un feature `comment` en la fase 2, con la tabla `comment` (hoy creada en la migración 00006).
+- **Motivo:** los comentarios aplican a REQ, CHG y DEF; ponerlos dentro de uno obligaría a los otros a depender de él.
+
+### D24 — Ediciones de las normas `[SUPUESTO]`
+- **Contexto:** el requerimiento cita las normas sin edición.
+- **Propuesta:** ISO/IEC 25010:2011 (ocho características), ISO/IEC/IEEE 29119-3:2013, ISO 9001:2015 e ISO/IEC 20000-1:2018.
+- **Motivo:** son las que usa `docs/correspondencia-normas.md`. Las referencias deben verificarse contra el texto oficial.
+
+### D25 — Valores en inglés, etiquetas en español `[SUPUESTO]`
+- **Contexto:** reglas §A.19: identificadores en inglés, textos al usuario en español.
+- **Propuesta:** la base y la API guardan `high`, `passed`, `in_testing`; el nombre visible («Alta», «En pruebas») sale de `workflow_state.name` o del front.
+- **Motivo:** un valor de `CHECK` o de un enum es un identificador.
+
+### D26 — Supuestos del modelo `[SUPUESTO]`
+- **Contexto:** el requerimiento no fija estas cardinalidades.
+- **Propuesta:** un CHG pertenece a un solo sistema y sus REQ son de ese sistema; un REQ puede existir sin CHG; hay un RISK vigente por REQ (reevaluar lo actualiza); un UC pertenece a un solo REQ; un TC valida uno o más UC; un DEF siempre lleva el RUN que lo reprodujo.
+- **Motivo:** la lectura más simple de las secciones 6 y 9.
+
+### D27 — Versiones y comprobaciones provisionales `[SUPUESTO]`
+- **Contexto:** `make check` necesita versiones concretas, y el lint de OpenAPI no se pudo ejecutar en esta sesión.
+- **Propuesta:** PostgreSQL 17 y goose 3.24.1 para probar migraciones; el realm se probó en Keycloak 26.0. El contrato se comprueba con `tools/check-openapi.rb` (sintaxis, referencias, `operationId`), que no reemplaza al lint de §A.18. Las versiones definitivas, con digest, se fijan en el Compose de la fase 2.
+- **Motivo:** tener una comprobación real hoy sin fijar todavía la infraestructura.
