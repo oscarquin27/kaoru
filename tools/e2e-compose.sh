@@ -26,8 +26,8 @@ cleanup() {
 }
 trap cleanup EXIT
 
-fail() { echo "FALLO: $1" >&2; exit 1; }
-status() { curl -sk -o /dev/null -w '%{http_code}' "$@"; }
+# shellcheck disable=SC1091
+. "$root/tools/e2e-lib.sh"
 
 "$root/tools/make-lab-cert.sh" localhost >/dev/null
 docker build -q -f "$root/infra/api/Dockerfile" -t kaoru-api:dev "$root" >/dev/null
@@ -35,15 +35,7 @@ compose down -v --remove-orphans >/dev/null 2>&1 || true
 compose up -d --wait --wait-timeout 300 >/dev/null 2>&1 || fail "el Compose no llegó a estar sano"
 
 # Usuarios de laboratorio, creados con la herramienta de administración de Keycloak.
-kcadm() { compose exec -T keycloak /opt/keycloak/bin/kcadm.sh "$@" --config /tmp/kcadm.config; }
-kcadm config credentials --server http://localhost:8080/auth --realm master \
-    --user "$KEYCLOAK_ADMIN_USER" --password "$KEYCLOAK_ADMIN_PASSWORD" >/dev/null 2>&1 || fail "no se pudo entrar a la administración de Keycloak"
-new_user() { # usuario nombre apellido rol
-    kcadm create users -r kaoru -s "username=$1" -s enabled=true -s "firstName=$2" -s "lastName=$3" \
-        -s "email=$1@lab.invalid" -s emailVerified=true >/dev/null 2>&1 || fail "no se pudo crear $1"
-    kcadm set-password -r kaoru --username "$1" --new-password "$lab_password" >/dev/null 2>&1 || fail "no se pudo poner la contraseña de $1"
-    kcadm add-roles -r kaoru --uusername "$1" --rolename "$4" >/dev/null 2>&1 || fail "no se pudo dar el rol $4 a $1"
-}
+kcadm_login
 new_user lab-manager Carla Mora change-manager
 new_user lab-qa Ana Rojas qa
 
@@ -54,27 +46,7 @@ new_user lab-qa Ana Rojas qa
 [ "$(status "$base/auth/admin/")" = 404 ] || fail "la consola de administración de Keycloak no debe estar publicada"
 curl -skI "$base/healthz" | grep -qi 'strict-transport-security' || fail "faltan las cabeceras de seguridad"
 
-# Inicio de sesión como lo hace el navegador: seguir las redirecciones hasta el formulario
-# de Keycloak, enviarlo y volver a la aplicación con la cookie de sesión.
-login() { # usuario → deja la cookie en $work/<usuario>.jar
-    jar="$work/$1.jar"
-    page="$(curl -skL -c "$jar" -b "$jar" "$base/")"
-    action="$(printf '%s' "$page" | grep -o 'action="[^"]*"' | head -1 | sed 's/action="//; s/"$//; s/&amp;/\&/g')"
-    [ -n "$action" ] || fail "no apareció el formulario de inicio de sesión de Keycloak"
-    code="$(curl -skL -c "$jar" -b "$jar" -o "$work/$1.html" -w '%{http_code}' \
-        --data-urlencode "username=$1" --data-urlencode "password=$lab_password" "$action")"
-    [ "$code" = 200 ] || fail "el inicio de sesión de $1 terminó en $code"
-    grep -q 'Sesión iniciada' "$work/$1.html" || fail "tras iniciar sesión, $1 no llegó a la aplicación"
-}
-api() { # usuario método ruta [cuerpo] → imprime el cuerpo; el código queda en $work/code
-    args=(-sk -b "$work/$1.jar" -o "$work/body" -w '%{http_code}' -X "$2")
-    if [ "$2" != GET ]; then args+=(-H "Origin: $base"); fi
-    if [ -n "${4:-}" ]; then args+=(-H 'Content-Type: application/json' -d "$4"); fi
-    curl "${args[@]}" "$base$3" >"$work/code"
-    cat "$work/body"
-}
-code() { cat "$work/code"; }
-
+# Inicio de sesión como lo hace el navegador (ver login en e2e-lib.sh).
 login lab-manager
 login lab-qa
 
@@ -102,18 +74,18 @@ api lab-qa POST /api/changes '{"title":"Cambio e2e","system":"SYPAGO"}' >/dev/nu
     -d '{"title":"x","system":"SYPAGO"}' "$base/api/changes")" = 403 ] || fail "una escritura sin Origin debe rechazarse"
 change="$(api lab-manager POST /api/changes '{"title":"Cambio e2e","system":"SYPAGO"}')"
 [ "$(code)" = 201 ] || fail "change-manager debía crear el CHG ($(code)): $change"
-chg="$(printf '%s' "$change" | grep -o '"code":"CHG-[0-9]*-[0-9]*"' | head -1 | cut -d'"' -f4)"
+chg="$(printf '%s' "$change" | json_code CHG)"
 case "$change" in *'"displayName":"Carla Mora"'*) ;; *) fail "el CHG debe decir quién lo creó: $change" ;; esac
 
 # Un recorrido corto con las dos sesiones: REQ, documento adjunto y auditoría.
-req="$(api lab-manager POST /api/requirements "{\"title\":\"REQ e2e\",\"system\":\"SYPAGO\",\"change\":\"$chg\"}" | grep -o '"code":"REQ-[0-9]*-[0-9]*"' | head -1 | cut -d'"' -f4)"
+req="$(api lab-manager POST /api/requirements "{\"title\":\"REQ e2e\",\"system\":\"SYPAGO\",\"change\":\"$chg\"}" | json_code REQ)"
 [ -n "$req" ] || fail "no se creó el REQ"
 printf '%%PDF-1.7\nprueba e2e\n' >"$work/spec.pdf"
 upload="$(curl -sk -b "$work/lab-qa.jar" -H "Origin: $base" -o "$work/body" -w '%{http_code}' \
     -F title=Especificación -F kind=specification -F entityType=requirement -F "entityCode=$req" \
     -F "file=@$work/spec.pdf" "$base/api/documents")"
 [ "$upload" = 201 ] || fail "la subida del documento respondió $upload: $(cat "$work/body")"
-doc="$(grep -o '"code":"DOC-[0-9]*-[0-9]*"' "$work/body" | head -1 | cut -d'"' -f4)"
+doc="$(json_code DOC <"$work/body")"
 curl -sk -b "$work/lab-qa.jar" -o "$work/descarga.pdf" "$base/api/documents/$doc/versions/1/content"
 cmp -s "$work/spec.pdf" "$work/descarga.pdf" || fail "el documento descargado no es el que se subió"
 overview="$(api lab-qa GET "/api/requirements/$req/overview")"

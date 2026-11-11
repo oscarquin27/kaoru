@@ -68,7 +68,8 @@ done
 # Desastre: se pierden los contenedores y todos los volúmenes.
 compose down -v >/dev/null 2>&1
 "$app/install.sh" >/dev/null 2>&1 || fail "la reinstalación desde cero no quedó sana"
-login lab-manager 2>/dev/null && fail "en una instalación nueva el usuario todavía no debe existir" || true
+# En un subshell: `login` termina el proceso cuando falla, que aquí es lo esperado.
+if (login lab-manager) >/dev/null 2>&1; then fail "en una instalación nueva el usuario todavía no debe existir"; fi
 
 # Un respaldo dañado se rechaza.
 cp -R "$backup" "$work/danado" && echo basura >>"$work/danado/kaoru.dump"
