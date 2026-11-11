@@ -1,0 +1,66 @@
+{
+  "realm": "kaoru",
+  "displayName": "Kaoru",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "rememberMe": false,
+  "loginWithEmailAllowed": false,
+  "duplicateEmailsAllowed": false,
+  "editUsernameAllowed": false,
+  "internationalizationEnabled": true,
+  "supportedLocales": ["es"],
+  "defaultLocale": "es",
+  "passwordPolicy": "length(12) and upperCase(1) and lowerCase(1) and digits(1) and notUsername and passwordHistory(5)",
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "failureFactor": 5,
+  "waitIncrementSeconds": 60,
+  "maxFailureWaitSeconds": 900,
+  "maxDeltaTimeSeconds": 43200,
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA1",
+  "otpPolicyDigits": 6,
+  "otpPolicyPeriod": 30,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "accessTokenLifespan": 300,
+  "eventsEnabled": true,
+  "eventsExpiration": 7776000,
+  "adminEventsEnabled": true,
+  "adminEventsDetailsEnabled": true,
+  "roles": {
+    "realm": [
+      { "name": "change-manager", "description": "Crea y aprueba CHG, acepta diferidos, aprueba PKG y firma el checklist de producción." },
+      { "name": "qa-admin", "description": "Todo lo de QA, más la configuración de flujos, reglas de bloqueo, catálogos y permisos." },
+      { "name": "qa", "description": "Define RISK, UC y TC; registra RUN, EXP, DEF y SMOKE; genera informes." },
+      { "name": "dev", "description": "Registra entregas, comenta y corrige DEF, aporta DIAG." },
+      { "name": "ops", "description": "Ejecuta y firma pasos del checklist de producción, aporta DIAG." },
+      { "name": "auditor", "description": "Solo lectura, incluida la auditoría." }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "kaoru-web",
+      "name": "Kaoru",
+      "description": "Cliente de oauth2-proxy. El navegador nunca recibe un token.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${KAORU_OIDC_CLIENT_SECRET}",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "rootUrl": "${KAORU_PUBLIC_URL}",
+      "baseUrl": "/",
+      "redirectUris": ["${KAORU_PUBLIC_URL}/oauth2/callback"],
+      "webOrigins": ["${KAORU_PUBLIC_URL}"],
+      "attributes": {
+        "post.logout.redirect.uris": "${KAORU_PUBLIC_URL}/*"
+      }
+    }
+  ]
+}

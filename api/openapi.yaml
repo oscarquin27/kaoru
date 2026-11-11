@@ -1,0 +1,2035 @@
+openapi: 3.0.3
+info:
+  title: Kaoru API
+  version: 0.1.0
+  description: |
+    Contrato HTTP entre `kaoru-api` y el front (reglas §A.16.1). Cubre el MVP (fase 2).
+
+    - Todo vive bajo `/api/`, sin versión.
+    - La sesión es la cookie de oauth2-proxy; el navegador no maneja tokens.
+    - Los recursos con ID legible se direccionan por su código (`REQ-2026-0042`).
+    - Los errores son `application/problem+json` (RFC 9457).
+    - Toda petición `POST`, `PUT`, `PATCH` o `DELETE` debe traer `Origin` igual al origen público.
+
+    Fuera del contrato hasta que se defina el formato de la hoja (pregunta 5): la importación.
+  license:
+    name: Uso interno
+    url: https://example.invalid/uso-interno
+servers:
+  - url: /
+security:
+  - session: []
+tags:
+  - name: user
+  - name: workflow
+  - name: change
+  - name: requirement
+  - name: risk
+  - name: testdesign
+  - name: execution
+  - name: defect
+  - name: document
+  - name: comment
+  - name: traceability
+  - name: audit
+
+paths:
+  /api/me:
+    get:
+      tags: [user]
+      operationId: getMe
+      summary: Perfil, roles y permisos del usuario en sesión
+      responses:
+        '200':
+          description: Perfil
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Me' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/systems:
+    get:
+      tags: [workflow]
+      operationId: listSystems
+      summary: Sistemas bajo prueba
+      responses:
+        '200':
+          description: Lista
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/System' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/workflows/{entityType}:
+    parameters:
+      - $ref: '#/components/parameters/WorkflowEntityType'
+    get:
+      tags: [workflow]
+      operationId: getWorkflow
+      summary: Estados, transiciones y reglas de bloqueo de un flujo
+      responses:
+        '200':
+          description: Flujo
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Workflow' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/admin/role-permissions:
+    get:
+      tags: [workflow]
+      operationId: listRolePermissions
+      summary: Permisos disponibles y su asignación por rol
+      responses:
+        '200':
+          description: Permisos
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RolePermissions' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/admin/role-permissions/{role}:
+    parameters:
+      - name: role
+        in: path
+        required: true
+        schema: { $ref: '#/components/schemas/Role' }
+    put:
+      tags: [workflow]
+      operationId: setRolePermissions
+      summary: Reemplaza los permisos de un rol
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [permissions]
+              properties:
+                permissions:
+                  type: array
+                  items: { type: string }
+      responses:
+        '200':
+          description: Permisos actualizados
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RolePermissions' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/admin/blocking-rules/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    patch:
+      tags: [workflow]
+      operationId: updateBlockingRule
+      summary: Activa, desactiva o ajusta una regla de bloqueo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled: { type: boolean }
+                blocks: { type: boolean }
+                params: { type: object, additionalProperties: true }
+      responses:
+        '200':
+          description: Regla actualizada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BlockingRule' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/changes:
+    get:
+      tags: [change]
+      operationId: listChanges
+      summary: Lista de CHG
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/SystemKey'
+        - $ref: '#/components/parameters/StateKey'
+        - $ref: '#/components/parameters/Query'
+      responses:
+        '200':
+          description: Página de CHG
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageInfo'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/Change' }
+        default: { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [change]
+      operationId: createChange
+      summary: Crea un CHG
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChangeInput' }
+      responses:
+        '201':
+          description: CHG creado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Change' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/changes/{code}:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    get:
+      tags: [change]
+      operationId: getChange
+      summary: Ficha de un CHG
+      responses:
+        '200':
+          description: CHG
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Change' }
+        default: { $ref: '#/components/responses/Problem' }
+    patch:
+      tags: [change]
+      operationId: updateChange
+      summary: Edita un CHG
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChangePatch' }
+      responses:
+        '200':
+          description: CHG actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Change' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/changes/{code}/transitions:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    post:
+      tags: [change]
+      operationId: transitionChange
+      summary: Cambia el estado de un CHG
+      requestBody: { $ref: '#/components/requestBodies/Transition' }
+      responses:
+        '200':
+          description: CHG en su nuevo estado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Change' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/requirements:
+    get:
+      tags: [requirement]
+      operationId: listRequirements
+      summary: Lista de REQ
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/SystemKey'
+        - $ref: '#/components/parameters/StateKey'
+        - $ref: '#/components/parameters/Query'
+        - name: change
+          in: query
+          description: Código del CHG
+          schema: { $ref: '#/components/schemas/Code' }
+        - name: owner
+          in: query
+          description: ID del responsable actual
+          schema: { type: string }
+      responses:
+        '200':
+          description: Página de REQ
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageInfo'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/Requirement' }
+        default: { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [requirement]
+      operationId: createRequirement
+      summary: Registra un REQ
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RequirementInput' }
+      responses:
+        '201':
+          description: REQ registrado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Requirement' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/requirements/{code}:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    get:
+      tags: [requirement]
+      operationId: getRequirement
+      summary: Datos de un REQ
+      responses:
+        '200':
+          description: REQ
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Requirement' }
+        default: { $ref: '#/components/responses/Problem' }
+    patch:
+      tags: [requirement]
+      operationId: updateRequirement
+      summary: Edita un REQ
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RequirementPatch' }
+      responses:
+        '200':
+          description: REQ actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Requirement' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/requirements/{code}/transitions:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    post:
+      tags: [requirement]
+      operationId: transitionRequirement
+      summary: Cambia el estado de un REQ
+      description: Si una regla de bloqueo no se cumple, responde 409 `INVALID_ACTION` con lo que falta en `detail`.
+      requestBody: { $ref: '#/components/requestBodies/Transition' }
+      responses:
+        '200':
+          description: REQ en su nuevo estado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Requirement' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/requirements/{code}/links:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    get:
+      tags: [requirement]
+      operationId: listRequirementLinks
+      summary: Enlaces de un REQ
+      responses:
+        '200':
+          description: Enlaces
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Link' }
+        default: { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [requirement]
+      operationId: createRequirementLink
+      summary: Agrega un enlace
+      description: Si la URL es de Google Sheets, el servidor extrae el ID de la hoja, la pestaña y el rango. No comprueba que exista.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LinkInput' }
+      responses:
+        '201':
+          description: Enlace agregado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Link' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/requirements/{code}/links/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+      - $ref: '#/components/parameters/Id'
+    patch:
+      tags: [requirement]
+      operationId: updateRequirementLink
+      summary: Edita un enlace, lo marca como oficial o le asocia una instantánea
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LinkPatch' }
+      responses:
+        '200':
+          description: Enlace actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Link' }
+        default: { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [requirement]
+      operationId: deleteRequirementLink
+      summary: Quita un enlace
+      responses:
+        '204': { description: Enlace quitado }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/requirements/{code}/entry-contract:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    get:
+      tags: [requirement]
+      operationId: getEntryContract
+      summary: Contrato de entrada dev → QA con el estado de cada ítem
+      responses:
+        '200':
+          description: Contrato
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/EntryContractItem' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/requirements/{code}/entry-contract/{itemKey}:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+      - name: itemKey
+        in: path
+        required: true
+        schema: { type: string }
+    put:
+      tags: [requirement]
+      operationId: checkEntryContractItem
+      summary: Marca un ítem como cumplido
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note: { type: string }
+      responses:
+        '200':
+          description: Ítem cumplido
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EntryContractItem' }
+        default: { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [requirement]
+      operationId: uncheckEntryContractItem
+      summary: Quita la marca de un ítem
+      responses:
+        '204': { description: Marca quitada }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/requirements/{code}/risk:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    get:
+      tags: [risk]
+      operationId: getRisk
+      summary: RISK vigente de un REQ
+      responses:
+        '200':
+          description: RISK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Risk' }
+        default: { $ref: '#/components/responses/Problem' }
+    put:
+      tags: [risk]
+      operationId: assessRisk
+      summary: Evalúa o reevalúa el riesgo de un REQ
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RiskInput' }
+      responses:
+        '200':
+          description: RISK guardado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Risk' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/requirements/{code}/functional-cases:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    get:
+      tags: [testdesign]
+      operationId: listFunctionalCases
+      summary: UC de un REQ
+      responses:
+        '200':
+          description: UC
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/FunctionalCase' }
+        default: { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [testdesign]
+      operationId: createFunctionalCase
+      summary: Define un UC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FunctionalCaseInput' }
+      responses:
+        '201':
+          description: UC definido
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FunctionalCase' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/functional-cases/{code}:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    get:
+      tags: [testdesign]
+      operationId: getFunctionalCase
+      summary: Datos de un UC
+      responses:
+        '200':
+          description: UC
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FunctionalCase' }
+        default: { $ref: '#/components/responses/Problem' }
+    patch:
+      tags: [testdesign]
+      operationId: updateFunctionalCase
+      summary: Edita un UC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FunctionalCaseInput' }
+      responses:
+        '200':
+          description: UC actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FunctionalCase' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/test-cases:
+    get:
+      tags: [testdesign]
+      operationId: listTestCases
+      summary: Lista de TC
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/SystemKey'
+        - $ref: '#/components/parameters/Query'
+        - name: requirement
+          in: query
+          description: Código del REQ que el TC valida a través de sus UC
+          schema: { $ref: '#/components/schemas/Code' }
+        - name: critical
+          in: query
+          schema: { type: boolean }
+      responses:
+        '200':
+          description: Página de TC
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageInfo'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/TestCase' }
+        default: { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [testdesign]
+      operationId: createTestCase
+      summary: Define un TC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TestCaseInput' }
+      responses:
+        '201':
+          description: TC definido
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TestCase' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/test-cases/{code}:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    get:
+      tags: [testdesign]
+      operationId: getTestCase
+      summary: Datos de un TC
+      responses:
+        '200':
+          description: TC
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TestCase' }
+        default: { $ref: '#/components/responses/Problem' }
+    patch:
+      tags: [testdesign]
+      operationId: updateTestCase
+      summary: Edita o retira un TC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TestCasePatch' }
+      responses:
+        '200':
+          description: TC actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TestCase' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/runs:
+    get:
+      tags: [execution]
+      operationId: listRuns
+      summary: Lista de RUN
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - name: testCase
+          in: query
+          schema: { $ref: '#/components/schemas/Code' }
+        - name: requirement
+          in: query
+          schema: { $ref: '#/components/schemas/Code' }
+        - name: buildVersion
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Página de RUN
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageInfo'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/Run' }
+        default: { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [execution]
+      operationId: createRun
+      summary: Registra un RUN
+      description: Un RUN no se edita después de creado. Quien ejecuta y la fecha de registro salen de la sesión y del servidor.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RunInput' }
+      responses:
+        '201':
+          description: RUN registrado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Run' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/runs/{code}:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    get:
+      tags: [execution]
+      operationId: getRun
+      summary: Datos de un RUN
+      responses:
+        '200':
+          description: RUN
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Run' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/explorations:
+    get:
+      tags: [execution]
+      operationId: listExplorations
+      summary: Lista de EXP
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - name: requirement
+          in: query
+          schema: { $ref: '#/components/schemas/Code' }
+      responses:
+        '200':
+          description: Página de EXP
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageInfo'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/Exploration' }
+        default: { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [execution]
+      operationId: createExploration
+      summary: Registra un EXP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ExplorationInput' }
+      responses:
+        '201':
+          description: EXP registrado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Exploration' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/explorations/{code}:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    get:
+      tags: [execution]
+      operationId: getExploration
+      summary: Datos de un EXP
+      responses:
+        '200':
+          description: EXP
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Exploration' }
+        default: { $ref: '#/components/responses/Problem' }
+    patch:
+      tags: [execution]
+      operationId: updateExploration
+      summary: Completa los hallazgos o los cambios manuales de un EXP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                manualChanges: { type: string }
+                findings: { type: string }
+      responses:
+        '200':
+          description: EXP actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Exploration' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/defects:
+    get:
+      tags: [defect]
+      operationId: listDefects
+      summary: Lista de DEF
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/StateKey'
+        - $ref: '#/components/parameters/Query'
+        - name: requirement
+          in: query
+          schema: { $ref: '#/components/schemas/Code' }
+        - name: severity
+          in: query
+          schema: { $ref: '#/components/schemas/Severity' }
+        - name: assignee
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Página de DEF
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageInfo'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/Defect' }
+        default: { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [defect]
+      operationId: createDefect
+      summary: Abre un DEF
+      description: Exige el RUN que reprodujo el defecto. Un hallazgo de un EXP no se abre como DEF sin reproducirlo en un RUN.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DefectInput' }
+      responses:
+        '201':
+          description: DEF abierto
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Defect' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/defects/{code}:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    get:
+      tags: [defect]
+      operationId: getDefect
+      summary: Ficha de un DEF
+      responses:
+        '200':
+          description: DEF
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Defect' }
+        default: { $ref: '#/components/responses/Problem' }
+    patch:
+      tags: [defect]
+      operationId: updateDefect
+      summary: Edita un DEF
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DefectPatch' }
+      responses:
+        '200':
+          description: DEF actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Defect' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/defects/{code}/transitions:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    post:
+      tags: [defect]
+      operationId: transitionDefect
+      summary: Cambia el estado de un DEF
+      requestBody: { $ref: '#/components/requestBodies/Transition' }
+      responses:
+        '200':
+          description: DEF en su nuevo estado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Defect' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/documents:
+    get:
+      tags: [document]
+      operationId: listDocuments
+      summary: Documentos enlazados a una entidad
+      parameters:
+        - $ref: '#/components/parameters/EntityType'
+        - $ref: '#/components/parameters/EntityCode'
+      responses:
+        '200':
+          description: Documentos
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Document' }
+        default: { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [document]
+      operationId: createDocument
+      summary: Adjunta un documento a una entidad
+      description: El servidor valida el tipo real del contenido y el tamaño, y calcula el SHA-256.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [title, kind, entityType, entityCode, file]
+              properties:
+                title: { type: string }
+                kind: { $ref: '#/components/schemas/DocumentKind' }
+                entityType: { $ref: '#/components/schemas/EntityType' }
+                entityCode: { $ref: '#/components/schemas/Code' }
+                file: { type: string, format: binary }
+      responses:
+        '201':
+          description: Documento adjuntado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Document' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/documents/{code}:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    get:
+      tags: [document]
+      operationId: getDocument
+      summary: Documento con sus versiones y las entidades que lo enlazan
+      responses:
+        '200':
+          description: Documento
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Document' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/documents/{code}/versions:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    post:
+      tags: [document]
+      operationId: createDocumentVersion
+      summary: Sube una versión nueva; las anteriores se conservan
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '201':
+          description: Versión subida
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Document' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/documents/{code}/versions/{version}/content:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+      - name: version
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1 }
+    get:
+      tags: [document]
+      operationId: getDocumentContent
+      summary: Contenido de una versión, para el visor o para descargar
+      parameters:
+        - name: download
+          in: query
+          description: 'Con `true`, responde con `Content-Disposition: attachment`.'
+          schema: { type: boolean, default: false }
+      responses:
+        '200':
+          description: Contenido del archivo
+          content:
+            '*/*':
+              schema: { type: string, format: binary }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/documents/{code}/links:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    post:
+      tags: [document]
+      operationId: linkDocument
+      summary: Enlaza un documento existente a otra entidad
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EntityRefInput' }
+      responses:
+        '200':
+          description: Documento enlazado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Document' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/comments:
+    get:
+      tags: [comment]
+      operationId: listComments
+      summary: Comentarios de una entidad
+      parameters:
+        - $ref: '#/components/parameters/EntityType'
+        - $ref: '#/components/parameters/EntityCode'
+      responses:
+        '200':
+          description: Comentarios, del más antiguo al más reciente
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Comment' }
+        default: { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [comment]
+      operationId: createComment
+      summary: Comenta en una entidad
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/EntityRefInput'
+                - type: object
+                  required: [body]
+                  properties:
+                    body: { type: string, minLength: 1 }
+      responses:
+        '201':
+          description: Comentario guardado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Comment' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/search:
+    get:
+      tags: [traceability]
+      operationId: search
+      summary: Búsqueda global por ID o texto
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string, minLength: 2 }
+      responses:
+        '200':
+          description: Resultados, con las coincidencias exactas de ID primero
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/SearchHit' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/requirements/{code}/overview:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    get:
+      tags: [traceability]
+      operationId: getRequirementOverview
+      summary: Ficha consolidada del REQ
+      description: Línea de vida con el tiempo en cada etapa, «qué falta para avanzar», cobertura y entidades relacionadas.
+      responses:
+        '200':
+          description: Ficha
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RequirementOverview' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/traceability/matrix:
+    get:
+      tags: [traceability]
+      operationId: getMatrix
+      summary: Matriz de trazabilidad
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/MatrixChange'
+        - $ref: '#/components/parameters/SystemKey'
+        - $ref: '#/components/parameters/StateKey'
+        - $ref: '#/components/parameters/MatrixRisk'
+        - $ref: '#/components/parameters/MatrixOwner'
+        - $ref: '#/components/parameters/MatrixFrom'
+        - $ref: '#/components/parameters/MatrixTo'
+      responses:
+        '200':
+          description: Página de la matriz con sus indicadores
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Matrix' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/traceability/matrix/export:
+    get:
+      tags: [traceability]
+      operationId: exportMatrix
+      summary: Exporta la matriz filtrada
+      parameters:
+        - name: format
+          in: query
+          required: true
+          schema: { type: string, enum: [csv, xlsx] }
+        - $ref: '#/components/parameters/MatrixChange'
+        - $ref: '#/components/parameters/SystemKey'
+        - $ref: '#/components/parameters/StateKey'
+        - $ref: '#/components/parameters/MatrixRisk'
+        - $ref: '#/components/parameters/MatrixOwner'
+        - $ref: '#/components/parameters/MatrixFrom'
+        - $ref: '#/components/parameters/MatrixTo'
+      responses:
+        '200':
+          description: Archivo
+          content:
+            text/csv:
+              schema: { type: string }
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/audit:
+    get:
+      tags: [audit]
+      operationId: listAudit
+      summary: Consulta la auditoría
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - name: entityCode
+          in: query
+          schema: { $ref: '#/components/schemas/Code' }
+        - name: actor
+          in: query
+          schema: { type: string }
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+      responses:
+        '200':
+          description: Página de registros, del más reciente al más antiguo
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageInfo'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/AuditEntry' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/audit/export:
+    get:
+      tags: [audit]
+      operationId: exportAudit
+      summary: Exporta la auditoría en CSV
+      parameters:
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+      responses:
+        '200':
+          description: Archivo CSV
+          content:
+            text/csv:
+              schema: { type: string }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/audit/verification:
+    get:
+      tags: [audit]
+      operationId: verifyAudit
+      summary: Recalcula la cadena de hash y dice si está íntegra
+      responses:
+        '200':
+          description: Resultado de la verificación
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [intact, entries]
+                properties:
+                  intact: { type: boolean }
+                  entries: { type: integer }
+                  firstBrokenSeq:
+                    type: integer
+                    format: int64
+                    description: Primer registro que no cuadra, si la cadena está rota.
+        default: { $ref: '#/components/responses/Problem' }
+
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: _oauth2_proxy
+      description: Cookie de sesión de oauth2-proxy. Nginx la cambia por el token antes de llegar al backend.
+
+  parameters:
+    Code:
+      name: code
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Code' }
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    Size:
+      name: size
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 200, default: 25 }
+    Query:
+      name: q
+      in: query
+      description: Texto a buscar en el título
+      schema: { type: string }
+    SystemKey:
+      name: system
+      in: query
+      description: Clave del sistema (`SIMF`, `SGLPAR`, `SYPAGO`)
+      schema: { type: string }
+    StateKey:
+      name: state
+      in: query
+      description: Clave del estado en su flujo
+      schema: { type: string }
+    WorkflowEntityType:
+      name: entityType
+      in: path
+      required: true
+      schema: { type: string, enum: [requirement, change, defect] }
+    EntityType:
+      name: entityType
+      in: query
+      required: true
+      schema: { $ref: '#/components/schemas/EntityType' }
+    EntityCode:
+      name: entityCode
+      in: query
+      required: true
+      schema: { $ref: '#/components/schemas/Code' }
+    MatrixChange:
+      name: change
+      in: query
+      description: Código del CHG
+      schema: { $ref: '#/components/schemas/Code' }
+    MatrixRisk:
+      name: risk
+      in: query
+      schema: { $ref: '#/components/schemas/RiskLevel' }
+    MatrixOwner:
+      name: owner
+      in: query
+      schema: { type: string }
+    MatrixFrom:
+      name: from
+      in: query
+      description: REQ creados desde esta fecha
+      schema: { type: string, format: date }
+    MatrixTo:
+      name: to
+      in: query
+      description: REQ creados hasta esta fecha
+      schema: { type: string, format: date }
+
+  requestBodies:
+    Transition:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [to]
+            properties:
+              to:
+                type: string
+                description: Clave del estado destino
+              reason:
+                type: string
+                description: Motivo. Obligatorio si la transición lo exige.
+
+  responses:
+    Problem:
+      description: Error (RFC 9457). El código HTTP sale de la tabla de reglas §A.10.2.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+
+  schemas:
+    Code:
+      type: string
+      pattern: '^[A-Z]+-\d{4}-\d{4,}$'
+      example: REQ-2026-0042
+    Role:
+      type: string
+      enum: [change-manager, qa-admin, qa, dev, ops, auditor]
+    Severity:
+      type: string
+      enum: [high, medium, low]
+    RiskLevel:
+      type: string
+      enum: [high, medium, low]
+    Route:
+      type: string
+      enum: [high, light, minor_fix]
+      description: Ruta del CHG. `high` alta, `light` ligera, `minor_fix` fix menor.
+    QualityCharacteristic:
+      type: string
+      description: Característica de calidad de ISO/IEC 25010.
+      enum:
+        - functional_suitability
+        - performance_efficiency
+        - compatibility
+        - usability
+        - reliability
+        - security
+        - maintainability
+        - portability
+    EntityType:
+      type: string
+      enum: [requirement, change, functional_case, test_case, test_run, exploratory_session, defect]
+    DocumentKind:
+      type: string
+      enum: [specification, manual, evidence, minutes, snapshot, other]
+    LinkKind:
+      type: string
+      enum: [google_sheets, youtrack, shared_folder, wiki, other]
+    RunResult:
+      type: string
+      enum: [passed, failed, blocked]
+    Checksum:
+      type: string
+      pattern: '^[0-9a-f]{64}$'
+      description: SHA-256 en hexadecimal.
+
+    Problem:
+      type: object
+      required: [type, title, status, code, traceId]
+      properties:
+        type: { type: string, example: 'about:blank' }
+        title: { type: string }
+        status: { type: integer }
+        code: { type: string, example: INVALID_ACTION }
+        detail: { type: string }
+        traceId: { type: string }
+        errors:
+          type: array
+          description: Solo en un 422.
+          items:
+            type: object
+            required: [field, code, message]
+            properties:
+              field: { type: string }
+              code: { type: string, enum: [required, invalid] }
+              message: { type: string }
+
+    PageInfo:
+      type: object
+      required: [page, size, total]
+      properties:
+        page: { type: integer }
+        size: { type: integer }
+        total: { type: integer }
+
+    UserRef:
+      type: object
+      required: [id, displayName]
+      properties:
+        id: { type: string }
+        displayName: { type: string }
+
+    StateRef:
+      type: object
+      required: [key, name]
+      properties:
+        key: { type: string }
+        name: { type: string }
+
+    EntityRef:
+      type: object
+      required: [type, code, title]
+      properties:
+        type: { $ref: '#/components/schemas/EntityType' }
+        code: { $ref: '#/components/schemas/Code' }
+        title: { type: string }
+
+    EntityRefInput:
+      type: object
+      required: [entityType, entityCode]
+      properties:
+        entityType: { $ref: '#/components/schemas/EntityType' }
+        entityCode: { $ref: '#/components/schemas/Code' }
+
+    Me:
+      type: object
+      required: [id, username, displayName, roles, permissions, logoutUrl]
+      properties:
+        id: { type: string }
+        username: { type: string }
+        displayName: { type: string }
+        email: { type: string }
+        roles:
+          type: array
+          items: { $ref: '#/components/schemas/Role' }
+        permissions:
+          type: array
+          description: Sirve para ocultar botones. La comprobación real está en el backend.
+          items: { type: string }
+        logoutUrl: { type: string }
+        accountUrl:
+          type: string
+          description: Página de cuenta en Keycloak (contraseña, OTP).
+
+    System:
+      type: object
+      required: [key, name, defaultRoute]
+      properties:
+        key: { type: string }
+        name: { type: string }
+        defaultRoute: { $ref: '#/components/schemas/Route' }
+
+    Workflow:
+      type: object
+      required: [entityType, states, transitions]
+      properties:
+        entityType: { type: string }
+        states:
+          type: array
+          items:
+            type: object
+            required: [key, name, isInitial, isFinal]
+            properties:
+              key: { type: string }
+              name: { type: string }
+              position:
+                type: integer
+                description: Orden en la línea de vida. Ausente en un estado lateral.
+              isInitial: { type: boolean }
+              isFinal: { type: boolean }
+        transitions:
+          type: array
+          items:
+            type: object
+            required: [from, to, permission, requiresReason, rules]
+            properties:
+              from: { type: string }
+              to: { type: string }
+              permission: { type: string }
+              requiresReason: { type: boolean }
+              rules:
+                type: array
+                items: { $ref: '#/components/schemas/BlockingRule' }
+
+    BlockingRule:
+      type: object
+      required: [id, ruleKey, params, blocks, enabled]
+      properties:
+        id: { type: string, format: uuid }
+        ruleKey: { type: string }
+        params: { type: object, additionalProperties: true }
+        route: { $ref: '#/components/schemas/Route' }
+        blocks:
+          type: boolean
+          description: Con `false`, la regla solo avisa.
+        enabled: { type: boolean }
+
+    RolePermissions:
+      type: object
+      required: [permissions, roles]
+      properties:
+        permissions:
+          type: array
+          items:
+            type: object
+            required: [key, description]
+            properties:
+              key: { type: string }
+              description: { type: string }
+        roles:
+          type: array
+          items:
+            type: object
+            required: [role, permissions]
+            properties:
+              role: { $ref: '#/components/schemas/Role' }
+              permissions:
+                type: array
+                items: { type: string }
+
+    ChangeInput:
+      type: object
+      required: [title, system, route]
+      properties:
+        title: { type: string, minLength: 1 }
+        description: { type: string }
+        system:
+          type: string
+          description: Clave del sistema
+        route: { $ref: '#/components/schemas/Route' }
+        windowStart: { type: string, format: date-time }
+        windowEnd: { type: string, format: date-time }
+    ChangePatch:
+      type: object
+      properties:
+        title: { type: string, minLength: 1 }
+        description: { type: string }
+        route: { $ref: '#/components/schemas/Route' }
+        windowStart: { type: string, format: date-time, nullable: true }
+        windowEnd: { type: string, format: date-time, nullable: true }
+    Change:
+      type: object
+      required: [code, title, description, system, route, state, requirementCount, createdBy, createdAt, updatedAt]
+      properties:
+        code: { $ref: '#/components/schemas/Code' }
+        title: { type: string }
+        description: { type: string }
+        system: { $ref: '#/components/schemas/System' }
+        route: { $ref: '#/components/schemas/Route' }
+        state: { $ref: '#/components/schemas/StateRef' }
+        windowStart: { type: string, format: date-time }
+        windowEnd: { type: string, format: date-time }
+        requirementCount: { type: integer }
+        createdBy: { $ref: '#/components/schemas/UserRef' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    RequirementInput:
+      type: object
+      required: [title, system]
+      properties:
+        title: { type: string, minLength: 1 }
+        description: { type: string }
+        acceptanceCriteria: { type: string }
+        system:
+          type: string
+          description: Clave del sistema
+        change:
+          allOf:
+            - $ref: '#/components/schemas/Code'
+          description: Código del CHG, si ya existe
+        owner:
+          type: string
+          description: ID del responsable
+    RequirementPatch:
+      type: object
+      properties:
+        title: { type: string, minLength: 1 }
+        description: { type: string }
+        acceptanceCriteria: { type: string }
+        change:
+          type: string
+          nullable: true
+          description: Código del CHG; `null` lo quita.
+        owner:
+          type: string
+          nullable: true
+    Requirement:
+      type: object
+      required: [code, title, description, acceptanceCriteria, system, state, createdBy, createdAt, updatedAt]
+      properties:
+        code: { $ref: '#/components/schemas/Code' }
+        title: { type: string }
+        description: { type: string }
+        acceptanceCriteria: { type: string }
+        system: { $ref: '#/components/schemas/System' }
+        change: { $ref: '#/components/schemas/EntityRef' }
+        state: { $ref: '#/components/schemas/StateRef' }
+        riskLevel: { $ref: '#/components/schemas/RiskLevel' }
+        owner: { $ref: '#/components/schemas/UserRef' }
+        createdBy: { $ref: '#/components/schemas/UserRef' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    LinkInput:
+      type: object
+      required: [url]
+      properties:
+        url: { type: string, format: uri }
+        kind:
+          allOf:
+            - $ref: '#/components/schemas/LinkKind'
+          description: Si falta, el servidor lo deduce de la URL.
+        label:
+          type: string
+          description: Si falta en un enlace de Google Sheets, se arma con la pestaña y el rango.
+        isOfficial: { type: boolean }
+    LinkPatch:
+      type: object
+      properties:
+        label: { type: string }
+        isOfficial: { type: boolean }
+        snapshotDocument:
+          type: string
+          nullable: true
+          description: Código del DOC con la instantánea; `null` la quita.
+    Link:
+      type: object
+      required: [id, kind, label, url, isOfficial, addedBy, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { $ref: '#/components/schemas/LinkKind' }
+        label: { type: string }
+        url: { type: string, format: uri }
+        sheet:
+          type: object
+          description: Solo en enlaces de Google Sheets.
+          required: [id]
+          properties:
+            id: { type: string }
+            gid: { type: string }
+            range: { type: string }
+        isOfficial: { type: boolean }
+        snapshotDocument: { $ref: '#/components/schemas/Code' }
+        addedBy: { $ref: '#/components/schemas/UserRef' }
+        createdAt: { type: string, format: date-time }
+
+    EntryContractItem:
+      type: object
+      required: [key, label, done]
+      properties:
+        key: { type: string }
+        label: { type: string }
+        done: { type: boolean }
+        note: { type: string }
+        checkedBy: { $ref: '#/components/schemas/UserRef' }
+        checkedAt: { type: string, format: date-time }
+
+    RiskInput:
+      type: object
+      required: [level, justification]
+      properties:
+        level: { $ref: '#/components/schemas/RiskLevel' }
+        justification: { type: string, minLength: 1 }
+        characteristics:
+          type: array
+          items: { $ref: '#/components/schemas/QualityCharacteristic' }
+    Risk:
+      type: object
+      required: [code, level, justification, characteristics, assessedBy, updatedAt]
+      properties:
+        code: { $ref: '#/components/schemas/Code' }
+        level: { $ref: '#/components/schemas/RiskLevel' }
+        justification: { type: string }
+        characteristics:
+          type: array
+          items: { $ref: '#/components/schemas/QualityCharacteristic' }
+        assessedBy: { $ref: '#/components/schemas/UserRef' }
+        updatedAt: { type: string, format: date-time }
+
+    FunctionalCaseInput:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1 }
+        description: { type: string }
+    FunctionalCase:
+      type: object
+      required: [code, requirement, title, description, testCases, createdAt, updatedAt]
+      properties:
+        code: { $ref: '#/components/schemas/Code' }
+        requirement: { $ref: '#/components/schemas/Code' }
+        title: { type: string }
+        description: { type: string }
+        testCases:
+          type: array
+          items: { $ref: '#/components/schemas/Code' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    TestCaseInput:
+      type: object
+      required: [title, system, steps, expectedResult, functionalCases]
+      properties:
+        title: { type: string, minLength: 1 }
+        system:
+          type: string
+          description: Clave del sistema
+        preconditions: { type: string }
+        steps: { type: string, minLength: 1 }
+        expectedResult: { type: string, minLength: 1 }
+        isCritical: { type: boolean }
+        functionalCases:
+          type: array
+          minItems: 1
+          description: Códigos de los UC que valida
+          items: { $ref: '#/components/schemas/Code' }
+    TestCasePatch:
+      type: object
+      properties:
+        title: { type: string, minLength: 1 }
+        preconditions: { type: string }
+        steps: { type: string, minLength: 1 }
+        expectedResult: { type: string, minLength: 1 }
+        isCritical: { type: boolean }
+        functionalCases:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/Code' }
+        retired: { type: boolean }
+    TestCase:
+      type: object
+      required: [code, title, system, preconditions, steps, expectedResult, isCritical, retired, functionalCases, createdAt, updatedAt]
+      properties:
+        code: { $ref: '#/components/schemas/Code' }
+        title: { type: string }
+        system: { $ref: '#/components/schemas/System' }
+        preconditions: { type: string }
+        steps: { type: string }
+        expectedResult: { type: string }
+        isCritical: { type: boolean }
+        retired: { type: boolean }
+        functionalCases:
+          type: array
+          items: { $ref: '#/components/schemas/Code' }
+        lastRun: { $ref: '#/components/schemas/RunSummary' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    RunInput:
+      type: object
+      required: [testCase, buildVersion, buildChecksum, environmentName, result, executedAt]
+      properties:
+        testCase: { $ref: '#/components/schemas/Code' }
+        buildVersion: { type: string, minLength: 1 }
+        buildChecksum: { $ref: '#/components/schemas/Checksum' }
+        environmentName: { type: string, minLength: 1 }
+        result: { $ref: '#/components/schemas/RunResult' }
+        notes: { type: string }
+        executedAt:
+          type: string
+          format: date-time
+          description: Cuándo se ejecutó la prueba. No puede ser futura.
+    RunSummary:
+      type: object
+      required: [code, result, buildVersion, environmentName, executedAt]
+      properties:
+        code: { $ref: '#/components/schemas/Code' }
+        result: { $ref: '#/components/schemas/RunResult' }
+        buildVersion: { type: string }
+        environmentName: { type: string }
+        executedAt: { type: string, format: date-time }
+    Run:
+      allOf:
+        - $ref: '#/components/schemas/RunSummary'
+        - type: object
+          required: [testCase, buildChecksum, notes, executedBy, createdAt]
+          properties:
+            testCase: { $ref: '#/components/schemas/EntityRef' }
+            buildChecksum: { $ref: '#/components/schemas/Checksum' }
+            notes: { type: string }
+            executedBy: { $ref: '#/components/schemas/UserRef' }
+            createdAt: { type: string, format: date-time }
+
+    ExplorationInput:
+      type: object
+      required: [requirement, buildVersion, environmentName, executedAt]
+      properties:
+        requirement: { $ref: '#/components/schemas/Code' }
+        buildVersion: { type: string, minLength: 1 }
+        environmentName: { type: string, minLength: 1 }
+        manualChanges: { type: string }
+        findings: { type: string }
+        executedAt: { type: string, format: date-time }
+    Exploration:
+      type: object
+      required: [code, requirement, buildVersion, environmentName, manualChanges, findings, executedBy, executedAt, createdAt, updatedAt]
+      properties:
+        code: { $ref: '#/components/schemas/Code' }
+        requirement: { $ref: '#/components/schemas/Code' }
+        buildVersion: { type: string }
+        environmentName: { type: string }
+        manualChanges: { type: string }
+        findings: { type: string }
+        executedBy: { $ref: '#/components/schemas/UserRef' }
+        executedAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    DefectInput:
+      type: object
+      required: [title, description, requirement, run, severity]
+      properties:
+        title: { type: string, minLength: 1 }
+        description: { type: string, minLength: 1 }
+        requirement: { $ref: '#/components/schemas/Code' }
+        run:
+          allOf:
+            - $ref: '#/components/schemas/Code'
+          description: RUN que reprodujo el defecto
+        severity: { $ref: '#/components/schemas/Severity' }
+        assignee: { type: string }
+    DefectPatch:
+      type: object
+      properties:
+        title: { type: string, minLength: 1 }
+        description: { type: string, minLength: 1 }
+        severity: { $ref: '#/components/schemas/Severity' }
+        assignee:
+          type: string
+          nullable: true
+    Defect:
+      type: object
+      required: [code, title, description, requirement, run, severity, state, daysInState, createdBy, createdAt, updatedAt]
+      properties:
+        code: { $ref: '#/components/schemas/Code' }
+        title: { type: string }
+        description: { type: string }
+        requirement: { $ref: '#/components/schemas/Code' }
+        run: { $ref: '#/components/schemas/Code' }
+        severity: { $ref: '#/components/schemas/Severity' }
+        state: { $ref: '#/components/schemas/StateRef' }
+        daysInState:
+          type: number
+          description: Tiempo en el estado actual, calculado al leer. No hay SLA.
+        assignee: { $ref: '#/components/schemas/UserRef' }
+        createdBy: { $ref: '#/components/schemas/UserRef' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    DocumentVersion:
+      type: object
+      required: [version, fileName, mediaType, sizeBytes, checksum, uploadedBy, createdAt]
+      properties:
+        version: { type: integer }
+        fileName: { type: string }
+        mediaType: { type: string }
+        sizeBytes: { type: integer, format: int64 }
+        checksum: { $ref: '#/components/schemas/Checksum' }
+        uploadedBy: { $ref: '#/components/schemas/UserRef' }
+        createdAt: { type: string, format: date-time }
+    Document:
+      type: object
+      required: [code, title, kind, versions, linkedTo, createdAt]
+      properties:
+        code: { $ref: '#/components/schemas/Code' }
+        title: { type: string }
+        kind: { $ref: '#/components/schemas/DocumentKind' }
+        versions:
+          type: array
+          description: De la más reciente a la más antigua.
+          items: { $ref: '#/components/schemas/DocumentVersion' }
+        linkedTo:
+          type: array
+          items: { $ref: '#/components/schemas/EntityRef' }
+        createdAt: { type: string, format: date-time }
+
+    Comment:
+      type: object
+      required: [id, body, author, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        body: { type: string }
+        author: { $ref: '#/components/schemas/UserRef' }
+        createdAt: { type: string, format: date-time }
+
+    SearchHit:
+      type: object
+      required: [type, code, title]
+      properties:
+        type:
+          type: string
+          enum: [requirement, change, risk_assessment, functional_case, test_case, test_run, exploratory_session, defect, document]
+        code: { $ref: '#/components/schemas/Code' }
+        title: { type: string }
+        state: { $ref: '#/components/schemas/StateRef' }
+
+    RequirementOverview:
+      type: object
+      required: [requirement, lifecycle, missing, coverage, functionalCases, testCases, runs, defects]
+      properties:
+        requirement: { $ref: '#/components/schemas/Requirement' }
+        lifecycle:
+          type: array
+          description: Etapas del ciclo en orden, para la línea de vida.
+          items:
+            type: object
+            required: [state, status]
+            properties:
+              state: { $ref: '#/components/schemas/StateRef' }
+              status:
+                type: string
+                enum: [done, current, pending, blocked]
+              enteredAt: { type: string, format: date-time }
+              days:
+                type: number
+                description: Tiempo acumulado en la etapa.
+        missing:
+          type: array
+          description: Qué falta para avanzar, por cada transición posible desde el estado actual.
+          items:
+            type: object
+            required: [to, conditions]
+            properties:
+              to: { $ref: '#/components/schemas/StateRef' }
+              conditions:
+                type: array
+                items:
+                  type: object
+                  required: [ruleKey, message, blocks]
+                  properties:
+                    ruleKey: { type: string }
+                    message:
+                      type: string
+                      example: Faltan 2 TC sin RUN aprobado.
+                    blocks: { type: boolean }
+                    related:
+                      type: array
+                      items: { $ref: '#/components/schemas/Code' }
+        coverage:
+          type: object
+          required: [required, passed, minimumPercent]
+          properties:
+            required:
+              type: integer
+              description: TC requeridos
+            passed:
+              type: integer
+              description: TC cuyo último RUN está aprobado
+            minimumPercent:
+              type: integer
+              description: Cobertura mínima que pide el RISK
+        functionalCases:
+          type: array
+          items: { $ref: '#/components/schemas/FunctionalCase' }
+        testCases:
+          type: array
+          items: { $ref: '#/components/schemas/TestCase' }
+        runs:
+          type: array
+          items: { $ref: '#/components/schemas/RunSummary' }
+        defects:
+          type: array
+          items: { $ref: '#/components/schemas/Defect' }
+
+    Matrix:
+      allOf:
+        - $ref: '#/components/schemas/PageInfo'
+        - type: object
+          required: [indicators, items]
+          properties:
+            indicators:
+              type: object
+              required: [coveragePercent, blockedRequirements, openDefects]
+              properties:
+                coveragePercent: { type: integer }
+                blockedRequirements: { type: integer }
+                openDefects:
+                  type: object
+                  required: [high, medium, low]
+                  properties:
+                    high: { type: integer }
+                    medium: { type: integer }
+                    low: { type: integer }
+            items:
+              type: array
+              description: Una fila por REQ y TC. Un REQ sin TC aparece en una fila sin `testCase`.
+              items:
+                type: object
+                required: [requirement, functionalCases, defects]
+                properties:
+                  requirement: { $ref: '#/components/schemas/Requirement' }
+                  change: { $ref: '#/components/schemas/Code' }
+                  risk: { $ref: '#/components/schemas/Code' }
+                  functionalCases:
+                    type: array
+                    items: { $ref: '#/components/schemas/Code' }
+                  testCase: { $ref: '#/components/schemas/EntityRef' }
+                  lastRun: { $ref: '#/components/schemas/RunSummary' }
+                  defects:
+                    type: array
+                    items:
+                      type: object
+                      required: [code, severity, state]
+                      properties:
+                        code: { $ref: '#/components/schemas/Code' }
+                        severity: { $ref: '#/components/schemas/Severity' }
+                        state: { $ref: '#/components/schemas/StateRef' }
+
+    AuditEntry:
+      type: object
+      required: [seq, occurredAt, actor, entityType, action, hash]
+      properties:
+        seq: { type: integer, format: int64 }
+        occurredAt: { type: string, format: date-time }
+        actor: { $ref: '#/components/schemas/UserRef' }
+        entityType: { type: string }
+        entityCode: { $ref: '#/components/schemas/Code' }
+        action:
+          type: string
+          enum: [create, update, transition, decision, delete]
+        field: { type: string }
+        oldValue: { type: string }
+        newValue: { type: string }
+        reason: { type: string }
+        prevHash: { $ref: '#/components/schemas/Checksum' }
+        hash: { $ref: '#/components/schemas/Checksum' }
