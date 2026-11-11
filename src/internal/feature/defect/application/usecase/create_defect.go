@@ -54,6 +54,10 @@ func (uc *CreateDefect) Execute(ctx context.Context, in CreateDefectInput) (Defe
 	if err := errs.Err(); err != nil {
 		return DefectOutput{}, err
 	}
+	testCases, err := uc.d.TestDesign.RequirementTestCases(ctx, requirement.Code)
+	if err != nil {
+		return DefectOutput{}, err
+	}
 	assignee, err := findAssignee(ctx, uc.d.Repository, in.AssigneeId)
 	if err != nil {
 		return DefectOutput{}, err
@@ -79,7 +83,8 @@ func (uc *CreateDefect) Execute(ctx context.Context, in CreateDefectInput) (Defe
 		}
 		defect, err = domain.New(domain.NewParams{
 			Id: id, Code: code, Title: in.Title, Description: in.Description, Requirement: requirement, Run: run,
-			Severity: in.Severity, State: state, Assignee: assignee, CreatedBy: creator, Now: now,
+			RequirementTestCases: testCases,
+			Severity:             in.Severity, State: state, Assignee: assignee, CreatedBy: creator, Now: now,
 		})
 		if err != nil {
 			return err

@@ -100,7 +100,7 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 	}
 	defectModule, err := defect.New(defect.Deps{
 		Database: d.Database, Clock: d.Clock, IdGenerator: d.IdGenerator,
-		Workflow: workflowModule.UseCases, Audit: auditModule.UseCases,
+		Workflow: workflowModule.UseCases, Audit: auditModule.UseCases, TestDesign: testdesignModule.UseCases,
 	})
 	if err != nil {
 		return nil, err

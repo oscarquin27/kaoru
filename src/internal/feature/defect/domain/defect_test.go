@@ -31,8 +31,9 @@ func params() domain.NewParams {
 	return domain.NewParams{
 		Id: "d1", Code: shared.NewCode(shared.PrefixDefect, 2026, 91), Title: " Saldo negativo ",
 		Description: " Al pagar sobre el límite ", Requirement: domain.RequirementRef{Id: "r1", Code: "REQ-2026-0042"},
-		Run: domain.RunRef{Id: "x1", Code: "RUN-2026-0534", Result: "failed"}, Severity: "high",
-		State: domain.State{Id: "s1", Key: "open", Name: "Abierto"}, CreatedBy: domain.UserRef{Id: "u1", Name: "Ana"}, Now: now,
+		Run: domain.RunRef{Id: "x1", Code: "RUN-2026-0534", Result: "failed", TestCaseId: "t2"}, Severity: "high",
+		RequirementTestCases: []string{"t1", "t2"},
+		State:                domain.State{Id: "s1", Key: "open", Name: "Abierto"}, CreatedBy: domain.UserRef{Id: "u1", Name: "Ana"}, Now: now,
 	}
 }
 
@@ -45,6 +46,8 @@ func TestNew(t *testing.T) {
 		{"válido con RUN fallido", func(*domain.NewParams) {}, nil},
 		{"válido con RUN bloqueado", func(p *domain.NewParams) { p.Run.Result = "blocked" }, nil},
 		{"un RUN aprobado no reproduce nada", func(p *domain.NewParams) { p.Run.Result = "passed" }, []string{"run:invalid"}},
+		{"RUN de un TC de otro REQ", func(p *domain.NewParams) { p.Run.TestCaseId = "t9" }, []string{"run:invalid"}},
+		{"REQ sin TC", func(p *domain.NewParams) { p.RequirementTestCases = nil }, []string{"run:invalid"}},
 		{"sin datos", func(p *domain.NewParams) { p.Title, p.Description, p.Severity = "", " ", "" },
 			[]string{"title:required", "description:required", "severity:required"}},
 		{"severidad en español", func(p *domain.NewParams) { p.Severity = "alta" }, []string{"severity:invalid"}},

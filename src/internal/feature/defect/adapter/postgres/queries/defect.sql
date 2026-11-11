@@ -10,7 +10,7 @@ FROM requirement
 WHERE code = $1;
 
 -- name: GetRunRef :one
-SELECT id, code, result
+SELECT id, code, result, test_case_id
 FROM test_run
 WHERE code = $1;
 

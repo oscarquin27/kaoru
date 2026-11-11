@@ -10,9 +10,11 @@ import (
 	audituc "kaoru/internal/feature/audit/application/usecase"
 	"kaoru/internal/feature/defect/adapter/audit"
 	"kaoru/internal/feature/defect/adapter/postgres"
+	"kaoru/internal/feature/defect/adapter/testdesign"
 	"kaoru/internal/feature/defect/adapter/workflow"
 	"kaoru/internal/feature/defect/application/usecase"
 	"kaoru/internal/feature/defect/delivery/api"
+	testdesignuc "kaoru/internal/feature/testdesign/application/usecase"
 	workflowuc "kaoru/internal/feature/workflow/application/usecase"
 )
 
@@ -23,6 +25,7 @@ type Deps struct {
 	IdGenerator idgen.IdGenerator
 	Workflow    *workflowuc.UseCases
 	Audit       *audituc.UseCases
+	TestDesign  *testdesignuc.UseCases
 }
 
 // Module expone los casos de uso y las rutas del feature.
@@ -37,6 +40,7 @@ func New(d Deps) (*Module, error) {
 	uc, err := usecase.New(usecase.Deps{
 		Repository:  postgres.NewRepository(d.Database),
 		Workflow:    workflow.New(d.Workflow),
+		TestDesign:  testdesign.New(d.TestDesign.ListRequirementTestCases),
 		Timeline:    trail,
 		AuditTrail:  trail,
 		UnitOfWork:  d.Database,

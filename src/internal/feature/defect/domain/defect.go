@@ -3,6 +3,7 @@ package domain
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -54,6 +55,8 @@ type RunRef struct {
 	Id     string
 	Code   string
 	Result string
+	// TestCaseId es el TC que ejecutó el RUN.
+	TestCaseId string
 }
 
 // Snapshot es el contenido de un DEF.
@@ -78,19 +81,20 @@ type Defect struct {
 	s Snapshot
 }
 
-// NewParams son los datos para abrir un DEF.
+// NewParams son los datos para abrir un DEF. RequirementTestCases son los TC que validan el REQ.
 type NewParams struct {
-	Id          string
-	Code        shared.Code
-	Title       string
-	Description string
-	Requirement RequirementRef
-	Run         RunRef
-	Severity    string
-	State       State
-	Assignee    *UserRef
-	CreatedBy   UserRef
-	Now         time.Time
+	RequirementTestCases []string
+	Id                   string
+	Code                 shared.Code
+	Title                string
+	Description          string
+	Requirement          RequirementRef
+	Run                  RunRef
+	Severity             string
+	State                State
+	Assignee             *UserRef
+	CreatedBy            UserRef
+	Now                  time.Time
 }
 
 // New valida y abre un DEF. Exige un RUN que no esté aprobado: un hallazgo de una
@@ -103,8 +107,12 @@ func New(p NewParams) (Defect, error) {
 		Requirement: p.Requirement, Run: p.Run, Severity: validSeverity(p.Severity, &errs),
 		State: p.State, Assignee: p.Assignee, CreatedBy: p.CreatedBy, CreatedAt: p.Now, UpdatedAt: p.Now,
 	}
-	if p.Run.Result == runPassed {
+	switch {
+	case p.Run.Result == runPassed:
 		errs.Add(axis.InvalidField("run", "Ese RUN está aprobado. Un DEF necesita el RUN que lo reprodujo."))
+	case !slices.Contains(p.RequirementTestCases, p.Run.TestCaseId):
+		// Sin esto la matriz mostraría un defecto en un REQ con la evidencia de otro.
+		errs.Add(axis.InvalidField("run", "Ese RUN es de un TC que no valida este REQ."))
 	}
 	if err := errs.Err(); err != nil {
 		return Defect{}, err

@@ -131,21 +131,27 @@ func (q *Queries) GetRequirementRef(ctx context.Context, code string) (GetRequir
 }
 
 const getRunRef = `-- name: GetRunRef :one
-SELECT id, code, result
+SELECT id, code, result, test_case_id
 FROM test_run
 WHERE code = $1
 `
 
 type GetRunRefRow struct {
-	ID     uuid.UUID
-	Code   string
-	Result string
+	ID         uuid.UUID
+	Code       string
+	Result     string
+	TestCaseID uuid.UUID
 }
 
 func (q *Queries) GetRunRef(ctx context.Context, code string) (GetRunRefRow, error) {
 	row := q.db.QueryRow(ctx, getRunRef, code)
 	var i GetRunRefRow
-	err := row.Scan(&i.ID, &i.Code, &i.Result)
+	err := row.Scan(
+		&i.ID,
+		&i.Code,
+		&i.Result,
+		&i.TestCaseID,
+	)
 	return i, err
 }
 

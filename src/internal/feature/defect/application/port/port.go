@@ -36,6 +36,12 @@ type Repository interface {
 	List(ctx context.Context, filter Filter) (defects []domain.Defect, total int, err error)
 }
 
+// TestDesign pregunta al feature testdesign qué TC validan un REQ.
+type TestDesign interface {
+	// RequirementTestCases devuelve las llaves de los TC del REQ, retirados incluidos.
+	RequirementTestCases(ctx context.Context, requirementCode string) ([]string, error)
+}
+
 // Transition es una transición del flujo del DEF con sus reglas activas.
 type Transition struct {
 	To             domain.State

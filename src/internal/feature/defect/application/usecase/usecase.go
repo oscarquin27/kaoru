@@ -27,6 +27,7 @@ var ErrDefectNotFound = axis.New(axis.NotFoundResource, "El DEF no existe.")
 type Deps struct {
 	Repository  port.Repository
 	Workflow    port.Workflow
+	TestDesign  port.TestDesign
 	Timeline    port.Timeline
 	AuditTrail  port.AuditTrail
 	UnitOfWork  uow.Factory
@@ -46,7 +47,7 @@ type UseCases struct {
 
 // New arma los casos de uso; falla si falta una dependencia.
 func New(d Deps) (*UseCases, error) {
-	if d.Repository == nil || d.Workflow == nil || d.Timeline == nil || d.AuditTrail == nil ||
+	if d.Repository == nil || d.Workflow == nil || d.TestDesign == nil || d.Timeline == nil || d.AuditTrail == nil ||
 		d.UnitOfWork == nil || d.Clock == nil || d.IdGenerator == nil {
 		return nil, errors.New("defect: faltan dependencias")
 	}

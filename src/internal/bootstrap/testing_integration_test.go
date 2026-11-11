@@ -147,6 +147,15 @@ func TestRequirementApprovalNeedsCoverageAndNoHighDefects(t *testing.T) {
 	if len(p.Errors) != 1 || p.Errors[0].Field != "run" {
 		t.Errorf("un RUN aprobado no sirve para abrir un DEF: %+v", p)
 	}
+	// El RUN debe ser de un TC de ese REQ: no vale la evidencia de otro requerimiento.
+	var other requirementBody
+	a.call("manager", "POST", "/api/requirements", map[string]any{"title": "Otro REQ", "system": "SYPAGO"}, 201, &other)
+	wrong := defect(run2.Code, "high")
+	wrong["requirement"] = other.Code
+	a.call("qa", "POST", "/api/defects", wrong, 422, &p)
+	if len(p.Errors) != 1 || p.Errors[0].Field != "run" {
+		t.Errorf("DEF con el RUN de otro REQ: %+v", p)
+	}
 	var high, low defectBody
 	a.call("qa", "POST", "/api/defects", defect(run2.Code, "high"), 201, &high)
 	a.call("qa", "POST", "/api/defects", defect(run2.Code, "low"), 201, &low)

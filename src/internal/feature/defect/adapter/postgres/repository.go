@@ -54,7 +54,7 @@ func (r *Repository) FindRun(ctx context.Context, code string) (domain.RunRef, e
 	if err != nil {
 		return domain.RunRef{}, corepg.TranslateError(err)
 	}
-	return domain.RunRef{Id: row.ID.String(), Code: row.Code, Result: row.Result}, nil
+	return domain.RunRef{Id: row.ID.String(), Code: row.Code, Result: row.Result, TestCaseId: row.TestCaseID.String()}, nil
 }
 
 // FindUser busca un usuario por su id.
