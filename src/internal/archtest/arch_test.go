@@ -288,6 +288,9 @@ func TestQueriesOnlyWriteTheirOwnTables(t *testing.T) {
 		"execution":   {"test_run", "exploratory_session", "code_sequence"},
 		"defect":      {"defect", "code_sequence"},
 		"document":    {"document", "document_version", "document_link", "code_sequence"},
+		"comment":     {"comment"},
+		// traceability es de solo lectura: no puede escribir en ninguna tabla.
+		"traceability": {},
 	}
 	root := filepath.Join("..", "feature")
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {

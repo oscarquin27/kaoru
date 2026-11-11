@@ -16,6 +16,8 @@ import (
 	"kaoru/internal/core/pkg/problem"
 	"kaoru/internal/feature/audit"
 	"kaoru/internal/feature/change"
+	"kaoru/internal/feature/comment"
+	commententities "kaoru/internal/feature/comment/adapter/entities"
 	"kaoru/internal/feature/defect"
 	"kaoru/internal/feature/document"
 	"kaoru/internal/feature/document/adapter/entities"
@@ -23,6 +25,7 @@ import (
 	"kaoru/internal/feature/requirement"
 	"kaoru/internal/feature/risk"
 	"kaoru/internal/feature/testdesign"
+	"kaoru/internal/feature/traceability"
 	"kaoru/internal/feature/user"
 	"kaoru/internal/feature/workflow"
 )
@@ -111,6 +114,22 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 	if err != nil {
 		return nil, err
 	}
+	commentModule, err := comment.New(comment.Deps{
+		Database: d.Database, Clock: d.Clock, IdGenerator: d.IdGenerator,
+		Workflow: workflowModule.UseCases, Audit: auditModule.UseCases,
+		Entities: commententities.Sources{
+			Requirement: requirementModule.UseCases, Change: changeModule.UseCases, Defect: defectModule.UseCases,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	traceabilityModule, err := traceability.New(traceability.Deps{
+		Database: d.Database, Clock: d.Clock, Requirements: requirementModule.UseCases, Execution: executionModule.UseCases,
+	})
+	if err != nil {
+		return nil, err
+	}
 	// Las reglas de bloqueo del REQ necesitan hechos de features que dependen de él:
 	// se conectan después de armar todos (reglas §A.7, decisión D36).
 	requirementModule.ConnectRisk(riskModule.UseCases)
@@ -144,5 +163,7 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 	executionModule.RegisterAPI(api)
 	defectModule.RegisterAPI(api)
 	documentModule.RegisterAPI(api)
+	commentModule.RegisterAPI(api)
+	traceabilityModule.RegisterAPI(api)
 	return engine, nil
 }
