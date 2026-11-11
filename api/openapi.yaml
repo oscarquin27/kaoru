@@ -1548,7 +1548,7 @@ components:
         windowEnd: { type: string, format: date-time, nullable: true }
     Change:
       type: object
-      required: [code, title, description, system, route, state, requirementCount, createdBy, createdAt, updatedAt]
+      required: [code, title, description, system, route, state, createdBy, createdAt, updatedAt]
       properties:
         code: { $ref: '#/components/schemas/Code' }
         title: { type: string }
@@ -1558,7 +1558,6 @@ components:
         state: { $ref: '#/components/schemas/StateRef' }
         windowStart: { type: string, format: date-time }
         windowEnd: { type: string, format: date-time }
-        requirementCount: { type: integer }
         createdBy: { $ref: '#/components/schemas/UserRef' }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
