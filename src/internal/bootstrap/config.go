@@ -14,10 +14,11 @@ const ConfigPathEnv = "KAORU_CONFIG_PATH"
 
 // Config es la configuración completa. Se lee una vez al arrancar.
 type Config struct {
-	HTTP     HTTPConfig     `json:"http"`
-	Postgres PostgresConfig `json:"postgres"`
-	OIDC     OIDCConfig     `json:"oidc"`
-	Log      LogConfig      `json:"log"`
+	HTTP      HTTPConfig      `json:"http"`
+	Postgres  PostgresConfig  `json:"postgres"`
+	OIDC      OIDCConfig      `json:"oidc"`
+	Documents DocumentsConfig `json:"documents"`
+	Log       LogConfig       `json:"log"`
 }
 
 // HTTPConfig configura los servidores.
@@ -46,6 +47,16 @@ type OIDCConfig struct {
 	ClientID   string `json:"clientId"`
 	LogoutURL  string `json:"logoutUrl"`
 	AccountURL string `json:"accountUrl"`
+}
+
+// DocumentsConfig configura los adjuntos.
+type DocumentsConfig struct {
+	// Dir es el directorio (un volumen) donde vive el contenido, nombrado por su SHA-256.
+	Dir string `json:"dir"`
+	// MaxBytes es el tamaño máximo de una subida.
+	MaxBytes int64 `json:"maxBytes"`
+	// AllowedExtensions es la lista de tipos permitidos, como extensiones con punto.
+	AllowedExtensions []string `json:"allowedExtensions"`
 }
 
 // LogConfig elige el formato de los logs: "json" o "text".
@@ -100,6 +111,7 @@ func (c Config) validate() error {
 		"oidc.jwksUrl":      c.OIDC.JWKSURL,
 		"oidc.clientId":     c.OIDC.ClientID,
 		"oidc.logoutUrl":    c.OIDC.LogoutURL,
+		"documents.dir":     c.Documents.Dir,
 	}
 	var errs []error
 	for name, value := range required {
@@ -109,6 +121,12 @@ func (c Config) validate() error {
 	}
 	if c.HTTP.MaxBodyBytes <= 0 {
 		errs = append(errs, errors.New("http.maxBodyBytes debe ser mayor que cero"))
+	}
+	if c.Documents.MaxBytes <= 0 {
+		errs = append(errs, errors.New("documents.maxBytes debe ser mayor que cero"))
+	}
+	if len(c.Documents.AllowedExtensions) == 0 {
+		errs = append(errs, errors.New("documents.allowedExtensions no puede estar vacío"))
 	}
 	if c.Log.Format != "json" && c.Log.Format != "text" {
 		errs = append(errs, errors.New(`log.format debe ser "json" o "text"`))

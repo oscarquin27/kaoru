@@ -7,6 +7,7 @@ import (
 
 	"kaoru/internal/core/pkg/axis"
 	"kaoru/internal/core/pkg/clock"
+	"kaoru/internal/core/pkg/filestore"
 	"kaoru/internal/core/pkg/httpserver"
 	"kaoru/internal/core/pkg/idgen"
 	"kaoru/internal/core/pkg/logging"
@@ -16,6 +17,8 @@ import (
 	"kaoru/internal/feature/audit"
 	"kaoru/internal/feature/change"
 	"kaoru/internal/feature/defect"
+	"kaoru/internal/feature/document"
+	"kaoru/internal/feature/document/adapter/entities"
 	"kaoru/internal/feature/execution"
 	"kaoru/internal/feature/requirement"
 	"kaoru/internal/feature/risk"
@@ -28,6 +31,7 @@ import (
 type RouterDeps struct {
 	Config      Config
 	Database    *corepg.Database
+	FileStore   *filestore.Local
 	Verifier    oidc.Verifier
 	Logger      logging.Logger
 	Clock       clock.Clock
@@ -95,6 +99,18 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 	if err != nil {
 		return nil, err
 	}
+	documentModule, err := document.New(document.Deps{
+		Database: d.Database, FileStore: d.FileStore, Clock: d.Clock, IdGenerator: d.IdGenerator,
+		Workflow: workflowModule.UseCases, Audit: auditModule.UseCases,
+		Entities: entities.Sources{
+			Requirement: requirementModule.UseCases, Change: changeModule.UseCases, TestDesign: testdesignModule.UseCases,
+			Execution: executionModule.UseCases, Defect: defectModule.UseCases,
+		},
+		AllowedExtensions: d.Config.Documents.AllowedExtensions,
+	})
+	if err != nil {
+		return nil, err
+	}
 	// Las reglas de bloqueo del REQ necesitan hechos de features que dependen de él:
 	// se conectan después de armar todos (reglas §A.7, decisión D36).
 	requirementModule.ConnectRisk(riskModule.UseCases)
@@ -110,7 +126,7 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 		httpserver.RequestID(),
 		httpserver.AccessLog(d.Logger),
 		httpserver.Recovery(d.Logger),
-		httpserver.MaxBody(d.Config.HTTP.MaxBodyBytes),
+		httpserver.MaxBody(d.Config.HTTP.MaxBodyBytes, d.Config.Documents.MaxBytes),
 		httpserver.Origin(d.Config.HTTP.PublicOrigin),
 	)
 	engine.NoRoute(func(c *gin.Context) {
@@ -127,5 +143,6 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 	testdesignModule.RegisterAPI(api)
 	executionModule.RegisterAPI(api)
 	defectModule.RegisterAPI(api)
+	documentModule.RegisterAPI(api)
 	return engine, nil
 }

@@ -19,6 +19,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"kaoru/internal/core/pkg/clock"
+	"kaoru/internal/core/pkg/filestore"
 	"kaoru/internal/core/pkg/idgen"
 	corepg "kaoru/internal/core/pkg/postgres"
 	"kaoru/migrations"
@@ -60,8 +61,12 @@ func newAPI(t *testing.T) *api {
 		t.Fatal(err)
 	}
 	t.Cleanup(pool.Close)
+	files, err := filestore.NewLocal(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 	router, err := NewRouter(RouterDeps{
-		Config: testConfig(), Database: corepg.NewDatabase(pool), Verifier: users,
+		Config: testConfig(), Database: corepg.NewDatabase(pool), FileStore: files, Verifier: users,
 		Logger: newLogger(testWriter{t}, "text"), Clock: clock.System{}, IdGenerator: idgen.UUIDv7{},
 	})
 	if err != nil {

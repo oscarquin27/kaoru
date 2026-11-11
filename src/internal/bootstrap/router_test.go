@@ -11,6 +11,7 @@ import (
 
 	"kaoru/internal/core/pkg/axis"
 	"kaoru/internal/core/pkg/clock"
+	"kaoru/internal/core/pkg/filestore"
 	"kaoru/internal/core/pkg/idgen"
 	"kaoru/internal/core/pkg/oidc"
 	corepg "kaoru/internal/core/pkg/postgres"
@@ -31,9 +32,10 @@ const testOrigin = "https://kaoru.lab.invalid"
 
 func testConfig() Config {
 	return Config{
-		HTTP: HTTPConfig{Addr: ":0", InternalAddr: ":0", PublicOrigin: testOrigin, MaxBodyBytes: 1 << 20},
-		OIDC: OIDCConfig{LogoutURL: "/oauth2/sign_out", AccountURL: "https://kaoru.lab.invalid/account"},
-		Log:  LogConfig{Format: "text"},
+		HTTP:      HTTPConfig{Addr: ":0", InternalAddr: ":0", PublicOrigin: testOrigin, MaxBodyBytes: 1 << 20},
+		Documents: DocumentsConfig{MaxBytes: 2 << 20, AllowedExtensions: []string{".pdf", ".png", ".md", ".txt", ".log", ".xlsx"}},
+		OIDC:      OIDCConfig{LogoutURL: "/oauth2/sign_out", AccountURL: "https://kaoru.lab.invalid/account"},
+		Log:       LogConfig{Format: "text"},
 	}
 }
 
@@ -52,8 +54,12 @@ func TestRegisteredRoutesAreInTheContract(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	files, err := filestore.NewLocal(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 	router, err := NewRouter(RouterDeps{
-		Config: testConfig(), Database: corepg.NewDatabase(nil), Verifier: tokenVerifier{},
+		Config: testConfig(), Database: corepg.NewDatabase(nil), FileStore: files, Verifier: tokenVerifier{},
 		Logger: newLogger(os.Stderr, "text"), Clock: clock.System{}, IdGenerator: idgen.UUIDv7{},
 	})
 	if err != nil {
@@ -86,6 +92,7 @@ func TestParseConfig(t *testing.T) {
 		"http": {"addr": ":8080", "internalAddr": ":9090", "publicOrigin": "${KAORU_PUBLIC_URL}", "maxBodyBytes": 1048576},
 		"postgres": {"ownerUrl": "postgres://o:${PW}@db/kaoru", "appUrl": "postgres://a:${PW}@db/kaoru"},
 		"oidc": {"issuer": "https://x/realms/kaoru", "jwksUrl": "http://kc/certs", "clientId": "kaoru-web", "logoutUrl": "/oauth2/sign_out"},
+		"documents": {"dir": "/var/lib/kaoru/documents", "maxBytes": 26214400, "allowedExtensions": [".pdf"]},
 		"log": {"format": "json"}
 	}`
 	env := func(vars map[string]string) func(string) (string, bool) {
@@ -111,6 +118,7 @@ func TestParseConfig(t *testing.T) {
 		{"variable vacía", valid, map[string]string{"KAORU_PUBLIC_URL": "", "PW": "x"}, "KAORU_PUBLIC_URL"},
 		{"JSON ilegible", `{`, full, "ilegible"},
 		{"falta una sección", `{"log": {"format": "json"}, "http": {"maxBodyBytes": 1}}`, full, "postgres.appUrl"},
+		{"sin tipos de adjunto permitidos", strings.Replace(valid, `[".pdf"]`, `[]`, 1), full, "allowedExtensions"},
 		{"formato de log desconocido", strings.Replace(valid, `"json"`, `"xml"`, 1), full, "log.format"},
 		{"límite de cuerpo en cero", strings.Replace(valid, "1048576", "0", 1), full, "maxBodyBytes"},
 	}

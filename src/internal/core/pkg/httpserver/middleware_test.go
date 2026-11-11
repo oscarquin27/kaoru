@@ -36,7 +36,7 @@ func newEngine(log *spyLogger) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	engine := gin.New()
 	engine.Use(httpserver.RequestID(), httpserver.AccessLog(log), httpserver.Recovery(log),
-		httpserver.MaxBody(64), httpserver.Origin(origin))
+		httpserver.MaxBody(64, 1024), httpserver.Origin(origin))
 	engine.GET("/ok", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 	engine.POST("/echo", func(c *gin.Context) {
 		var body map[string]any

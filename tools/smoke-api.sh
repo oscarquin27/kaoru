@@ -36,7 +36,8 @@ case "$body" in
 esac
 
 docker exec "$name" /kaoru-api healthcheck || fail "el healthcheck del contenedor falló"
-docker logs "$name" 2>&1 | grep -q '"msg":"migraciones al día","applied":11' || fail "no aplicó las 11 migraciones al arrancar"
+migrations="$(ls "$(dirname "$0")/../src/migrations"/*.sql | wc -l | tr -d ' ')"
+docker logs "$name" 2>&1 | grep -q "\"msg\":\"migraciones al día\",\"applied\":$migrations" || fail "no aplicó las $migrations migraciones al arrancar"
 
 docker stop -t 25 "$name" >/dev/null
 [ "$(docker inspect -f '{{.State.ExitCode}}' "$name")" = 0 ] || fail "no se apagó con código 0"

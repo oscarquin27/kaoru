@@ -1,0 +1,70 @@
+// Package entities implementa el puerto Entities con los casos de uso de los features
+// cuyas entidades admiten documentos.
+package entities
+
+import (
+	"context"
+
+	"kaoru/internal/core/pkg/axis"
+	changeuc "kaoru/internal/feature/change/application/usecase"
+	defectuc "kaoru/internal/feature/defect/application/usecase"
+	"kaoru/internal/feature/document/application/port"
+	"kaoru/internal/feature/document/domain"
+	executionuc "kaoru/internal/feature/execution/application/usecase"
+	requirementuc "kaoru/internal/feature/requirement/application/usecase"
+	testdesignuc "kaoru/internal/feature/testdesign/application/usecase"
+)
+
+// Sources son los casos de uso con los que se busca cada tipo de entidad.
+type Sources struct {
+	Requirement *requirementuc.UseCases
+	Change      *changeuc.UseCases
+	TestDesign  *testdesignuc.UseCases
+	Execution   *executionuc.UseCases
+	Defect      *defectuc.UseCases
+}
+
+// Entities resuelve la entidad a la que se enlaza un documento.
+type Entities struct {
+	s Sources
+}
+
+var _ port.Entities = (*Entities)(nil)
+
+// New crea el adaptador.
+func New(s Sources) *Entities { return &Entities{s: s} }
+
+// Resolve conserva el código de error del feature dueño de la entidad.
+func (e *Entities) Resolve(ctx context.Context, entityType, code string) (domain.EntityRef, error) {
+	var id string
+	var err error
+	switch entityType {
+	case "requirement":
+		out, e2 := e.s.Requirement.GetRequirement.Execute(ctx, requirementuc.GetRequirementInput{Code: code})
+		id, err = out.Id, e2
+	case "change":
+		out, e2 := e.s.Change.GetChange.Execute(ctx, changeuc.GetChangeInput{Code: code})
+		id, err = out.Change.Id, e2
+	case "functional_case":
+		out, e2 := e.s.TestDesign.GetFunctionalCase.Execute(ctx, testdesignuc.GetFunctionalCaseInput{Code: code})
+		id, err = out.Id, e2
+	case "test_case":
+		out, e2 := e.s.TestDesign.GetTestCase.Execute(ctx, testdesignuc.GetTestCaseInput{Code: code})
+		id, err = out.Id, e2
+	case "test_run":
+		out, e2 := e.s.Execution.GetRun.Execute(ctx, executionuc.GetRunInput{Code: code})
+		id, err = out.Id, e2
+	case "exploratory_session":
+		out, e2 := e.s.Execution.GetExploration.Execute(ctx, executionuc.GetExplorationInput{Code: code})
+		id, err = out.Id, e2
+	case "defect":
+		out, e2 := e.s.Defect.GetDefect.Execute(ctx, defectuc.GetDefectInput{Code: code})
+		id, err = out.Defect.Id, e2
+	default:
+		return domain.EntityRef{}, axis.New(axis.NotFoundResource, "Ese tipo de entidad no admite documentos.")
+	}
+	if err != nil {
+		return domain.EntityRef{}, err
+	}
+	return domain.EntityRef{Type: entityType, Id: id, Code: code}, nil
+}

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -108,10 +109,15 @@ func Origin(publicOrigin string) gin.HandlerFunc {
 	}
 }
 
-// MaxBody limita el tamaño del cuerpo de toda petición.
-func MaxBody(limit int64) gin.HandlerFunc {
+// MaxBody limita el tamaño del cuerpo de toda petición. Una subida de archivos
+// (multipart/form-data) usa su propio límite, que es el de los adjuntos.
+func MaxBody(limit, uploadLimit int64) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, limit)
+		maxBytes := limit
+		if strings.HasPrefix(c.GetHeader("Content-Type"), "multipart/form-data") {
+			maxBytes = uploadLimit
+		}
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBytes)
 		c.Next()
 	}
 }

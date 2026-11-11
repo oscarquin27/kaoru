@@ -109,6 +109,7 @@ type DocumentLink struct {
 	EntityID   uuid.UUID
 	LinkedBy   string
 	CreatedAt  time.Time
+	EntityCode string
 }
 
 type DocumentVersion struct {

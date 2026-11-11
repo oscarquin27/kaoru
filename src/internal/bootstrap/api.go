@@ -12,6 +12,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"kaoru/internal/core/pkg/clock"
+	"kaoru/internal/core/pkg/filestore"
 	"kaoru/internal/core/pkg/httpserver"
 	"kaoru/internal/core/pkg/idgen"
 	"kaoru/internal/core/pkg/oidc"
@@ -48,9 +49,15 @@ func RunAPI(ctx context.Context) error {
 		return fmt.Errorf("la base no responde: %w", err)
 	}
 
+	files, err := filestore.NewLocal(cfg.Documents.Dir)
+	if err != nil {
+		return err
+	}
+
 	router, err := NewRouter(RouterDeps{
-		Config:   cfg,
-		Database: database,
+		Config:    cfg,
+		Database:  database,
+		FileStore: files,
 		Verifier: oidc.NewVerifier(ctx, oidc.Config{
 			Issuer: cfg.OIDC.Issuer, JWKSURL: cfg.OIDC.JWKSURL, ClientID: cfg.OIDC.ClientID,
 		}),

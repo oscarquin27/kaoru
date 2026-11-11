@@ -7,12 +7,16 @@ WORKDIR /src
 COPY src/go.mod src/go.sum ./
 RUN go mod download
 COPY src/ ./
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/kaoru-api ./cmd/kaoru-api
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/kaoru-api ./cmd/kaoru-api \
+    && mkdir -p /out/documents
 
 # Un solo binario estático: sin shell, sin paquetes, sin usuario root.
 FROM scratch
 COPY --from=build /out/kaoru-api /kaoru-api
 COPY infra/api/config.json /etc/kaoru/config.json
+# El directorio de documentos nace vacío y del usuario de la app; en producción es un volumen.
+COPY --from=build --chown=65532:65532 /out/documents /var/lib/kaoru/documents
+VOLUME /var/lib/kaoru/documents
 ENV KAORU_CONFIG_PATH=/etc/kaoru/config.json
 USER 65532:65532
 EXPOSE 8080 9090

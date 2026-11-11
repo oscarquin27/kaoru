@@ -17,6 +17,11 @@
     "logoutUrl": "/oauth2/sign_out",
     "accountUrl": "${KEYCLOAK_ISSUER}/account"
   },
+  "documents": {
+    "dir": "/var/lib/kaoru/documents",
+    "maxBytes": 26214400,
+    "allowedExtensions": [".pdf", ".png", ".jpg", ".jpeg", ".md", ".txt", ".log", ".csv", ".docx", ".xlsx"]
+  },
   "log": {
     "format": "json"
   }
