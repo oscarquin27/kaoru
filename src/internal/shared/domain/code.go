@@ -10,7 +10,9 @@ import (
 
 // Prefijos de los IDs legibles.
 const (
-	PrefixChange = "CHG"
+	PrefixChange      = "CHG"
+	PrefixRequirement = "REQ"
+	PrefixRisk        = "RISK"
 )
 
 // Code es el ID legible e inmutable de una entidad: prefijo, año y secuencia (REQ-2026-0042).

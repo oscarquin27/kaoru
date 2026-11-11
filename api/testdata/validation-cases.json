@@ -1,0 +1,66 @@
+{
+  "$comment": "Una regla en dos lenguajes, una tabla de casos (reglas §A.1.2). La leen las pruebas de Go y las de Vitest: entrada, si vale y el valor normalizado.",
+  "sheetLink": [
+    {
+      "name": "URL de edición con pestaña en el fragmento",
+      "input": "https://docs.google.com/spreadsheets/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789/edit#gid=0",
+      "valid": true,
+      "normalized": { "id": "1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789", "gid": "0", "range": "" }
+    },
+    {
+      "name": "pestaña y rango en el fragmento",
+      "input": "https://docs.google.com/spreadsheets/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789/edit#gid=1842&range=A1:F40",
+      "valid": true,
+      "normalized": { "id": "1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789", "gid": "1842", "range": "A1:F40" }
+    },
+    {
+      "name": "pestaña en la consulta",
+      "input": "https://docs.google.com/spreadsheets/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789/edit?gid=77",
+      "valid": true,
+      "normalized": { "id": "1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789", "gid": "77", "range": "" }
+    },
+    {
+      "name": "el fragmento manda sobre la consulta",
+      "input": "https://docs.google.com/spreadsheets/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789/edit?gid=1#gid=2",
+      "valid": true,
+      "normalized": { "id": "1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789", "gid": "2", "range": "" }
+    },
+    {
+      "name": "sin pestaña ni rango",
+      "input": "https://docs.google.com/spreadsheets/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789",
+      "valid": true,
+      "normalized": { "id": "1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789", "gid": "", "range": "" }
+    },
+    {
+      "name": "con selector de cuenta",
+      "input": "https://docs.google.com/spreadsheets/u/0/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789/edit#gid=5",
+      "valid": true,
+      "normalized": { "id": "1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789", "gid": "5", "range": "" }
+    },
+    {
+      "name": "espacios alrededor",
+      "input": "  https://docs.google.com/spreadsheets/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789/edit#gid=0  ",
+      "valid": true,
+      "normalized": { "id": "1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789", "gid": "0", "range": "" }
+    },
+    {
+      "name": "una pestaña que no es un número se ignora",
+      "input": "https://docs.google.com/spreadsheets/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789/edit#gid=abc",
+      "valid": true,
+      "normalized": { "id": "1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789", "gid": "", "range": "" }
+    },
+    {
+      "name": "rango con nombre de pestaña",
+      "input": "https://docs.google.com/spreadsheets/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789/edit#gid=3&range=Pagos!A1:B2",
+      "valid": true,
+      "normalized": { "id": "1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789", "gid": "3", "range": "Pagos!A1:B2" }
+    },
+    { "name": "vacío", "input": "", "valid": false },
+    { "name": "sin https", "input": "http://docs.google.com/spreadsheets/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789/edit", "valid": false },
+    { "name": "Google Docs no es Sheets", "input": "https://docs.google.com/document/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789/edit", "valid": false },
+    { "name": "otro dominio", "input": "https://docs.google.com.malo.invalid/spreadsheets/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789/edit", "valid": false },
+    { "name": "sin ID de hoja", "input": "https://docs.google.com/spreadsheets/d/", "valid": false },
+    { "name": "ID demasiado corto", "input": "https://docs.google.com/spreadsheets/d/abc/edit", "valid": false },
+    { "name": "no es una URL", "input": "Especificación SyPago", "valid": false }
+  ]
+}

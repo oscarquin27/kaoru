@@ -1603,7 +1603,6 @@ components:
         system: { $ref: '#/components/schemas/System' }
         change: { $ref: '#/components/schemas/EntityRef' }
         state: { $ref: '#/components/schemas/StateRef' }
-        riskLevel: { $ref: '#/components/schemas/RiskLevel' }
         owner: { $ref: '#/components/schemas/UserRef' }
         createdBy: { $ref: '#/components/schemas/UserRef' }
         createdAt: { type: string, format: date-time }
@@ -1907,6 +1906,10 @@ components:
       required: [requirement, lifecycle, missing, coverage, functionalCases, testCases, runs, defects]
       properties:
         requirement: { $ref: '#/components/schemas/Requirement' }
+        risk:
+          allOf:
+            - $ref: '#/components/schemas/Risk'
+          description: Ausente si el riesgo no está evaluado.
         lifecycle:
           type: array
           description: Etapas del ciclo en orden, para la línea de vida.
@@ -1999,6 +2002,7 @@ components:
                   requirement: { $ref: '#/components/schemas/Requirement' }
                   change: { $ref: '#/components/schemas/Code' }
                   risk: { $ref: '#/components/schemas/Code' }
+                  riskLevel: { $ref: '#/components/schemas/RiskLevel' }
                   functionalCases:
                     type: array
                     items: { $ref: '#/components/schemas/Code' }
