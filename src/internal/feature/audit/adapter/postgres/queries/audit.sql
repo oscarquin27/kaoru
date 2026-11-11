@@ -40,3 +40,11 @@ FROM audit_entry
 WHERE seq > sqlc.arg(after_seq)
 ORDER BY seq
 LIMIT sqlc.arg(batch_size);
+
+-- name: LastTransitions :many
+-- Cuándo entró cada entidad a su estado actual: su última transición.
+SELECT entity_id, max(occurred_at)::timestamptz AS occurred_at
+FROM audit_entry
+WHERE action = 'transition'
+  AND entity_id = ANY (sqlc.arg(entity_ids)::uuid[])
+GROUP BY entity_id;

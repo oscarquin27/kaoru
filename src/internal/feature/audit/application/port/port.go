@@ -34,6 +34,8 @@ type Repository interface {
 	List(ctx context.Context, filter Filter) (entries []EntryView, total int, err error)
 	// ChainAfter devuelve hasta limit registros con seq mayor que afterSeq, en orden.
 	ChainAfter(ctx context.Context, afterSeq int64, limit int) ([]domain.Entry, error)
+	// LastTransitions devuelve la fecha de la última transición de cada entidad que tenga alguna.
+	LastTransitions(ctx context.Context, entityIds []string) (map[string]time.Time, error)
 }
 
 // Permissions comprueba los permisos de los roles de un actor.

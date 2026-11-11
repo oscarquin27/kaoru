@@ -24,9 +24,10 @@ type Deps struct {
 
 // UseCases reúne los casos de uso del feature.
 type UseCases struct {
-	Record      *Record
-	ListEntries *ListEntries
-	VerifyChain *VerifyChain
+	Record             *Record
+	ListEntries        *ListEntries
+	VerifyChain        *VerifyChain
+	GetLastTransitions *GetLastTransitions
 }
 
 // New arma los casos de uso; falla si falta una dependencia.
@@ -35,8 +36,9 @@ func New(d Deps) (*UseCases, error) {
 		return nil, errors.New("audit: faltan dependencias")
 	}
 	return &UseCases{
-		Record:      &Record{d: d},
-		ListEntries: &ListEntries{d: d},
-		VerifyChain: &VerifyChain{d: d},
+		Record:             &Record{d: d},
+		ListEntries:        &ListEntries{d: d},
+		VerifyChain:        &VerifyChain{d: d},
+		GetLastTransitions: &GetLastTransitions{d: d},
 	}, nil
 }

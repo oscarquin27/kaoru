@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"testing"
 	"time"
 
@@ -52,6 +53,16 @@ func (r *fakeRepo) ChainAfter(_ context.Context, afterSeq int64, limit int) ([]d
 	for _, e := range r.entries {
 		if e.Seq > afterSeq && len(out) < limit {
 			out = append(out, e)
+		}
+	}
+	return out, nil
+}
+
+func (r *fakeRepo) LastTransitions(_ context.Context, ids []string) (map[string]time.Time, error) {
+	out := map[string]time.Time{}
+	for _, e := range r.entries {
+		if e.Action == domain.ActionTransition && slices.Contains(ids, e.EntityId) {
+			out[e.EntityId] = e.OccurredAt
 		}
 	}
 	return out, nil

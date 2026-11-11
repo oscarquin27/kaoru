@@ -4,6 +4,7 @@ package postgres
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -115,6 +116,27 @@ func (r *Repository) ChainAfter(ctx context.Context, afterSeq int64, limit int) 
 		entries[i] = toEntry(row)
 	}
 	return entries, nil
+}
+
+// LastTransitions devuelve la fecha de la última transición de cada entidad que tenga alguna.
+func (r *Repository) LastTransitions(ctx context.Context, entityIds []string) (map[string]time.Time, error) {
+	ids := make([]uuid.UUID, len(entityIds))
+	for i, raw := range entityIds {
+		id, err := uuid.Parse(raw)
+		if err != nil {
+			return nil, axis.Wrap(axis.InternalServerError, "id de entidad no válido", err)
+		}
+		ids[i] = id
+	}
+	rows, err := r.queries(ctx).LastTransitions(ctx, ids)
+	if err != nil {
+		return nil, corepg.TranslateError(err)
+	}
+	out := make(map[string]time.Time, len(rows))
+	for _, row := range rows {
+		out[row.EntityID.String()] = row.OccurredAt.UTC()
+	}
+	return out, nil
 }
 
 func toEntry(row sqlcgen.AuditEntry) domain.Entry {

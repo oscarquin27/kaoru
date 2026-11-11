@@ -95,6 +95,40 @@ func (q *Queries) LastHash(ctx context.Context) (string, error) {
 	return hash, err
 }
 
+const lastTransitions = `-- name: LastTransitions :many
+SELECT entity_id, max(occurred_at)::timestamptz AS occurred_at
+FROM audit_entry
+WHERE action = 'transition'
+  AND entity_id = ANY ($1::uuid[])
+GROUP BY entity_id
+`
+
+type LastTransitionsRow struct {
+	EntityID   uuid.UUID
+	OccurredAt time.Time
+}
+
+// Cuándo entró cada entidad a su estado actual: su última transición.
+func (q *Queries) LastTransitions(ctx context.Context, entityIds []uuid.UUID) ([]LastTransitionsRow, error) {
+	rows, err := q.db.Query(ctx, lastTransitions, entityIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []LastTransitionsRow
+	for rows.Next() {
+		var i LastTransitionsRow
+		if err := rows.Scan(&i.EntityID, &i.OccurredAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listChainAfter = `-- name: ListChainAfter :many
 SELECT id, seq, occurred_at, actor_id, entity_type, entity_id, entity_code, action,
        field, old_value, new_value, reason, prev_hash, hash
