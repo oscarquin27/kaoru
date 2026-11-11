@@ -60,7 +60,19 @@
       "webOrigins": ["${KAORU_PUBLIC_URL}"],
       "attributes": {
         "post.logout.redirect.uris": "${KAORU_PUBLIC_URL}/*"
-      }
+      },
+      "protocolMappers": [
+        {
+          "name": "audiencia-kaoru-web",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "kaoru-web",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
     }
   ]
 }
