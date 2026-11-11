@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Inicio · Kaoru</title>
+  <link rel="icon" href="img/kaoru.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/boceto.css">
+  <script src="js/boceto.js"></script>
+</head>
+<body data-section="inicio">
+<div class="app">
+  <aside class="sidebar glass" data-armazon="sidebar"></aside>
+  <div class="main">
+    <header class="topbar">
+      <nav aria-label="Ubicación"><ol class="crumbs"><li><span aria-current="page">Inicio</span></li></ol></nav>
+      <div class="topbar__tools" data-armazon="tools"></div>
+    </header>
+
+    <main class="content">
+      <div class="page-head">
+        <div>
+          <h1 class="title">Inicio</h1>
+          <p class="subtitle">Vista de QA · jueves 12 de noviembre de 2026</p>
+        </div>
+      </div>
+
+      <section class="glass kpis" aria-label="Indicadores">
+        <div class="kpi">
+          <span class="kpi__label">Cobertura de cambios en curso</span>
+          <span class="kpi__value">78 %</span>
+          <span class="kpi__note">TC con RUN aprobado / TC requeridos</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi__label">REQ bloqueados</span>
+          <span class="kpi__value">3</span>
+          <span class="kpi__note">No pueden avanzar de estado</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi__label">Defectos abiertos</span>
+          <span class="kpi__value">11</span>
+          <span class="row">
+            <span class="chip chip--bloq"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-triangle"/></svg>2 alta</span>
+            <span class="chip chip--aviso"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-minus"/></svg>5 media</span>
+            <span class="chip chip--neutro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-circle"/></svg>4 baja</span>
+          </span>
+        </div>
+        <div class="kpi">
+          <span class="kpi__label">Próxima ventana de cambio</span>
+          <span class="kpi__value">9 días</span>
+          <span class="kpi__note">CHG-2026-0007 · 21 nov 2026</span>
+        </div>
+      </section>
+
+      <div class="grid grid--2">
+        <section class="surface pad stack" aria-labelledby="h-pendientes">
+          <h2 class="h2" id="h-pendientes">Mis pendientes</h2>
+          <ul class="list">
+            <li>
+              <span class="list__icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-flask"/></svg></span>
+              <div class="list__main">Ejecutar 2 TC de <a class="id" href="requerimiento.html">REQ-2026-0042</a><br><span class="muted">TC-2026-0112 y TC-2026-0113 sin RUN</span></div>
+              <span class="chip chip--actual"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-target"/></svg>En pruebas</span>
+            </li>
+            <li>
+              <span class="list__icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bug"/></svg></span>
+              <div class="list__main">Reprobar <a class="id" href="requerimiento.html#defectos">DEF-2026-0088</a><br><span class="muted">Corregido en BUILD-2026-0215</span></div>
+              <span class="chip chip--curso"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-clock"/></svg>Listo para reprueba</span>
+            </li>
+            <li>
+              <span class="list__icon list__icon--bloq"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-lock"/></svg></span>
+              <div class="list__main">Entrega de <span class="id">REQ-2026-0045</span> incompleta<br><span class="muted">Falta el manifiesto del BUILD para entregar a QA</span></div>
+              <span class="chip chip--bloq"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-lock"/></svg>Bloqueado</span>
+            </li>
+            <li>
+              <span class="list__icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-file"/></svg></span>
+              <div class="list__main">Definir TC de <span class="id">REQ-2026-0047</span><br><span class="muted">Riesgo alto: requiere TC críticos</span></div>
+              <span class="chip chip--neutro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-circle"/></svg>Diseño de pruebas</span>
+            </li>
+          </ul>
+        </section>
+
+        <section class="surface pad stack" aria-labelledby="h-alertas">
+          <h2 class="h2" id="h-alertas">Alertas de atraso</h2>
+          <ul class="list">
+            <li>
+              <span class="list__icon list__icon--aviso"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-triangle"/></svg></span>
+              <div class="list__main">Hito «Entrega a QA» de <span class="id">CHG-2026-0007</span><br><span class="muted">Previsto el 9 nov 2026 · 3 días de atraso</span></div>
+            </li>
+            <li>
+              <span class="list__icon list__icon--aviso"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-triangle"/></svg></span>
+              <div class="list__main">Hito «Regresión completa» de <span class="id">CHG-2026-0005</span><br><span class="muted">Previsto el 11 nov 2026 · 1 día de atraso</span></div>
+            </li>
+          </ul>
+          <h2 class="h2">Próximas ventanas de cambio</h2>
+          <ul class="list">
+            <li><span class="list__icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-calendar"/></svg></span><div class="list__main"><span class="id">CHG-2026-0007</span> · SyPago<br><span class="muted">Sábado 21 nov 2026, 22:00</span></div><span class="muted">en 9 días</span></li>
+            <li><span class="list__icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-calendar"/></svg></span><div class="list__main"><span class="id">CHG-2026-0005</span> · SIMF<br><span class="muted">Sábado 5 dic 2026, 20:00</span></div><span class="muted">en 23 días</span></li>
+          </ul>
+        </section>
+      </div>
+
+      <section class="stack" aria-labelledby="h-cambios">
+        <h2 class="h2" id="h-cambios">Cambios en curso</h2>
+        <div class="surface table-wrap">
+          <table class="table">
+            <thead>
+              <tr><th>CHG</th><th>Sistema</th><th>Ruta</th><th>Estado del paquete</th><th>Avance</th><th>Ventana</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="id">CHG-2026-0007</span></td><td>SyPago</td><td>Ligera</td>
+                <td><span class="chip chip--actual"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-target"/></svg>En pruebas</span></td>
+                <td><div class="cell-line"><span class="meter" role="img" aria-label="67 %"><span class="meter__fill" style="width:67%"></span></span><span class="num soft">6 de 9 REQ aprobados</span></div></td>
+                <td class="num">21 nov 2026</td>
+              </tr>
+              <tr>
+                <td><span class="id">CHG-2026-0005</span></td><td>SIMF</td><td>Alta</td>
+                <td><span class="chip chip--neutro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-circle"/></svg>En armado</span></td>
+                <td><div class="cell-line"><span class="meter" role="img" aria-label="25 %"><span class="meter__fill" style="width:25%"></span></span><span class="num soft">3 de 12 REQ aprobados</span></div></td>
+                <td class="num">5 dic 2026</td>
+              </tr>
+              <tr>
+                <td><span class="id">CHG-2026-0008</span></td><td>SyPago</td><td>Ligera · fix menor</td>
+                <td><span class="chip chip--ok"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg>Listo para liberar</span></td>
+                <td><div class="cell-line"><span class="meter" role="img" aria-label="100 %"><span class="meter__fill" style="width:100%"></span></span><span class="num soft">1 de 1 REQ aprobado</span></div></td>
+                <td class="num">Por definir</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="stack" aria-labelledby="h-defectos">
+        <div>
+          <h2 class="h2" id="h-defectos">Defectos por estado</h2>
+          <p class="subtitle">Tiempo en estado, sin SLA.</p>
+        </div>
+        <div class="surface table-wrap">
+          <table class="table">
+            <thead>
+              <tr><th>Estado</th><th class="num">Defectos</th><th class="num">Alta</th><th class="num">Tiempo en estado (mediana)</th><th class="num">Más antiguo</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><span class="chip chip--neutro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-circle"/></svg>Abierto</span></td><td class="num">2</td><td class="num">1</td><td class="num">1 d</td><td class="num">2 d</td></tr>
+              <tr><td><span class="chip chip--neutro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-circle"/></svg>Triado</span></td><td class="num">3</td><td class="num">0</td><td class="num">2 d</td><td class="num">4 d</td></tr>
+              <tr><td><span class="chip chip--curso"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-clock"/></svg>En corrección</span></td><td class="num">4</td><td class="num">1</td><td class="num">3 d</td><td class="num">8 d</td></tr>
+              <tr><td><span class="chip chip--curso"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-clock"/></svg>Listo para reprueba</span></td><td class="num">1</td><td class="num">0</td><td class="num">1 d</td><td class="num">1 d</td></tr>
+              <tr><td><span class="chip chip--aviso"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-triangle"/></svg>Reabierto</span></td><td class="num">1</td><td class="num">0</td><td class="num">2 d</td><td class="num">2 d</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot" data-armazon="foot"></footer>
+  </div>
+</div>
+</body>
+</html>

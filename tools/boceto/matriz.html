@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Matriz de trazabilidad · Kaoru</title>
+  <link rel="icon" href="img/kaoru.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/boceto.css">
+  <script src="js/boceto.js"></script>
+</head>
+<body data-section="pruebas">
+<div class="app">
+  <aside class="sidebar glass" data-armazon="sidebar"></aside>
+  <div class="main">
+    <header class="topbar">
+      <nav aria-label="Ubicación">
+        <ol class="crumbs">
+          <li>Pruebas</li>
+          <li><span aria-current="page">Matriz de trazabilidad</span></li>
+        </ol>
+      </nav>
+      <div class="topbar__tools" data-armazon="tools"></div>
+    </header>
+
+    <main class="content">
+      <div class="page-head">
+        <div>
+          <h1 class="title">Matriz de trazabilidad</h1>
+          <p class="subtitle">REQ → RISK → UC → TC → RUN → DEF → PKG → RPT</p>
+        </div>
+        <div class="page-head__actions">
+          <button class="btn" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-download"/></svg>Exportar CSV</button>
+          <button class="btn" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-download"/></svg>Exportar XLSX</button>
+        </div>
+      </div>
+
+      <section class="glass kpis" aria-label="Indicadores del filtro actual">
+        <div class="kpi">
+          <span class="kpi__label">Cobertura</span>
+          <span class="kpi__value">78 %</span>
+          <span class="kpi__note">21 de 27 TC requeridos con RUN aprobado</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi__label">REQ bloqueados</span>
+          <span class="kpi__value">2 <span class="kpi__note">de 6</span></span>
+          <span class="kpi__note">No pueden avanzar de estado</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi__label">Defectos abiertos</span>
+          <span class="kpi__value">4</span>
+          <span class="row">
+            <span class="chip chip--bloq"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-triangle"/></svg>1 alta</span>
+            <span class="chip chip--aviso"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-minus"/></svg>1 media</span>
+            <span class="chip chip--neutro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-circle"/></svg>2 baja</span>
+          </span>
+        </div>
+      </section>
+
+      <form class="surface pad-s filters" aria-label="Filtros">
+        <label class="field">CHG<select class="select"><option>CHG-2026-0007</option><option>Todos</option></select></label>
+        <label class="field">PKG<select class="select"><option>Todos</option><option>PKG-2026-0012</option></select></label>
+        <label class="field">Sistema<select class="select"><option>SyPago</option><option>SIMF</option><option>SGLPAR</option><option>Todos</option></select></label>
+        <label class="field">Componente<select class="select"><option>Todos</option><option>COMP-2026-0004</option></select></label>
+        <label class="field">Estado<select class="select"><option>Todos</option><option>En pruebas</option><option>Con defectos</option><option>Aprobado QA</option></select></label>
+        <label class="field">Riesgo<select class="select"><option>Todos</option><option>Alto</option><option>Medio</option><option>Bajo</option></select></label>
+        <label class="field">Responsable<select class="select"><option>Todos</option><option>A. Rojas</option></select></label>
+        <label class="field">Desde<input class="input" type="date" value="2026-10-26"></label>
+        <label class="field">Hasta<input class="input" type="date" value="2026-11-21"></label>
+        <div class="filters__actions">
+          <button class="btn" type="button">Guardar vista</button>
+          <button class="btn" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-link"/></svg>Copiar enlace</button>
+        </div>
+      </form>
+
+      <section class="surface table-wrap" aria-label="Matriz">
+        <table class="table">
+          <thead>
+            <tr>
+              <th class="col-fixed">REQ</th><th>Estado</th><th>RISK</th><th>UC</th><th>TC</th><th>RUN · BUILD · ENV</th><th>DEF</th><th>PKG</th><th>RPT</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="col-fixed"><button class="id" type="button" data-href="requerimiento.html" data-ficha='{"Título":"Límite diario en pagos móviles","Estado":"En pruebas","Sistema":"SyPago","Riesgo":"Medio","Responsable":"A. Rojas · QA","Qué falta":"2 TC sin RUN aprobado; DEF-2026-0091 de severidad alta abierto"}'>REQ-2026-0042</button></td>
+              <td><span class="chip chip--actual"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-target"/></svg>En pruebas</span></td>
+              <td><span class="chip chip--aviso"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-minus"/></svg>Medio</span></td>
+              <td class="num">2</td>
+              <td><span class="chip chip--aviso"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-clock"/></svg>3 de 5</span></td>
+              <td><div class="cell-stack">
+                <span class="cell-line"><button class="id" type="button" data-ficha='{"Tipo":"Ejecución oficial","TC":"TC-2026-0110","BUILD":"BUILD-2026-0214 (checksum verificado)","Ambiente":"ENV-2026-0003 · línea base · Linux","Resultado":"Aprobado","Ejecutó":"A. Rojas · 10 nov 2026"}'>RUN-2026-0533</button><span class="chip chip--ok"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg>Aprobado</span></span>
+                <span class="cell-line"><button class="id" type="button" data-ficha='{"Tipo":"Ejecución oficial","TC":"TC-2026-0111","BUILD":"BUILD-2026-0214 (checksum verificado)","Ambiente":"ENV-2026-0003 · línea base · Linux","Resultado":"Fallido","Ejecutó":"A. Rojas · 11 nov 2026"}'>RUN-2026-0534</button><span class="chip chip--bloq"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-x"/></svg>Fallido</span></span>
+                <span class="muted mono">BUILD-2026-0214 · ENV-2026-0003</span>
+              </div></td>
+              <td><span class="cell-line"><button class="id" type="button" data-ficha='{"Defecto":"El acumulado cuenta pagos reversados","Severidad":"Alta","Estado":"En corrección","En estado":"2 días","RUN":"RUN-2026-0534"}'>DEF-2026-0091</button><span class="chip chip--bloq"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-triangle"/></svg>Alta</span></span></td>
+              <td><span class="id">PKG-2026-0012</span></td>
+              <td><span class="muted">Sin emitir</span></td>
+            </tr>
+            <tr>
+              <td class="col-fixed"><button class="id" type="button" data-ficha='{"Título":"Comprobante con referencia del banco receptor","Estado":"Aprobado QA","Sistema":"SyPago","Riesgo":"Bajo","Responsable":"A. Rojas · QA","Qué falta":"Nada. Listo para entrar al paquete."}'>REQ-2026-0043</button></td>
+              <td><span class="chip chip--ok"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg>Aprobado QA</span></td>
+              <td><span class="chip chip--neutro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-circle"/></svg>Bajo</span></td>
+              <td class="num">1</td>
+              <td><span class="chip chip--ok"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg>2 de 2</span></td>
+              <td><div class="cell-stack"><span class="cell-line"><span class="id">RUN-2026-0527</span><span class="chip chip--ok"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg>Aprobado</span></span><span class="muted mono">BUILD-2026-0213 · ENV-2026-0003</span></div></td>
+              <td><span class="muted">Ninguno</span></td>
+              <td><span class="id">PKG-2026-0012</span></td>
+              <td><span class="muted">Sin emitir</span></td>
+            </tr>
+            <tr>
+              <td class="col-fixed"><button class="id" type="button" data-ficha='{"Título":"Consulta de saldo previa al pago","Estado":"Con defectos","Sistema":"SyPago","Riesgo":"Medio","Responsable":"M. Pérez · dev","Qué falta":"DEF-2026-0089 de severidad media abierto"}'>REQ-2026-0044</button></td>
+              <td><span class="chip chip--aviso"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-triangle"/></svg>Con defectos</span></td>
+              <td><span class="chip chip--aviso"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-minus"/></svg>Medio</span></td>
+              <td class="num">2</td>
+              <td><span class="chip chip--aviso"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-clock"/></svg>3 de 4</span></td>
+              <td><div class="cell-stack"><span class="cell-line"><span class="id">RUN-2026-0530</span><span class="chip chip--bloq"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-x"/></svg>Fallido</span></span><span class="muted mono">BUILD-2026-0214 · ENV-2026-0003</span></div></td>
+              <td><span class="cell-line"><span class="id">DEF-2026-0089</span><span class="chip chip--aviso"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-minus"/></svg>Media</span></span></td>
+              <td><span class="id">PKG-2026-0012</span></td>
+              <td><span class="muted">Sin emitir</span></td>
+            </tr>
+            <tr>
+              <td class="col-fixed"><button class="id" type="button" data-ficha='{"Título":"Bitácora de rechazos por límite","Estado":"En desarrollo (bloqueado)","Sistema":"SyPago","Riesgo":"Bajo","Responsable":"M. Pérez · dev","Qué falta":"Falta el manifiesto del BUILD para entregar a QA"}'>REQ-2026-0045</button></td>
+              <td><span class="chip chip--bloq"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-lock"/></svg>En desarrollo · bloqueado</span></td>
+              <td><span class="chip chip--neutro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-circle"/></svg>Bajo</span></td>
+              <td class="num">1</td>
+              <td><span class="chip chip--neutro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-circle"/></svg>0 de 2</span></td>
+              <td><span class="muted">Sin RUN</span></td>
+              <td><span class="muted">Ninguno</span></td>
+              <td><span class="muted">Sin paquete</span></td>
+              <td><span class="muted">Sin emitir</span></td>
+            </tr>
+            <tr>
+              <td class="col-fixed"><button class="id" type="button" data-ficha='{"Título":"Reintento de notificación al comercio","Estado":"En desarrollo","Sistema":"SyPago","Riesgo":"Medio","Responsable":"M. Pérez · dev","Qué falta":"Entrega a QA con el contrato de entrada completo"}'>REQ-2026-0046</button></td>
+              <td><span class="chip chip--curso"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-clock"/></svg>En desarrollo</span></td>
+              <td><span class="chip chip--aviso"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-minus"/></svg>Medio</span></td>
+              <td class="num">2</td>
+              <td><span class="chip chip--neutro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-circle"/></svg>0 de 4</span></td>
+              <td><span class="muted">Sin RUN</span></td>
+              <td><span class="muted">Ninguno</span></td>
+              <td><span class="muted">Sin paquete</span></td>
+              <td><span class="muted">Sin emitir</span></td>
+            </tr>
+            <tr>
+              <td class="col-fixed"><button class="id" type="button" data-ficha='{"Título":"Validación de firma en mensajes entrantes","Estado":"Diseño de pruebas","Sistema":"SyPago","Riesgo":"Alto","Responsable":"A. Rojas · QA","Qué falta":"Definir los TC críticos que exige el riesgo alto"}'>REQ-2026-0047</button></td>
+              <td><span class="chip chip--neutro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-circle"/></svg>Diseño de pruebas</span></td>
+              <td><span class="chip chip--bloq"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-triangle"/></svg>Alto</span></td>
+              <td class="num">3</td>
+              <td><span class="chip chip--neutro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-circle"/></svg>0 de 10</span></td>
+              <td><span class="muted">Sin RUN</span></td>
+              <td><span class="muted">Ninguno</span></td>
+              <td><span class="muted">Sin paquete</span></td>
+              <td><span class="muted">Sin emitir</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+      <p class="muted">6 de 6 requerimientos del filtro. En el sistema, la tabla se virtualiza para miles de filas.</p>
+    </main>
+
+    <footer class="foot" data-armazon="foot"></footer>
+  </div>
+</div>
+
+<dialog class="drawer glass" id="drawer" aria-labelledby="drawer-code">
+  <div class="drawer__head">
+    <span class="id" id="drawer-code" data-drawer-code></span>
+    <button class="btn btn--icon" type="button" data-drawer-close title="Cerrar" aria-label="Cerrar"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-x"/></svg></button>
+  </div>
+  <div class="drawer__body">
+    <dl class="meta stack" data-drawer-fields></dl>
+    <a class="btn btn--primary" data-drawer-full href="#">Abrir ficha completa</a>
+  </div>
+</dialog>
+</body>
+</html>

@@ -1,0 +1,142 @@
+/* Kaoru — tokens de diseño. Fuente única de color, espacio, radio, desenfoque y elevación.
+   Ninguna regla fuera de este archivo lleva un color fijo. Un color nuevo entra aquí,
+   con valor en los dos temas. Tema oscuro (sumi) predeterminado; claro (washi) equivalente. */
+
+:root {
+  /* Tipografía. Inter queda pendiente de empaquetar; mientras, fuentes del sistema. */
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  --text-xs: 12px;   /* mínimo permitido */
+  --text-s: 13px;
+  --text-m: 14px;
+  --text-l: 16px;
+  --text-xl: 20px;
+  --text-2xl: 26px;
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-strong: 600;
+  --tracking-wordmark: 0.32em;
+
+  /* Espacio (ma) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+
+  /* Radios */
+  --r-s: 6px;
+  --r-m: 10px;
+  --r-l: 16px;
+  --r-pill: 999px;
+
+  /* Desenfoque y movimiento */
+  --blur: 18px;
+  --t-fast: 150ms;
+  --t-slow: 250ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Medidas del armazón */
+  --sidebar-w: 232px;
+  --drawer-w: 420px;
+  --icon: 18px;
+  --icon-stroke: 1.75;
+
+  /* Densidad cómoda (predeterminada) */
+  --cell-py: 10px;
+  --cell-px: 12px;
+  --control-h: 34px;
+}
+
+[data-density="compact"] {
+  --cell-py: 4px;
+  --cell-px: 8px;
+  --control-h: 28px;
+}
+
+/* ---------- Tema oscuro: sumi ---------- */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0d1017;                 /* tinta: negro azulado, nunca negro puro */
+  --bg-glow: #1b2145;            /* punto más claro del degradado de fondo */
+  --bg-glow-2: #131a2c;
+  --surface-solid: #141822;      /* base opaca: chips, campos, modo sin transparencia */
+  --surface: rgba(20, 24, 34, 0.94);   /* casi opaca: tablas y texto denso */
+  --surface-2: #1b2030;          /* filas resaltadas, cabeceras de tabla */
+  --glass: rgba(255, 255, 255, 0.06);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --line: rgba(255, 255, 255, 0.09);
+  --scrim: rgba(5, 7, 12, 0.6);
+
+  --text: #e9ebf2;
+  --text-2: #b3b9c9;
+  --text-3: #949bb0;
+
+  --accent: #4f5bd6;             /* índigo (aizome): único acento */
+  --accent-hover: #5d69e2;
+  --on-accent: #ffffff;
+  --accent-text: #a9b2ff;        /* acento como texto, enlace o estado actual */
+  --focus: #a9b2ff;
+
+  /* Estados: separados del acento; siempre con ícono y texto */
+  --ok: #72d6a4;
+  --curso: #6fcbe6;
+  --aviso: #f0c060;
+  --bloq: #ff9a90;
+  --neutro: #b3b9c9;
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.22);
+  --shadow-2: 0 2px 6px rgba(0, 0, 0, 0.35), 0 18px 48px rgba(0, 0, 0, 0.45);
+}
+
+/* ---------- Tema claro: washi ---------- */
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f5f1e8;                 /* papel: blanco cálido, nunca blanco puro */
+  --bg-glow: #e4e2f3;
+  --bg-glow-2: #efe8d8;
+  --surface-solid: #fffdf8;
+  --surface: rgba(255, 253, 248, 0.94);
+  --surface-2: #f3efe6;
+  --glass: rgba(255, 255, 255, 0.55);
+  --glass-border: rgba(28, 32, 48, 0.12);
+  --line: rgba(28, 32, 48, 0.12);
+  --scrim: rgba(28, 32, 48, 0.35);
+
+  --text: #1c2030;
+  --text-2: #454c5f;
+  --text-3: #5b6274;
+
+  --accent: #3d48b5;
+  --accent-hover: #323c9e;
+  --on-accent: #ffffff;
+  --accent-text: #3540a6;
+  --focus: #3d48b5;
+
+  --ok: #17643f;
+  --curso: #0b5a72;
+  --aviso: #754c00;
+  --bloq: #a12a25;
+  --neutro: #454c5f;
+
+  --shadow-1: 0 1px 2px rgba(28, 32, 48, 0.06), 0 4px 16px rgba(28, 32, 48, 0.08);
+  --shadow-2: 0 2px 6px rgba(28, 32, 48, 0.1), 0 18px 48px rgba(28, 32, 48, 0.18);
+}
+
+/* ---------- «Reducir transparencia»: superficies sólidas, sin desenfoque ---------- */
+[data-glass="off"] {
+  --glass: var(--surface-solid);
+  --surface: var(--surface-solid);
+  --blur: 0px;
+}
+
+/* ---------- Movimiento reducido ---------- */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --t-fast: 0ms;
+    --t-slow: 0ms;
+  }
+}

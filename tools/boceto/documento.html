@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DOC-2026-0031 · Kaoru</title>
+  <link rel="icon" href="img/kaoru.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/boceto.css">
+  <script src="js/boceto.js"></script>
+</head>
+<body data-section="requerimientos">
+<div class="app">
+  <aside class="sidebar glass" data-armazon="sidebar"></aside>
+  <div class="main">
+    <header class="topbar">
+      <nav aria-label="Trazabilidad">
+        <ol class="crumbs">
+          <li><span class="id">CHG-2026-0007</span></li>
+          <li><a class="id" href="requerimiento.html#documentacion">REQ-2026-0042</a></li>
+          <li><span class="id" aria-current="page">DOC-2026-0031</span></li>
+        </ol>
+      </nav>
+      <div class="topbar__tools" data-armazon="tools"></div>
+    </header>
+
+    <main class="content">
+      <div class="page-head">
+        <div class="stack-s">
+          <span class="id">DOC-2026-0031</span>
+          <h1 class="title">Especificación funcional: límite diario</h1>
+          <p class="subtitle">Instantánea de «Especificación SyPago · pestaña Pagos · A1:F40»</p>
+        </div>
+        <div class="page-head__actions">
+          <button class="btn" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-download"/></svg>Descargar</button>
+          <button class="btn btn--primary" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg>Subir nueva versión</button>
+        </div>
+      </div>
+
+      <div class="grid grid--side">
+        <section class="surface viewer" aria-label="Visor">
+          <div class="viewer__bar">
+            <label class="field">Versión
+              <select class="select"><option>v3 · 10 nov 2026 (actual)</option><option>v2 · 2 nov 2026</option><option>v1 · 28 oct 2026</option></select>
+            </label>
+            <span class="spacer"></span>
+            <span class="chip chip--ok"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg>Checksum verificado</span>
+            <button class="btn" type="button">Comparar con v2</button>
+          </div>
+          <div class="viewer__body">
+            <article class="prose">
+              <h1>Límite diario en pagos móviles</h1>
+              <p>Este documento describe la regla de límite diario del ordenante. Es una instantánea de la hoja de especificación al 10 de noviembre de 2026.</p>
+              <h2>Regla</h2>
+              <ul>
+                <li>El acumulado del día suma los pagos aprobados del ordenante.</li>
+                <li>Los pagos reversados no cuentan para el acumulado.</li>
+                <li>Si <code>acumulado + monto &gt; límite</code>, el pago se rechaza.</li>
+              </ul>
+              <h2>Casos</h2>
+              <table>
+                <thead><tr><th>Caso</th><th>Acumulado</th><th>Monto</th><th>Resultado</th></tr></thead>
+                <tbody>
+                  <tr><td>Dentro del límite</td><td>60 % del límite</td><td>30 % del límite</td><td>Procesado</td></tr>
+                  <tr><td>Supera el límite</td><td>90 % del límite</td><td>20 % del límite</td><td>Rechazado</td></tr>
+                  <tr><td>Con reverso previo</td><td>90 % (40 % reversado)</td><td>20 % del límite</td><td>Procesado</td></tr>
+                </tbody>
+              </table>
+              <h2>Mensaje al usuario</h2>
+              <p>El rechazo informa el motivo y el monto disponible del día.</p>
+            </article>
+          </div>
+        </section>
+
+        <aside class="stack" aria-label="Datos del documento">
+          <section class="surface pad stack">
+            <h2 class="h2">Datos</h2>
+            <dl class="meta stack">
+              <div class="meta__item"><dt>Tipo</dt><dd>Markdown · tipo real verificado</dd></div>
+              <div class="meta__item"><dt>Tamaño</dt><dd class="num">4,2 KB</dd></div>
+              <div class="meta__item"><dt>Enlazado a</dt><dd><a class="id" href="requerimiento.html">REQ-2026-0042</a></dd></div>
+              <div class="meta__item"><dt>Origen</dt><dd>Exportación de Google Sheets</dd></div>
+            </dl>
+          </section>
+
+          <section class="surface pad stack">
+            <h2 class="h2">Versiones</h2>
+            <ol class="timeline">
+              <li aria-current="true">
+                <div class="row row--between"><strong>v3</strong><span class="chip chip--actual"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-target"/></svg>Actual</span></div>
+                <span class="soft">L. Díaz · 10 nov 2026, 16:20</span><br>
+                <span class="mono muted" title="SHA-256">9f2c41ab77d0…5c1ae07d</span>
+              </li>
+              <li>
+                <strong>v2</strong><br>
+                <span class="soft">L. Díaz · 2 nov 2026, 10:05</span><br>
+                <span class="mono muted" title="SHA-256">c81e03f5a2b9…47d06f12</span>
+              </li>
+              <li>
+                <strong>v1</strong><br>
+                <span class="soft">A. Rojas · 28 oct 2026, 11:48</span><br>
+                <span class="mono muted" title="SHA-256">05ab9d3e61c4…f2e8b730</span>
+              </li>
+            </ol>
+            <p class="muted">Subir una versión conserva las anteriores. El informe de conformidad cita la versión y su SHA-256.</p>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <footer class="foot" data-armazon="foot"></footer>
+  </div>
+</div>
+</body>
+</html>

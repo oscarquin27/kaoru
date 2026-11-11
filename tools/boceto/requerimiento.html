@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>REQ-2026-0042 · Kaoru</title>
+  <link rel="icon" href="img/kaoru.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/boceto.css">
+  <script src="js/boceto.js"></script>
+</head>
+<body data-section="requerimientos">
+<div class="app">
+  <aside class="sidebar glass" data-armazon="sidebar"></aside>
+  <div class="main">
+    <header class="topbar">
+      <nav aria-label="Trazabilidad">
+        <ol class="crumbs">
+          <li><span class="id">CHG-2026-0007</span></li>
+          <li><span class="id" aria-current="page">REQ-2026-0042</span></li>
+        </ol>
+      </nav>
+      <div class="topbar__tools" data-armazon="tools"></div>
+    </header>
+
+    <main class="content">
+      <!-- 1. Encabezado y 2. línea de vida: una sola capa de vidrio -->
+      <section class="glass pad stack" aria-labelledby="req-title">
+        <div class="row row--between">
+          <div class="stack-s">
+            <span class="id">REQ-2026-0042</span>
+            <h1 class="title" id="req-title">Límite diario en pagos móviles</h1>
+          </div>
+          <div class="stack-s">
+            <span class="h3">Estado actual</span>
+            <span class="chip chip--actual chip--l"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-target"/></svg>En pruebas</span>
+          </div>
+        </div>
+        <dl class="meta">
+          <div class="meta__item"><dt>Sistema</dt><dd>SyPago</dd></div>
+          <div class="meta__item"><dt>Cambio</dt><dd><span class="id">CHG-2026-0007</span> · ruta ligera</dd></div>
+          <div class="meta__item"><dt>Riesgo</dt><dd><span class="chip chip--aviso"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-minus"/></svg>Medio</span> <span class="id">RISK-2026-0019</span></dd></div>
+          <div class="meta__item"><dt>Responsable actual</dt><dd>A. Rojas · QA</dd></div>
+          <div class="meta__item"><dt>En este estado</dt><dd class="num">3 días</dd></div>
+        </dl>
+
+        <ol class="life" aria-label="Línea de vida">
+          <li class="life__step" data-state="done"><span class="life__dot"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg></span><span class="life__name">Registrado</span><span class="life__time">1 d</span><span class="sr-only">completada</span></li>
+          <li class="life__step" data-state="done"><span class="life__dot"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg></span><span class="life__name">Riesgo evaluado</span><span class="life__time">2 d</span><span class="sr-only">completada</span></li>
+          <li class="life__step" data-state="done"><span class="life__dot"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg></span><span class="life__name">Diseño de pruebas</span><span class="life__time">4 d</span><span class="sr-only">completada</span></li>
+          <li class="life__step" data-state="done"><span class="life__dot"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg></span><span class="life__name">En desarrollo</span><span class="life__time">9 d</span><span class="sr-only">completada</span></li>
+          <li class="life__step" data-state="done"><span class="life__dot"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg></span><span class="life__name">Entregado a QA</span><span class="life__time">1 d</span><span class="sr-only">completada</span></li>
+          <li class="life__step" data-state="current" aria-current="step"><span class="life__dot"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-target"/></svg></span><span class="life__name">En pruebas</span><span class="life__time">3 d · actual</span></li>
+          <li class="life__step" data-state="blocked"><span class="life__dot"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-lock"/></svg></span><span class="life__name">Aprobado QA</span><span class="life__time">bloqueada</span></li>
+          <li class="life__step" data-state="pending"><span class="life__dot"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-circle"/></svg></span><span class="life__name">En paquete</span><span class="life__time">pendiente</span></li>
+          <li class="life__step" data-state="pending"><span class="life__dot"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-circle"/></svg></span><span class="life__name">Liberado</span><span class="life__time">pendiente</span></li>
+          <li class="life__step" data-state="pending"><span class="life__dot"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-circle"/></svg></span><span class="life__name">Verificado post-despliegue</span><span class="life__time">pendiente</span></li>
+          <li class="life__step" data-state="pending"><span class="life__dot"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-circle"/></svg></span><span class="life__name">Cerrado</span><span class="life__time">pendiente</span></li>
+        </ol>
+      </section>
+
+      <!-- 3. Qué falta para avanzar -->
+      <section class="surface pad stack" aria-labelledby="h-falta">
+        <div class="row row--between">
+          <h2 class="h2" id="h-falta">Qué falta para avanzar a «Aprobado QA»</h2>
+          <span class="muted">2 condiciones pendientes · 1 aviso</span>
+        </div>
+        <ul class="list">
+          <li>
+            <span class="list__icon list__icon--bloq"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-lock"/></svg></span>
+            <div class="list__main">Faltan 2 TC sin RUN aprobado: <span class="id">TC-2026-0112</span> y <span class="id">TC-2026-0113</span><br><span class="muted">Riesgo medio exige 5 de 5 TC requeridos; hay 3.</span></div>
+            <a class="btn" href="#pruebas">Ver pruebas</a>
+          </li>
+          <li>
+            <span class="list__icon list__icon--bloq"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-lock"/></svg></span>
+            <div class="list__main"><span class="id">DEF-2026-0091</span> de severidad alta abierto<br><span class="muted">En corrección desde hace 2 días.</span></div>
+            <a class="btn" href="#defectos">Ver defectos</a>
+          </li>
+          <li>
+            <span class="list__icon list__icon--aviso"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-triangle"/></svg></span>
+            <div class="list__main">1 enlace de Google Sheets sin instantánea<br><span class="muted">No bloquea. Para el informe de conformidad cuenta la instantánea, no el enlace.</span></div>
+            <a class="btn" href="#enlaces">Ver enlaces</a>
+          </li>
+        </ul>
+      </section>
+
+      <!-- 4. Pestañas -->
+      <section>
+        <div class="tabs" role="tablist" aria-label="Secciones del requerimiento">
+          <button class="tab" role="tab" type="button" id="tab-resumen" data-tab="resumen" aria-controls="p-resumen" aria-selected="true">Resumen</button>
+          <button class="tab" role="tab" type="button" id="tab-enlaces" data-tab="enlaces" aria-controls="p-enlaces" aria-selected="false" tabindex="-1">Enlaces <span class="tab__count">2</span></button>
+          <button class="tab" role="tab" type="button" id="tab-documentacion" data-tab="documentacion" aria-controls="p-documentacion" aria-selected="false" tabindex="-1">Documentación <span class="tab__count">2</span></button>
+          <button class="tab" role="tab" type="button" id="tab-trazabilidad" data-tab="trazabilidad" aria-controls="p-trazabilidad" aria-selected="false" tabindex="-1">Trazabilidad</button>
+          <button class="tab" role="tab" type="button" id="tab-pruebas" data-tab="pruebas" aria-controls="p-pruebas" aria-selected="false" tabindex="-1">Pruebas <span class="tab__count">3/5</span></button>
+          <button class="tab" role="tab" type="button" id="tab-defectos" data-tab="defectos" aria-controls="p-defectos" aria-selected="false" tabindex="-1">Defectos <span class="tab__count">2</span></button>
+          <button class="tab" role="tab" type="button" id="tab-actividad" data-tab="actividad" aria-controls="p-actividad" aria-selected="false" tabindex="-1">Actividad</button>
+        </div>
+
+        <div class="tabpanel" role="tabpanel" id="p-resumen" aria-labelledby="tab-resumen" tabindex="0">
+          <div class="surface pad stack">
+            <h3 class="h3">Descripción</h3>
+            <p>El sistema debe rechazar un pago móvil cuando la suma de pagos del día del ordenante supera su límite diario configurado, e informar el motivo.</p>
+            <h3 class="h3">Criterios de aceptación</h3>
+            <ul class="list">
+              <li><span class="list__icon list__icon--ok"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg></span><div class="list__main">Un pago que deja el acumulado dentro del límite se procesa.</div></li>
+              <li><span class="list__icon list__icon--ok"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg></span><div class="list__main">Un pago que supera el límite se rechaza con el código de motivo definido.</div></li>
+              <li><span class="list__icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-circle"/></svg></span><div class="list__main">El acumulado se reinicia al cambiar el día bancario.</div></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="tabpanel" role="tabpanel" id="p-enlaces" aria-labelledby="tab-enlaces" tabindex="0" hidden>
+          <div class="surface table-wrap">
+            <table class="table">
+              <thead><tr><th>Tipo</th><th>Enlace</th><th>Instantánea</th><th>Agregado por</th><th class="col-actions"><span class="sr-only">Acciones</span></th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><span class="cell-line"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grid"/></svg>Google Sheets</span></td>
+                  <td><div class="cell-stack"><span>Especificación SyPago · pestaña Pagos · A1:F40</span><span class="chip chip--ok"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg>Documento oficial</span></div></td>
+                  <td><div class="cell-stack"><span class="chip chip--ok"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg>Adjunta</span><a class="id" href="documento.html">DOC-2026-0031</a></div></td>
+                  <td>L. Díaz · 28 oct 2026</td>
+                  <td class="col-actions"><a class="btn" href="#" title="Se abre en otra pestaña, con tu sesión de Google"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-out"/></svg>Abrir en Google Sheets</a></td>
+                </tr>
+                <tr>
+                  <td><span class="cell-line"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grid"/></svg>Google Sheets</span></td>
+                  <td>Casos de borde · pestaña Límites</td>
+                  <td><span class="chip chip--aviso"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-triangle"/></svg>Sin instantánea</span></td>
+                  <td>A. Rojas · 3 nov 2026</td>
+                  <td class="col-actions"><a class="btn" href="#" title="Se abre en otra pestaña, con tu sesión de Google"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-out"/></svg>Abrir en Google Sheets</a></td>
+                </tr>
+                <tr>
+                  <td><span class="cell-line"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-link"/></svg>YouTrack</span></td>
+                  <td>Tarea de desarrollo del límite diario</td>
+                  <td><span class="muted">No aplica</span></td>
+                  <td>M. Pérez · 30 oct 2026</td>
+                  <td class="col-actions"><a class="btn" href="#"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-out"/></svg>Abrir enlace</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="tabpanel" role="tabpanel" id="p-documentacion" aria-labelledby="tab-documentacion" tabindex="0" hidden>
+          <div class="surface table-wrap">
+            <table class="table">
+              <thead><tr><th>DOC</th><th>Documento</th><th>Tipo</th><th>Versión</th><th>SHA-256</th><th>Autor y fecha</th><th class="col-actions"><span class="sr-only">Acciones</span></th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><a class="id" href="documento.html">DOC-2026-0031</a></td><td>Especificación funcional (instantánea)</td><td>Markdown</td><td class="num">v3</td>
+                  <td><span class="mono">9f2c41ab…e07d</span></td><td>L. Díaz · 10 nov 2026</td>
+                  <td class="col-actions"><a class="btn" href="documento.html">Ver</a></td>
+                </tr>
+                <tr>
+                  <td><span class="id">DOC-2026-0034</span></td><td>Minuta de revisión con desarrollo</td><td>PDF</td><td class="num">v1</td>
+                  <td><span class="mono">41d0c7e2…b913</span></td><td>A. Rojas · 4 nov 2026</td>
+                  <td class="col-actions"><a class="btn" href="#">Ver</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="tabpanel" role="tabpanel" id="p-trazabilidad" aria-labelledby="tab-trazabilidad" tabindex="0" hidden>
+          <div class="stack">
+            <div class="surface pad">
+              <div class="chain" role="img" aria-label="Cadena: CHG-2026-0007, REQ-2026-0042, RISK-2026-0019, 2 UC, 5 TC, 4 RUN sobre BUILD-2026-0214, 2 DEF, PKG-2026-0012, sin informe">
+                <div class="chain__node"><span class="h3">Cambio</span><span class="id">CHG-2026-0007</span></div><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-right"/></svg>
+                <div class="chain__node"><span class="h3">Requerimiento</span><span class="id">REQ-2026-0042</span></div><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-right"/></svg>
+                <div class="chain__node"><span class="h3">Riesgo</span><span class="id">RISK-2026-0019</span></div><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-right"/></svg>
+                <div class="chain__node"><span class="h3">Casos de uso</span><span>2 UC</span></div><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-right"/></svg>
+                <div class="chain__node"><span class="h3">Casos de prueba</span><span>5 TC</span></div><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-right"/></svg>
+                <div class="chain__node"><span class="h3">Ejecuciones</span><span>4 RUN</span></div><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-right"/></svg>
+                <div class="chain__node"><span class="h3">Defectos</span><span>2 DEF</span></div><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-right"/></svg>
+                <div class="chain__node"><span class="h3">Paquete</span><span class="id">PKG-2026-0012</span></div><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-right"/></svg>
+                <div class="chain__node"><span class="h3">Informe</span><span class="muted">Sin emitir</span></div>
+              </div>
+            </div>
+            <div class="surface table-wrap">
+              <table class="table">
+                <thead><tr><th>UC</th><th>TC</th><th>RUN</th><th>BUILD</th><th>ENV</th><th>DEF</th></tr></thead>
+                <tbody>
+                  <tr><td><span class="id">UC-2026-0061</span></td><td><span class="id">TC-2026-0110</span></td><td><span class="id">RUN-2026-0533</span></td><td><span class="id">BUILD-2026-0214</span></td><td><span class="id">ENV-2026-0003</span></td><td><span class="muted">Ninguno</span></td></tr>
+                  <tr><td><span class="id">UC-2026-0061</span></td><td><span class="id">TC-2026-0111</span></td><td><span class="id">RUN-2026-0534</span></td><td><span class="id">BUILD-2026-0214</span></td><td><span class="id">ENV-2026-0003</span></td><td><span class="id">DEF-2026-0091</span></td></tr>
+                  <tr><td><span class="id">UC-2026-0062</span></td><td><span class="id">TC-2026-0112</span></td><td><span class="muted">Sin RUN</span></td><td><span class="muted">—</span></td><td><span class="muted">—</span></td><td><span class="muted">Ninguno</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="tabpanel" role="tabpanel" id="p-pruebas" aria-labelledby="tab-pruebas" tabindex="0" hidden>
+          <div class="stack">
+            <div class="surface pad row">
+              <span class="h2 num">3 de 5</span>
+              <span class="soft">TC requeridos con RUN aprobado (riesgo medio)</span>
+              <span class="meter" role="img" aria-label="60 %" style="flex:1"><span class="meter__fill" style="width:60%"></span></span>
+            </div>
+            <div class="surface table-wrap">
+              <table class="table">
+                <thead><tr><th>TC</th><th>Caso de prueba</th><th>Crítico</th><th>Último RUN</th><th>BUILD · ENV</th><th>Resultado</th></tr></thead>
+                <tbody>
+                  <tr><td><span class="id">TC-2026-0109</span></td><td>Pago dentro del límite</td><td>Sí</td><td><span class="id">RUN-2026-0531</span></td><td><span class="mono">BUILD-2026-0214 · ENV-2026-0003</span></td><td><span class="chip chip--ok"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg>Aprobado</span></td></tr>
+                  <tr><td><span class="id">TC-2026-0110</span></td><td>Pago que supera el límite</td><td>Sí</td><td><span class="id">RUN-2026-0533</span></td><td><span class="mono">BUILD-2026-0214 · ENV-2026-0003</span></td><td><span class="chip chip--ok"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg>Aprobado</span></td></tr>
+                  <tr><td><span class="id">TC-2026-0111</span></td><td>Acumulado con pagos reversados</td><td>No</td><td><span class="id">RUN-2026-0534</span></td><td><span class="mono">BUILD-2026-0214 · ENV-2026-0003</span></td><td><span class="chip chip--bloq"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-x"/></svg>Fallido</span></td></tr>
+                  <tr><td><span class="id">TC-2026-0112</span></td><td>Reinicio al cambiar el día bancario</td><td>No</td><td><span class="muted">Sin RUN</span></td><td><span class="muted">—</span></td><td><span class="chip chip--neutro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-circle"/></svg>Pendiente</span></td></tr>
+                  <tr><td><span class="id">TC-2026-0113</span></td><td>Límite modificado durante el día</td><td>No</td><td><span class="muted">Sin RUN</span></td><td><span class="muted">—</span></td><td><span class="chip chip--neutro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-circle"/></svg>Pendiente</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="tabpanel" role="tabpanel" id="p-defectos" aria-labelledby="tab-defectos" tabindex="0" hidden>
+          <div class="surface table-wrap">
+            <table class="table">
+              <thead><tr><th>DEF</th><th>Defecto</th><th>Severidad</th><th>Estado</th><th class="num">En estado</th><th>RUN</th></tr></thead>
+              <tbody>
+                <tr><td><span class="id">DEF-2026-0091</span></td><td>El acumulado cuenta pagos reversados</td><td><span class="chip chip--bloq"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-triangle"/></svg>Alta</span></td><td><span class="chip chip--curso"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-clock"/></svg>En corrección</span></td><td class="num">2 d</td><td><span class="id">RUN-2026-0534</span></td></tr>
+                <tr><td><span class="id">DEF-2026-0088</span></td><td>Mensaje de rechazo sin el monto disponible</td><td><span class="chip chip--neutro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-circle"/></svg>Baja</span></td><td><span class="chip chip--curso"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-clock"/></svg>Listo para reprueba</span></td><td class="num">1 d</td><td><span class="id">RUN-2026-0529</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="tabpanel" role="tabpanel" id="p-actividad" aria-labelledby="tab-actividad" tabindex="0" hidden>
+          <div class="surface pad">
+            <ol class="timeline">
+              <li aria-current="true"><span class="num muted">11 nov 2026, 15:42</span><br>A. Rojas registró <span class="id">RUN-2026-0534</span> como fallido y abrió <span class="id">DEF-2026-0091</span>.</li>
+              <li><span class="num muted">9 nov 2026, 09:10</span><br>A. Rojas cambió el estado: Entregado a QA → En pruebas.</li>
+              <li><span class="num muted">8 nov 2026, 17:05</span><br>M. Pérez entregó <span class="id">BUILD-2026-0214</span> con el contrato de entrada completo.</li>
+              <li><span class="num muted">28 oct 2026, 11:30</span><br>L. Díaz registró el requerimiento en <span class="id">CHG-2026-0007</span>.</li>
+            </ol>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot" data-armazon="foot"></footer>
+  </div>
+</div>
+</body>
+</html>

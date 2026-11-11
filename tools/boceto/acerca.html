@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Acerca de · Kaoru</title>
+  <link rel="icon" href="img/kaoru.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/boceto.css">
+  <script src="js/boceto.js"></script>
+</head>
+<body data-section="acerca">
+<div class="app">
+  <aside class="sidebar glass" data-armazon="sidebar"></aside>
+  <div class="main">
+    <header class="topbar">
+      <nav aria-label="Ubicación"><ol class="crumbs"><li><span aria-current="page">Acerca de</span></li></ol></nav>
+      <div class="topbar__tools" data-armazon="tools"></div>
+    </header>
+
+    <main class="content">
+      <section class="glass pad stack">
+        <div class="row">
+          <svg class="icon brand__mark" viewBox="0 0 24 24" aria-hidden="true" style="width:48px;height:48px"><use href="#i-kaoru"/></svg>
+          <h1 class="wordmark wordmark--xl">kaoru</h1>
+        </div>
+        <p class="h2">Trazabilidad a prueba de errores</p>
+        <p class="soft" style="max-width:70ch">Kaoru lleva el nombre de Kaoru Ishikawa, que defendió que la calidad es responsabilidad de toda la organización y no de un solo departamento.</p>
+        <p class="soft" style="max-width:70ch">Aquí desarrollo, QA y change management planifican, prueban y dejan evidencia de cada cambio.</p>
+      </section>
+
+      <section class="surface pad stack" aria-labelledby="h-marca">
+        <h2 class="h2" id="h-marca">Marca</h2>
+        <div class="specimen">
+          <figure><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" style="width:16px;height:16px"><use href="#i-kaoru"/></svg><figcaption>16 px · mínimo</figcaption></figure>
+          <figure><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" style="width:24px;height:24px"><use href="#i-kaoru"/></svg><figcaption>24 px</figcaption></figure>
+          <figure><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" style="width:48px;height:48px"><use href="#i-kaoru"/></svg><figcaption>48 px</figcaption></figure>
+          <figure>
+            <span class="clearzone"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" style="width:24px;height:24px"><use href="#i-kaoru"/></svg><span class="wordmark" style="color:var(--text)">kaoru</span></span>
+            <figcaption>Zona de respeto: la altura del símbolo por cada lado</figcaption>
+          </figure>
+        </div>
+        <p class="muted">Símbolo: una K de línea continua que une cuatro puntos, como la cadena REQ → TC → RUN → PKG. Siempre en un solo color. Wordmark en minúsculas, trazo fino y espaciado amplio; tamaño mínimo 14 px.</p>
+      </section>
+
+      <section class="surface pad stack" aria-labelledby="h-paleta">
+        <h2 class="h2" id="h-paleta">Paleta</h2>
+        <div class="swatches">
+          <div class="swatch"><span class="swatch__color" style="--sw:var(--bg)"></span>Fondo <span class="mono">--bg</span></div>
+          <div class="swatch"><span class="swatch__color" style="--sw:var(--surface-solid)"></span>Superficie <span class="mono">--surface-solid</span></div>
+          <div class="swatch"><span class="swatch__color" style="--sw:var(--accent)"></span>Acento <span class="mono">--accent</span></div>
+          <div class="swatch"><span class="swatch__color" style="--sw:var(--accent-text)"></span>Acento en texto <span class="mono">--accent-text</span></div>
+          <div class="swatch"><span class="swatch__color" style="--sw:var(--ok)"></span>Aprobado <span class="mono">--ok</span></div>
+          <div class="swatch"><span class="swatch__color" style="--sw:var(--curso)"></span>En curso <span class="mono">--curso</span></div>
+          <div class="swatch"><span class="swatch__color" style="--sw:var(--aviso)"></span>Aviso <span class="mono">--aviso</span></div>
+          <div class="swatch"><span class="swatch__color" style="--sw:var(--bloq)"></span>Bloqueado y defecto alto <span class="mono">--bloq</span></div>
+        </div>
+      </section>
+
+      <section class="surface pad stack" aria-labelledby="h-estados">
+        <h2 class="h2" id="h-estados">Estados</h2>
+        <p class="soft">Un estado nunca se comunica solo por color: siempre color, ícono y texto.</p>
+        <div class="row">
+          <span class="chip chip--actual"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-target"/></svg>Estado actual</span>
+          <span class="chip chip--ok"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg>Aprobado</span>
+          <span class="chip chip--curso"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-clock"/></svg>En curso</span>
+          <span class="chip chip--aviso"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-triangle"/></svg>Con defectos</span>
+          <span class="chip chip--bloq"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-lock"/></svg>Bloqueado</span>
+          <span class="chip chip--bloq"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-x"/></svg>Fallido</span>
+          <span class="chip chip--neutro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-circle"/></svg>Pendiente</span>
+        </div>
+        <h3 class="h3">Severidad de defecto</h3>
+        <div class="row">
+          <span class="chip chip--bloq"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-triangle"/></svg>Alta</span>
+          <span class="chip chip--aviso"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-minus"/></svg>Media</span>
+          <span class="chip chip--neutro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-circle"/></svg>Baja</span>
+        </div>
+        <h3 class="h3">Riesgo</h3>
+        <div class="row">
+          <span class="chip chip--bloq"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-triangle"/></svg>Alto</span>
+          <span class="chip chip--aviso"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-minus"/></svg>Medio</span>
+          <span class="chip chip--neutro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-circle"/></svg>Bajo</span>
+        </div>
+        <h3 class="h3">Botones</h3>
+        <div class="row">
+          <button class="btn btn--primary" type="button">Acción principal</button>
+          <button class="btn" type="button">Acción secundaria</button>
+          <button class="btn btn--icon" type="button" title="Cerrar" aria-label="Cerrar"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-x"/></svg></button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot" data-armazon="foot"></footer>
+  </div>
+</div>
+</body>
+</html>
