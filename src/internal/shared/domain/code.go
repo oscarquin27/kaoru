@@ -13,6 +13,12 @@ const (
 	PrefixChange      = "CHG"
 	PrefixRequirement = "REQ"
 	PrefixRisk        = "RISK"
+	// PrefixFunctionalCase es el de los UC-, los casos de uso funcionales.
+	PrefixFunctionalCase = "UC"
+	PrefixTestCase       = "TC"
+	PrefixRun            = "RUN"
+	PrefixExploration    = "EXP"
+	PrefixDefect         = "DEF"
 )
 
 // Code es el ID legible e inmutable de una entidad: prefijo, año y secuencia (REQ-2026-0042).
