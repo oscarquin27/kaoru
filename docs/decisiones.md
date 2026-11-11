@@ -262,3 +262,16 @@ Tomadas el 11 nov 2026 al construir el core y el primer corte vertical (`workflo
 - Un archivo subido cuyo registro falla después queda en disco sin referencia. No hay tarea de limpieza.
 - La previsualización de Office con LibreOffice no está hecha: esos archivos se descargan.
 - No hay medición de rendimiento con 10 000 REQ y 100 000 RUN; la matriz y la búsqueda no tienen índices de texto.
+
+### D42 — Despliegue: Compose, sesión y paquete offline
+- **Fecha:** 11 nov 2026
+- **Estado:** `[SUPUESTO]` hasta que dev y quien administre el servidor lo revisen.
+- **Rutas.** Nginx atiende todo en un solo origen: `/` el front, `/api/` la API, `/oauth2/` la sesión y `/auth/realms/` el login de Keycloak. Keycloak corre con ruta base `/auth`. Así no hace falta un segundo nombre de host ni un segundo certificado.
+- **Keycloak por dentro y por fuera.** El emisor de los tokens es la URL pública (`KC_HOSTNAME`). oauth2-proxy y `kaoru-api` le hablan por la red interna de Docker en HTTP (canje del código y llaves), sin depender de que el servidor resuelva su propio nombre público.
+- **Consola de administración.** No se publica en Nginx. Atiende solo en `127.0.0.1` del servidor (`KEYCLOAK_ADMIN_PORT`).
+- **Sesión.** Cookie cifrada de oauth2-proxy, `HttpOnly`, `Secure`, `SameSite=Lax`, 10 horas. El token de acceso dura 5 minutos y oauth2-proxy lo renueva a los 3. Al cerrar sesión se cierra también la de Keycloak.
+- **oauth2-proxy en su variante `-alpine`.** La imagen normal no trae shell y no admite healthcheck dentro del contenedor, que el requerimiento pide para todos los servicios.
+- **Digest.** El Compose del repositorio fija cada imagen por tag y digest. El del paquete offline las referencia solo por tag, porque `docker load` no conserva el digest en todos los motores; la integridad la da la suma de `images.tar.gz`, que `install.sh` comprueba. Esto resuelve D27 para las versiones: PostgreSQL 17, Keycloak 26.4, oauth2-proxy 7.8.1 y Nginx 1.28.
+- **Respaldo.** `pg_dump` de las dos bases y un `tar.gz` del volumen de documentos, con sumas de comprobación. La restauración reemplaza todo y se niega a correr con un respaldo dañado.
+- **TLS.** `tools/make-lab-cert.sh` genera un certificado autofirmado solo para laboratorio. Cuál se usa en el banco sigue `[POR DEFINIR]` (pregunta 12).
+- **El front es un marcador de posición.** Nginx sirve una página mínima detrás de la sesión hasta que exista la SPA.

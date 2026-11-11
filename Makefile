@@ -3,10 +3,19 @@
 
 IMAGE ?= kaoru-api:dev
 
-.PHONY: check generate check-go check-generated check-openapi check-migrations check-integration check-image
+.PHONY: check generate image offline-bundle check-go check-generated check-openapi check-migrations \
+	check-integration check-image check-e2e check-offline
 
-check: check-go check-generated check-openapi check-migrations check-integration check-image
+check: check-go check-generated check-openapi check-migrations check-integration check-image check-e2e
 	@echo "make check: OK"
+
+# Imagen de kaoru-api.
+image:
+	docker build -f infra/api/Dockerfile -t $(IMAGE) .
+
+# Paquete para instalar en un servidor sin internet: deja dist/kaoru-offline-<versión>.tar.gz
+offline-bundle:
+	./tools/offline-bundle.sh
 
 # Código generado por sqlc a partir de src/migrations y de las consultas de cada feature.
 generate:
@@ -37,3 +46,12 @@ check-integration:
 check-image:
 	docker build -q -f infra/api/Dockerfile -t $(IMAGE) .
 	KAORU_API_IMAGE=$(IMAGE) ./tools/with-postgres.sh ./tools/smoke-api.sh
+
+# El despliegue completo con sesión real: Keycloak, oauth2-proxy, Nginx y la API.
+check-e2e:
+	./tools/e2e-compose.sh
+
+# El paquete offline y el respaldo: instalar, respaldar, perder todo, reinstalar y restaurar.
+# Tarda varios minutos; se corre antes de entregar un paquete, no en cada cambio.
+check-offline:
+	./tools/e2e-offline.sh

@@ -46,4 +46,17 @@ El navegador nunca ve un token.
 
 ## Verificado
 
-El realm se importó en un Keycloak 26.0 desechable (`start-dev --import-realm`): quedaron los seis roles, el cliente confidencial con su URL de retorno resuelta desde el entorno y el scope `roles` por defecto. No se probó todavía el flujo completo con oauth2-proxy y Nginx; eso entra con el Compose de la fase 2. La versión exacta de Keycloak se fija por tag y digest en ese Compose.
+`tools/e2e-compose.sh` levanta el Compose completo desde cero con Keycloak 26.4, crea dos usuarios y hace lo que haría Chrome. Comprueba que:
+
+- Sin sesión, `/api/` responde 401 y `/` redirige al inicio de sesión de Keycloak.
+- Tras iniciar sesión, el navegador solo tiene cookies. La de la aplicación (`_oauth2_proxy`) va cifrada y es `HttpOnly`; no trae un token legible.
+- Un token puesto por el navegador en `Authorization` no vale: Nginx lo sobrescribe. La cookie de sesión propia de Keycloak tampoco sirve como token de la API.
+- `kaoru-api` recibe el token, lo verifica y aplica los permisos del rol (`qa` no crea un CHG; `change-manager` sí).
+- Una escritura sin la cabecera `Origin` de la aplicación se rechaza (CSRF).
+- La consola de administración de Keycloak no está publicada en la dirección de la aplicación.
+- Al cerrar sesión se cierra también la de Keycloak: volver a entrar pide la contraseña.
+- Con `E2E_TOKEN_REFRESH=1`, que la sesión sigue viva y se puede escribir después de que vence el token de acceso (5 minutos).
+
+El realm incluye un mapeo de audiencia para que el token de acceso nombre al cliente `kaoru-web`, que oauth2-proxy exige.
+
+No verificado: el tema de login propio (no existe todavía), OTP, el bloqueo por intentos fallidos y la federación con LDAP.
