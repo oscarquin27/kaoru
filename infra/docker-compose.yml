@@ -137,7 +137,8 @@ services:
     volumes:
       - ./nginx/kaoru.conf:/etc/nginx/conf.d/default.conf:ro
       - ./tls:/etc/nginx/tls:ro
-      - ./web:/usr/share/nginx/html:ro
+      # El front compilado. En desarrollo se apunta a web/dist con KAORU_WEB_DIR.
+      - ${KAORU_WEB_DIR:-./web}:/usr/share/nginx/html:ro
     depends_on:
       kaoru-api:
         condition: service_healthy
