@@ -4,8 +4,10 @@ import (
 	"context"
 	"slices"
 	"testing"
+	"time"
 
 	"kaoru/internal/core/pkg/axis"
+	"kaoru/internal/feature/workflow/application/port"
 	"kaoru/internal/feature/workflow/application/usecase"
 	"kaoru/internal/feature/workflow/domain"
 )
@@ -48,9 +50,27 @@ func (fakeRepo) Workflow(_ context.Context, t domain.EntityType) (domain.Workflo
 	}, nil
 }
 
+func (fakeRepo) Permissions(context.Context) ([]domain.Permission, error)  { return nil, nil }
+func (fakeRepo) AllGrants(context.Context) ([]domain.Grant, error)         { return nil, nil }
+func (fakeRepo) ReplaceRoleGrants(context.Context, string, []string) error { return nil }
+func (fakeRepo) FindRule(context.Context, string) (domain.Rule, error)     { return domain.Rule{}, nil }
+func (fakeRepo) UpdateRule(context.Context, domain.Rule, time.Time) error  { return nil }
+
+type noAudit struct{}
+
+func (noAudit) Record(context.Context, port.AuditRecord) error { return nil }
+
+type noTx struct{}
+
+func (noTx) Within(ctx context.Context, fn func(context.Context) error) error { return fn(ctx) }
+
+type fixedClock struct{}
+
+func (fixedClock) Now() time.Time { return time.Date(2026, 11, 11, 15, 0, 0, 0, time.UTC) }
+
 func newUseCases(t *testing.T) *usecase.UseCases {
 	t.Helper()
-	uc, err := usecase.New(usecase.Deps{Repository: fakeRepo{}})
+	uc, err := usecase.New(usecase.Deps{Repository: fakeRepo{}, AuditTrail: noAudit{}, UnitOfWork: noTx{}, Clock: fixedClock{}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,5 +163,37 @@ func TestGetInitialState(t *testing.T) {
 	state, err := newUseCases(t).GetInitialState.Execute(context.Background(), usecase.GetInitialStateInput{EntityType: "change"})
 	if err != nil || state.Key != "registered" {
 		t.Fatalf("estado inicial = %+v, err = %v", state, err)
+	}
+}
+
+func TestValidateRolePermissions(t *testing.T) {
+	known := []domain.Permission{{Key: "admin.configure"}, {Key: "run.create"}, {Key: "pkg.build"}}
+	cases := []struct {
+		name        string
+		role        string
+		permissions []string
+		wantCode    axis.Code
+		want        []string
+	}{
+		{"ordena y quita repetidos", "dev", []string{"run.create", "pkg.build", "run.create"}, "", []string{"pkg.build", "run.create"}},
+		{"un rol puede quedarse sin permisos", "ops", nil, "", []string{}},
+		{"rol desconocido", "root", []string{"run.create"}, axis.NotFoundResource, nil},
+		{"permiso desconocido", "dev", []string{"todo"}, axis.InvalidRequest, nil},
+		{"qa-admin no pierde el permiso de configurar", "qa-admin", []string{"run.create"}, axis.InvalidAction, nil},
+		{"qa-admin lo conserva", "qa-admin", []string{"run.create", "admin.configure"}, "", []string{"admin.configure", "run.create"}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := domain.ValidateRolePermissions(tc.role, tc.permissions, known)
+			if tc.wantCode != "" {
+				if !axis.IsCode(err, tc.wantCode) {
+					t.Fatalf("esperaba %s, obtuve %v", tc.wantCode, err)
+				}
+				return
+			}
+			if err != nil || !slices.Equal(got, tc.want) {
+				t.Errorf("permisos = %v, %v; quiero %v", got, err, tc.want)
+			}
+		})
 	}
 }

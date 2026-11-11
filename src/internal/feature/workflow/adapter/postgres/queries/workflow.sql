@@ -25,3 +25,35 @@ FROM blocking_rule r
          JOIN workflow_state f ON f.id = t.from_state_id
 WHERE f.entity_type = $1
 ORDER BY r.rule_key, r.route NULLS FIRST;
+
+-- name: ListPermissions :many
+SELECT key, description
+FROM permission
+ORDER BY key;
+
+-- name: ListAllGrants :many
+SELECT role, permission_key
+FROM role_permission
+ORDER BY role, permission_key;
+
+-- name: DeleteRoleGrants :exec
+DELETE
+FROM role_permission
+WHERE role = $1;
+
+-- name: InsertGrant :exec
+INSERT INTO role_permission (role, permission_key)
+VALUES ($1, $2);
+
+-- name: GetRule :one
+SELECT r.id, r.rule_key, r.params, r.route, r.blocks, r.enabled
+FROM blocking_rule r
+WHERE r.id = $1;
+
+-- name: UpdateRule :execrows
+UPDATE blocking_rule
+SET params     = $2,
+    blocks     = $3,
+    enabled    = $4,
+    updated_at = $5
+WHERE id = $1;

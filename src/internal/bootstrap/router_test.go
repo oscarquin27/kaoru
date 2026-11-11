@@ -41,7 +41,7 @@ func testConfig() Config {
 
 var ginParam = regexp.MustCompile(`:(\w+)`)
 
-// Toda ruta registrada debe estar en el contrato, con el mismo método (reglas §A.16.1).
+// Las rutas registradas y las del contrato son las mismas, con el mismo método (reglas §A.16.1).
 func TestRegisteredRoutesAreInTheContract(t *testing.T) {
 	raw, err := os.ReadFile("../../../api/openapi.yaml")
 	if err != nil {
@@ -84,7 +84,10 @@ func TestRegisteredRoutesAreInTheContract(t *testing.T) {
 			}
 		}
 	}
-	t.Logf("implementadas %d de %d operaciones del contrato", len(routes), operations)
+	// El contrato del MVP está completo: una operación que se agregue al contrato debe implementarse.
+	if len(routes) != operations {
+		t.Errorf("implementadas %d de %d operaciones del contrato", len(routes), operations)
+	}
 }
 
 func TestParseConfig(t *testing.T) {

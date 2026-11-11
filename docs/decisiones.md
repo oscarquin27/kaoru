@@ -242,3 +242,23 @@ Tomadas el 11 nov 2026 al construir el core y el primer corte vertical (`workflo
 - **Sin comprobar que el RUN de un DEF sea de un TC de ese REQ.** Hoy se puede abrir un DEF en un REQ con el RUN de otro.
 - **Sin control de escrituras simultáneas** sobre la misma entidad: gana la última.
 - **Sin la ruta de la ficha consolidada** (`/api/requirements/{code}/overview`): el caso de uso `GetReadiness` existe y está probado, pero lo expone `traceability`, que no está hecho.
+
+### D40 — Decisiones al terminar el backend del MVP
+- **Fecha:** 11 nov 2026
+- **Estado:** `[SUPUESTO]` hasta que QA y dev las revisen.
+- **Documentos.** El contenido vive en un directorio (un volumen), nombrado por su SHA-256; la base guarda solo metadatos. El tipo se valida **antes de escribir en disco** y por el contenido real, no por el nombre: la extensión debe estar permitida (`documents.allowedExtensions`) y coincidir con lo que se detecta. El tamaño máximo es `documents.maxBytes` (25 MB). El contenido se sirve con `nosniff` y `Content-Security-Policy: sandbox`; el texto y el Markdown salen como texto plano y el front los pinta.
+- **Migración 00012.** `document_link` guarda también el código de la entidad, para que `document` no lea tablas de otros features. Por eso el contrato devuelve `linkedTo` con tipo y código, sin título.
+- **Comentarios.** Son de solo inserción y quedan además en la auditoría de la entidad comentada. Admiten REQ, CHG y DEF.
+- **`traceability` no repite reglas.** La cobertura la pregunta a `execution` y «qué falta para avanzar» a `requirement`; solo las listas y la matriz salen de sus propias consultas de lectura.
+- **«REQ bloqueados» en la matriz** son los que tienen algún DEF de severidad alta abierto. Evaluar todas las reglas de cada REQ en una lista sería caro; el detalle completo está en la ficha.
+- **Línea de vida.** Solo los estados con posición son etapas. Mientras un REQ está en un estado lateral (con defectos, diferido, rechazado), ninguna etapa aparece como actual; el estado va en el encabezado.
+- **Exportaciones.** CSV y XLSX se escriben con la biblioteca estándar (un XLSX de una hoja es un zip con cinco XML), sin librería. Topes: 50 000 filas de matriz y 200 000 registros de auditoría. Las celdas que empiezan con `=`, `+`, `-` o `@` se neutralizan para que Excel no las ejecute como fórmula.
+- **Administración.** `qa-admin` cambia los permisos de cada rol y ajusta o desactiva reglas de bloqueo; todo queda auditado. `qa-admin` no puede quedarse sin `admin.configure`. El ciclo `workflow` ↔ `audit` previsto en D30 se resolvió como dicen las reglas: `bootstrap` conecta la auditoría a `workflow` después de armar los dos.
+- **Fuera de esta entrega:** editar estados y transiciones desde la administración (hoy se cambian por migración), las vistas guardadas, y la importación de la hoja, que sigue esperando su formato (pregunta 5).
+
+### D41 — Deuda conocida del backend
+- **Fecha:** 11 nov 2026
+- Se mantiene lo de D39: faltan pruebas unitarias de casos de uso con dobles de puertos en `risk`, `testdesign`, `execution`, `defect`, `user`, y ahora también en `document`, `comment`, `traceability` y la administración de `workflow`. Están cubiertos por pruebas de dominio e integración.
+- Un archivo subido cuyo registro falla después queda en disco sin referencia. No hay tarea de limpieza.
+- La previsualización de Office con LibreOffice no está hecha: esos archivos se descargan.
+- No hay medición de rendimiento con 10 000 REQ y 100 000 RUN; la matriz y la búsqueda no tienen índices de texto.

@@ -28,6 +28,7 @@ type UseCases struct {
 	ListEntries        *ListEntries
 	VerifyChain        *VerifyChain
 	GetLastTransitions *GetLastTransitions
+	ExportEntries      *ExportEntries
 }
 
 // New arma los casos de uso; falla si falta una dependencia.
@@ -40,5 +41,6 @@ func New(d Deps) (*UseCases, error) {
 		ListEntries:        &ListEntries{d: d},
 		VerifyChain:        &VerifyChain{d: d},
 		GetLastTransitions: &GetLastTransitions{d: d},
+		ExportEntries:      &ExportEntries{d: d},
 	}, nil
 }

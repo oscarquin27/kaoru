@@ -43,7 +43,7 @@ type RouterDeps struct {
 
 // NewRouter construye los módulos en orden de dependencia y monta middlewares y rutas.
 func NewRouter(d RouterDeps) (*gin.Engine, error) {
-	workflowModule, err := workflow.New(workflow.Deps{Database: d.Database})
+	workflowModule, err := workflow.New(workflow.Deps{Database: d.Database, Clock: d.Clock})
 	if err != nil {
 		return nil, err
 	}
@@ -53,6 +53,9 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 	if err != nil {
 		return nil, err
 	}
+	// audit depende de workflow para los permisos y workflow audita sus cambios de configuración:
+	// el segundo sentido se conecta aquí, con los dos módulos ya armados (decisión D30).
+	workflowModule.ConnectAudit(auditModule.UseCases)
 	userModule, err := user.New(user.Deps{
 		Database: d.Database, Clock: d.Clock, Workflow: workflowModule.UseCases,
 		LogoutURL: d.Config.OIDC.LogoutURL, AccountURL: d.Config.OIDC.AccountURL,

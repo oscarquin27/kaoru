@@ -2,7 +2,10 @@
 package api
 
 import (
+	"encoding/csv"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -27,6 +30,7 @@ func NewHandler(uc *usecase.UseCases) *Handler { return &Handler{uc: uc} }
 func (h *Handler) Register(r gin.IRouter) {
 	r.GET("/api/audit", h.list)
 	r.GET("/api/audit/verification", h.verify)
+	r.GET("/api/audit/export", h.export)
 }
 
 type userRefDTO struct {
@@ -126,4 +130,45 @@ func timeParam(c *gin.Context, name string) (*time.Time, error) {
 		return nil, axis.Invalid(axis.InvalidField(name, "La fecha debe tener el formato 2026-11-11T00:00:00Z."))
 	}
 	return &t, nil
+}
+
+// export escribe la auditoría en CSV, en el orden de la cadena, con el hash de cada registro.
+func (h *Handler) export(c *gin.Context) {
+	in := usecase.ExportEntriesInput{Actor: actorOf(c)}
+	var err error
+	if in.From, err = timeParam(c, "from"); err != nil {
+		problem.Write(c, err)
+		return
+	}
+	if in.To, err = timeParam(c, "to"); err != nil {
+		problem.Write(c, err)
+		return
+	}
+	entries, err := h.uc.ExportEntries.Execute(c.Request.Context(), in)
+	if err != nil {
+		problem.Write(c, err)
+		return
+	}
+	c.Header("Content-Type", "text/csv; charset=utf-8")
+	c.Header("Content-Disposition", `attachment; filename="auditoria.csv"`)
+	_, _ = c.Writer.Write([]byte("\xEF\xBB\xBF")) // BOM: Excel lee bien los acentos
+	out := csv.NewWriter(c.Writer)
+	_ = out.Write([]string{"N.º", "Fecha", "Usuario", "Nombre", "Tipo", "ID", "Acción", "Campo", "Valor anterior", "Valor nuevo", "Motivo", "Hash anterior", "Hash"})
+	for _, v := range entries {
+		e := v.Entry
+		_ = out.Write([]string{
+			strconv.FormatInt(e.Seq, 10), e.OccurredAt.Format(time.RFC3339Nano), string(e.ActorId), safeCell(v.ActorName),
+			e.EntityType, e.EntityCode, string(e.Action), e.Field, safeCell(e.OldValue), safeCell(e.NewValue), safeCell(e.Reason),
+			e.PrevHash, e.Hash,
+		})
+	}
+	out.Flush()
+}
+
+// safeCell impide que una hoja de cálculo interprete como fórmula un texto escrito por un usuario.
+func safeCell(s string) string {
+	if s != "" && strings.ContainsRune("=+-@\t\r", rune(s[0])) {
+		return "'" + s
+	}
+	return s
 }

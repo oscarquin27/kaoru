@@ -7,9 +7,91 @@ package sqlcgen
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
+
+const deleteRoleGrants = `-- name: DeleteRoleGrants :exec
+DELETE
+FROM role_permission
+WHERE role = $1
+`
+
+func (q *Queries) DeleteRoleGrants(ctx context.Context, role string) error {
+	_, err := q.db.Exec(ctx, deleteRoleGrants, role)
+	return err
+}
+
+const getRule = `-- name: GetRule :one
+SELECT r.id, r.rule_key, r.params, r.route, r.blocks, r.enabled
+FROM blocking_rule r
+WHERE r.id = $1
+`
+
+type GetRuleRow struct {
+	ID      uuid.UUID
+	RuleKey string
+	Params  []byte
+	Route   *string
+	Blocks  bool
+	Enabled bool
+}
+
+func (q *Queries) GetRule(ctx context.Context, id uuid.UUID) (GetRuleRow, error) {
+	row := q.db.QueryRow(ctx, getRule, id)
+	var i GetRuleRow
+	err := row.Scan(
+		&i.ID,
+		&i.RuleKey,
+		&i.Params,
+		&i.Route,
+		&i.Blocks,
+		&i.Enabled,
+	)
+	return i, err
+}
+
+const insertGrant = `-- name: InsertGrant :exec
+INSERT INTO role_permission (role, permission_key)
+VALUES ($1, $2)
+`
+
+type InsertGrantParams struct {
+	Role          string
+	PermissionKey string
+}
+
+func (q *Queries) InsertGrant(ctx context.Context, arg InsertGrantParams) error {
+	_, err := q.db.Exec(ctx, insertGrant, arg.Role, arg.PermissionKey)
+	return err
+}
+
+const listAllGrants = `-- name: ListAllGrants :many
+SELECT role, permission_key
+FROM role_permission
+ORDER BY role, permission_key
+`
+
+func (q *Queries) ListAllGrants(ctx context.Context) ([]RolePermission, error) {
+	rows, err := q.db.Query(ctx, listAllGrants)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RolePermission
+	for rows.Next() {
+		var i RolePermission
+		if err := rows.Scan(&i.Role, &i.PermissionKey); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
 
 const listGrantsByRoles = `-- name: ListGrantsByRoles :many
 SELECT role, permission_key
@@ -28,6 +110,32 @@ func (q *Queries) ListGrantsByRoles(ctx context.Context, roles []string) ([]Role
 	for rows.Next() {
 		var i RolePermission
 		if err := rows.Scan(&i.Role, &i.PermissionKey); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPermissions = `-- name: ListPermissions :many
+SELECT key, description
+FROM permission
+ORDER BY key
+`
+
+func (q *Queries) ListPermissions(ctx context.Context) ([]Permission, error) {
+	rows, err := q.db.Query(ctx, listPermissions)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Permission
+	for rows.Next() {
+		var i Permission
+		if err := rows.Scan(&i.Key, &i.Description); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -169,4 +277,35 @@ func (q *Queries) ListTransitions(ctx context.Context, entityType string) ([]Lis
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateRule = `-- name: UpdateRule :execrows
+UPDATE blocking_rule
+SET params     = $2,
+    blocks     = $3,
+    enabled    = $4,
+    updated_at = $5
+WHERE id = $1
+`
+
+type UpdateRuleParams struct {
+	ID        uuid.UUID
+	Params    []byte
+	Blocks    bool
+	Enabled   bool
+	UpdatedAt time.Time
+}
+
+func (q *Queries) UpdateRule(ctx context.Context, arg UpdateRuleParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateRule,
+		arg.ID,
+		arg.Params,
+		arg.Blocks,
+		arg.Enabled,
+		arg.UpdatedAt,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

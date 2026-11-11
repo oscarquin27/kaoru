@@ -121,3 +121,42 @@ func (w Workflow) Transition(from, to string) (Transition, error) {
 	return Transition{}, axis.New(axis.InvalidAction,
 		fmt.Sprintf("No se puede pasar de «%s» a «%s».", origin.Name, target.Name))
 }
+
+// Roles que Kaoru reconoce. Nacen en Keycloak; aquí solo se les asignan permisos.
+var Roles = []string{"change-manager", "qa-admin", "qa", "dev", "ops", "auditor"}
+
+const (
+	// PermissionConfigure es el permiso para configurar flujos, reglas y permisos.
+	PermissionConfigure = "admin.configure"
+	// RoleAdmin es el rol que no puede quedarse sin PermissionConfigure.
+	RoleAdmin = "qa-admin"
+)
+
+// Permission es un permiso asignable a roles.
+type Permission struct {
+	Key         string
+	Description string
+}
+
+// ValidateRolePermissions comprueba un cambio de permisos de un rol: el rol y los permisos
+// deben existir, y el rol administrador no puede perder el permiso de configurar,
+// porque nadie podría devolvérselo desde la aplicación.
+func ValidateRolePermissions(role string, permissions []string, known []Permission) ([]string, error) {
+	if !slices.Contains(Roles, role) {
+		return nil, axis.New(axis.NotFoundResource, "El rol no existe.")
+	}
+	out := make([]string, 0, len(permissions))
+	for _, key := range permissions {
+		if !slices.ContainsFunc(known, func(p Permission) bool { return p.Key == key }) {
+			return nil, axis.Invalid(axis.InvalidField("permissions", "El permiso «"+key+"» no existe."))
+		}
+		if !slices.Contains(out, key) {
+			out = append(out, key)
+		}
+	}
+	if role == RoleAdmin && !slices.Contains(out, PermissionConfigure) {
+		return nil, axis.New(axis.InvalidAction, "El rol qa-admin no puede quedarse sin el permiso de configurar.")
+	}
+	slices.Sort(out)
+	return out, nil
+}

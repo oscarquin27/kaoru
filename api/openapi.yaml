@@ -1877,7 +1877,12 @@ components:
           items: { $ref: '#/components/schemas/DocumentVersion' }
         linkedTo:
           type: array
-          items: { $ref: '#/components/schemas/EntityRef' }
+          items:
+            type: object
+            required: [type, code]
+            properties:
+              type: { $ref: '#/components/schemas/EntityType' }
+              code: { $ref: '#/components/schemas/Code' }
         createdAt: { type: string, format: date-time }
 
     Comment:
@@ -1902,19 +1907,43 @@ components:
 
     RequirementOverview:
       type: object
-      required: [requirement, lifecycle, missing, coverage, functionalCases, testCases, runs, defects]
+      description: Lectura plana que arma `traceability` cruzando los demás features.
+      required: [requirement, lifecycle, missing, coverage, functionalCases, testCases, defects]
       properties:
-        requirement: { $ref: '#/components/schemas/Requirement' }
-        risk:
-          allOf:
-            - $ref: '#/components/schemas/Risk'
-          description: Ausente si el riesgo no está evaluado.
+        requirement:
+          type: object
+          required: [code, title, description, acceptanceCriteria, system, route, state, createdAt, updatedAt]
+          properties:
+            code: { $ref: '#/components/schemas/Code' }
+            title: { type: string }
+            description: { type: string }
+            acceptanceCriteria: { type: string }
+            system:
+              type: object
+              required: [key, name]
+              properties:
+                key: { type: string }
+                name: { type: string }
+            change: { $ref: '#/components/schemas/CodeTitle' }
+            route: { $ref: '#/components/schemas/Route' }
+            state: { $ref: '#/components/schemas/StateRef' }
+            owner: { $ref: '#/components/schemas/UserRef' }
+            risk:
+              type: object
+              description: Ausente si el riesgo no está evaluado.
+              required: [code, level, justification]
+              properties:
+                code: { $ref: '#/components/schemas/Code' }
+                level: { $ref: '#/components/schemas/RiskLevel' }
+                justification: { type: string }
+            createdAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time }
         lifecycle:
           type: array
-          description: Etapas del ciclo en orden, para la línea de vida.
+          description: Etapas del ciclo en orden, para la línea de vida. Un estado lateral no es una etapa.
           items:
             type: object
-            required: [state, status]
+            required: [state, status, days]
             properties:
               state: { $ref: '#/components/schemas/StateRef' }
               status:
@@ -1923,7 +1952,7 @@ components:
               enteredAt: { type: string, format: date-time }
               days:
                 type: number
-                description: Tiempo acumulado en la etapa.
+                description: Tiempo acumulado en la etapa, calculado al leer.
         missing:
           type: array
           description: Qué falta para avanzar, por cada transición posible desde el estado actual.
@@ -1936,41 +1965,63 @@ components:
                 type: array
                 items:
                   type: object
-                  required: [ruleKey, message, blocks]
+                  required: [ruleKey, message, blocks, related]
                   properties:
                     ruleKey: { type: string }
                     message:
                       type: string
-                      example: Faltan 2 TC sin RUN aprobado.
-                    blocks: { type: boolean }
+                      example: 'Faltan 2 TC sin RUN aprobado: TC-2026-0112, TC-2026-0113.'
+                    blocks:
+                      type: boolean
+                      description: Con `false`, la condición solo avisa.
                     related:
                       type: array
                       items: { $ref: '#/components/schemas/Code' }
         coverage:
           type: object
-          required: [required, passed, minimumPercent]
+          required: [required, passed]
           properties:
             required:
               type: integer
-              description: TC requeridos
+              description: TC activos que validan algún UC del REQ
             passed:
               type: integer
               description: TC cuyo último RUN está aprobado
-            minimumPercent:
-              type: integer
-              description: Cobertura mínima que pide el RISK
         functionalCases:
           type: array
-          items: { $ref: '#/components/schemas/FunctionalCase' }
+          items: { $ref: '#/components/schemas/CodeTitle' }
         testCases:
           type: array
-          items: { $ref: '#/components/schemas/TestCase' }
-        runs:
-          type: array
-          items: { $ref: '#/components/schemas/RunSummary' }
+          items: { $ref: '#/components/schemas/TestCaseSummary' }
         defects:
           type: array
-          items: { $ref: '#/components/schemas/Defect' }
+          items: { $ref: '#/components/schemas/DefectSummary' }
+
+    CodeTitle:
+      type: object
+      required: [code, title]
+      properties:
+        code: { $ref: '#/components/schemas/Code' }
+        title: { type: string }
+
+    TestCaseSummary:
+      type: object
+      required: [code, title, isCritical, retired]
+      properties:
+        code: { $ref: '#/components/schemas/Code' }
+        title: { type: string }
+        isCritical: { type: boolean }
+        retired: { type: boolean }
+        lastRun: { $ref: '#/components/schemas/RunSummary' }
+
+    DefectSummary:
+      type: object
+      required: [code, severity, state]
+      properties:
+        code: { $ref: '#/components/schemas/Code' }
+        title: { type: string }
+        severity: { $ref: '#/components/schemas/Severity' }
+        state: { $ref: '#/components/schemas/StateRef' }
 
     Matrix:
       allOf:
@@ -1980,10 +2031,15 @@ components:
           properties:
             indicators:
               type: object
-              required: [coveragePercent, blockedRequirements, openDefects]
+              description: De todo lo filtrado, no solo de la página.
+              required: [coveragePercent, requiredTestCases, passedTestCases, blockedRequirements, openDefects]
               properties:
                 coveragePercent: { type: integer }
-                blockedRequirements: { type: integer }
+                requiredTestCases: { type: integer }
+                passedTestCases: { type: integer }
+                blockedRequirements:
+                  type: integer
+                  description: REQ con algún DEF de severidad alta abierto.
                 openDefects:
                   type: object
                   required: [high, medium, low]
@@ -1996,26 +2052,23 @@ components:
               description: Una fila por REQ y TC. Un REQ sin TC aparece en una fila sin `testCase`.
               items:
                 type: object
-                required: [requirement, functionalCases, defects]
+                required: [requirement, system, state, functionalCases, defects]
                 properties:
-                  requirement: { $ref: '#/components/schemas/Requirement' }
+                  requirement: { $ref: '#/components/schemas/CodeTitle' }
+                  system: { type: string }
+                  state: { $ref: '#/components/schemas/StateRef' }
                   change: { $ref: '#/components/schemas/Code' }
                   risk: { $ref: '#/components/schemas/Code' }
                   riskLevel: { $ref: '#/components/schemas/RiskLevel' }
+                  owner: { type: string }
                   functionalCases:
                     type: array
                     items: { $ref: '#/components/schemas/Code' }
-                  testCase: { $ref: '#/components/schemas/EntityRef' }
-                  lastRun: { $ref: '#/components/schemas/RunSummary' }
+                  testCase: { $ref: '#/components/schemas/TestCaseSummary' }
                   defects:
                     type: array
-                    items:
-                      type: object
-                      required: [code, severity, state]
-                      properties:
-                        code: { $ref: '#/components/schemas/Code' }
-                        severity: { $ref: '#/components/schemas/Severity' }
-                        state: { $ref: '#/components/schemas/StateRef' }
+                    description: Los DEF reproducidos en un RUN de ese TC.
+                    items: { $ref: '#/components/schemas/DefectSummary' }
 
     AuditEntry:
       type: object

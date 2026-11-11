@@ -37,6 +37,7 @@ var users = tokenVerifier{
 	"qa":      {Sub: "sub-qa", Username: "arojas", Name: "A. Rojas", Roles: []string{"qa"}},
 	"ops":     {Sub: "sub-ops", Username: "lpaz", Name: "L. Paz", Roles: []string{"ops"}},
 	"dev":     {Sub: "sub-dev", Username: "jdiaz", Name: "J. Díaz", Roles: []string{"dev"}},
+	"admin":   {Sub: "sub-admin", Username: "mleon", Name: "M. León", Roles: []string{"qa-admin"}},
 	"auditor": {Sub: "sub-auditor", Username: "vsoto", Name: "V. Soto", Roles: []string{"auditor"}},
 }
 
