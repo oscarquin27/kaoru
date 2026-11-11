@@ -1,0 +1,29 @@
+# Linters que piden las reglas del repositorio (docs/reglas.md §A.18).
+version: "2"
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - gosec
+    - revive
+    - ineffassign
+    - unused
+  exclusions:
+    paths:
+      - ".*/sqlcgen/.*"
+  settings:
+    revive:
+      rules:
+        - name: exported
+        - name: var-naming
+          # Las reglas del repositorio piden el sufijo Id (RequirementId), no ID.
+          disabled: true
+        - name: error-return
+        - name: error-strings
+        - name: unused-parameter
+        - name: context-as-argument
+formatters:
+  enable:
+    - gofmt

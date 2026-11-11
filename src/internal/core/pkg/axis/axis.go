@@ -9,6 +9,7 @@ import (
 // Code identifica la clase de un error. problem.StatusOf lo traduce a HTTP.
 type Code string
 
+// Códigos de error. La tabla de reglas §A.10.2 dice a qué HTTP corresponde cada uno.
 const (
 	InvalidFormat       Code = "INVALID_FORMAT"
 	InvalidRequest      Code = "INVALID_REQUEST"
@@ -107,7 +108,7 @@ func IsCode(err error, code Code) bool {
 	return err != nil && CodeOf(err) == code
 }
 
-// Fields junta errores de campo mientras se valida una entidad.
+// FieldErrors junta errores de campo mientras se valida una entidad.
 type FieldErrors []FieldError
 
 // Add agrega un error de campo.

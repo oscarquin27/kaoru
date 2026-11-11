@@ -33,7 +33,8 @@ login() {
     http="$(curl -skL -c "$jar" -b "$jar" -o "$work/$1.html" -w '%{http_code}' \
         --data-urlencode "username=$1" --data-urlencode "password=$lab_password" "$action")"
     [ "$http" = 200 ] || fail "el inicio de sesión de $1 terminó en $http"
-    grep -q 'Sesión iniciada' "$work/$1.html" || fail "tras iniciar sesión, $1 no llegó a la aplicación"
+    # LANDING_MARK es un texto que solo trae la página de la aplicación (no la de Keycloak).
+    grep -q "${LANDING_MARK:-Sesión iniciada}" "$work/$1.html" || fail "tras iniciar sesión, $1 no llegó a la aplicación"
 }
 
 # api usuario método ruta [cuerpo]: imprime el cuerpo; el código HTTP queda en $work/code.

@@ -2,6 +2,7 @@
 # Cada fase agrega lo suyo cuando aparece el código (front, Compose, paquete offline).
 
 IMAGE ?= kaoru-api:dev
+GOLANGCI_VERSION ?= v2.15.0
 
 .PHONY: check generate image offline-bundle check-go check-generated check-openapi check-migrations \
 	check-integration check-image check-e2e check-offline
@@ -25,6 +26,7 @@ generate:
 check-go:
 	@cd src && test -z "$$(gofmt -l .)" || { echo "FALLO: gofmt en:"; gofmt -l src; exit 1; }
 	cd src && go vet ./... && go vet -tags integration ./...
+	cd src && go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_VERSION) run --timeout 5m ./...
 	cd src && go test ./...
 
 # El código generado está al día: sqlc compara lo que generaría con lo que hay en disco.

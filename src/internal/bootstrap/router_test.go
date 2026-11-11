@@ -102,7 +102,7 @@ func TestParseConfig(t *testing.T) {
 	env := func(vars map[string]string) func(string) (string, bool) {
 		return func(name string) (string, bool) { v, ok := vars[name]; return v, ok }
 	}
-	full := map[string]string{"KAORU_PUBLIC_URL": "https://kaoru.lab.invalid", "PW": `cl"ave\rara`}
+	full := map[string]string{"KAORU_PUBLIC_URL": "https://kaoru.lab.invalid", "PW": `cl"ave\rara`} //nolint:gosec // valor de prueba
 
 	cfg, err := ParseConfig([]byte(valid), env(full))
 	if err != nil {
