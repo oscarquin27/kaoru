@@ -224,3 +224,21 @@ Tomadas el 11 nov 2026 al construir el core y el primer corte vertical (`workflo
 - **Contexto:** el contrato traía `riskLevel` en el REQ. La llave va de `risk_assessment` a `requirement`, así que `requirement` no puede leer esa tabla (reglas §A.7).
 - **Decisión:** se quitó `riskLevel` del esquema `Requirement`. El riesgo se lee en `/api/requirements/{code}/risk`; la ficha consolidada y la matriz, que arma `traceability`, lo incluyen.
 - **Motivo:** el mismo de D32.
+
+### D38 — Decisiones de `testdesign`, `execution` y `defect`
+- **Fecha:** 11 nov 2026
+- **Estado:** `[SUPUESTO]` hasta que QA y dev las revisen.
+- **Un DEF exige un RUN que no esté aprobado.** La regla de negocio 5 pide reproducir en un RUN lo que se encuentra en una exploración; un RUN aprobado no reproduce nada, así que solo valen `failed` o `blocked`.
+- **Un TC retirado no se exige en la cobertura ni admite RUN nuevos**, pero conserva los que tiene.
+- **La cobertura cuenta el último RUN de cada TC.** Un TC aprobado ayer y fallido hoy está pendiente.
+- **«Defecto abierto» es cualquier DEF que no esté en un estado final.** Un DEF diferido cuenta como abierto, pero la regla de bloqueo solo mira los de severidad alta, que no se pueden diferir.
+- **El tiempo en estado de un DEF sale de la auditoría** (D19) con una consulta por lista, no una por defecto.
+- **`execution` y `defect` leen `test_case`, `requirement` y `test_run` por SQL** en la dirección de su llave foránea (reglas §A.7), en lugar de un puerto por cada lectura. La única llamada entre features es la de `execution` a `testdesign` para saber qué TC validan un REQ, porque esa relación no está en sus tablas.
+- **Se quitó `lastRun` del TC en el contrato**, por el mismo motivo de D32 y D37: lo da `/api/runs?testCase=…` y lo dará la ficha consolidada.
+
+### D39 — Deuda conocida al cerrar el flujo central del backend
+- **Fecha:** 11 nov 2026
+- **Sin pruebas unitarias de casos de uso** en `risk`, `testdesign`, `execution`, `defect` y `user`: están cubiertos por pruebas de dominio y por las de integración contra Postgres, pero falta lo que pide reglas §A.17 (cada permiso negado, cada error de negocio y «nada se guarda si la auditoría falla» con dobles de puertos).
+- **Sin comprobar que el RUN de un DEF sea de un TC de ese REQ.** Hoy se puede abrir un DEF en un REQ con el RUN de otro.
+- **Sin control de escrituras simultáneas** sobre la misma entidad: gana la última.
+- **Sin la ruta de la ficha consolidada** (`/api/requirements/{code}/overview`): el caso de uso `GetReadiness` existe y está probado, pero lo expone `traceability`, que no está hecho.

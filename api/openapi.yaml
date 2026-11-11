@@ -1749,7 +1749,6 @@ components:
         functionalCases:
           type: array
           items: { $ref: '#/components/schemas/Code' }
-        lastRun: { $ref: '#/components/schemas/RunSummary' }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 

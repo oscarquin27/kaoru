@@ -284,6 +284,9 @@ func TestQueriesOnlyWriteTheirOwnTables(t *testing.T) {
 		"change":      {"change", "code_sequence"},
 		"requirement": {"requirement", "requirement_link", "requirement_entry_check", "code_sequence"},
 		"risk":        {"risk_assessment", "risk_quality_characteristic", "code_sequence"},
+		"testdesign":  {"functional_case", "test_case", "test_case_functional_case", "code_sequence"},
+		"execution":   {"test_run", "exploratory_session", "code_sequence"},
+		"defect":      {"defect", "code_sequence"},
 	}
 	root := filepath.Join("..", "feature")
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {

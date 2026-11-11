@@ -8,6 +8,8 @@ import (
 	"kaoru/internal/core/pkg/idgen"
 	corepg "kaoru/internal/core/pkg/postgres"
 	audituc "kaoru/internal/feature/audit/application/usecase"
+	defectuc "kaoru/internal/feature/defect/application/usecase"
+	executionuc "kaoru/internal/feature/execution/application/usecase"
 	"kaoru/internal/feature/requirement/adapter/audit"
 	"kaoru/internal/feature/requirement/adapter/facts"
 	"kaoru/internal/feature/requirement/adapter/postgres"
@@ -55,6 +57,12 @@ func New(d Deps) (*Module, error) {
 // ConnectRisk conecta el feature risk como fuente de hechos de las reglas de bloqueo.
 // bootstrap lo llama después de armar los dos módulos, porque risk depende de requirement.
 func (m *Module) ConnectRisk(uc *riskuc.UseCases) { m.facts.ConnectRisk(uc.GetRisk) }
+
+// ConnectExecution conecta el feature execution como fuente de la cobertura.
+func (m *Module) ConnectExecution(uc *executionuc.UseCases) { m.facts.ConnectCoverage(uc.GetCoverage) }
+
+// ConnectDefect conecta el feature defect como fuente de los defectos abiertos.
+func (m *Module) ConnectDefect(uc *defectuc.UseCases) { m.facts.ConnectDefects(uc.ListOpenDefects) }
 
 // RegisterAPI monta las rutas del feature.
 func (m *Module) RegisterAPI(r gin.IRouter) { m.handler.Register(r) }

@@ -15,8 +15,11 @@ import (
 	"kaoru/internal/core/pkg/problem"
 	"kaoru/internal/feature/audit"
 	"kaoru/internal/feature/change"
+	"kaoru/internal/feature/defect"
+	"kaoru/internal/feature/execution"
 	"kaoru/internal/feature/requirement"
 	"kaoru/internal/feature/risk"
+	"kaoru/internal/feature/testdesign"
 	"kaoru/internal/feature/user"
 	"kaoru/internal/feature/workflow"
 )
@@ -71,9 +74,32 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 	if err != nil {
 		return nil, err
 	}
+	testdesignModule, err := testdesign.New(testdesign.Deps{
+		Database: d.Database, Clock: d.Clock, IdGenerator: d.IdGenerator,
+		Workflow: workflowModule.UseCases, Audit: auditModule.UseCases, Requirements: requirementModule.UseCases,
+	})
+	if err != nil {
+		return nil, err
+	}
+	executionModule, err := execution.New(execution.Deps{
+		Database: d.Database, Clock: d.Clock, IdGenerator: d.IdGenerator,
+		Workflow: workflowModule.UseCases, Audit: auditModule.UseCases, TestDesign: testdesignModule.UseCases,
+	})
+	if err != nil {
+		return nil, err
+	}
+	defectModule, err := defect.New(defect.Deps{
+		Database: d.Database, Clock: d.Clock, IdGenerator: d.IdGenerator,
+		Workflow: workflowModule.UseCases, Audit: auditModule.UseCases,
+	})
+	if err != nil {
+		return nil, err
+	}
 	// Las reglas de bloqueo del REQ necesitan hechos de features que dependen de él:
 	// se conectan después de armar todos (reglas §A.7, decisión D36).
 	requirementModule.ConnectRisk(riskModule.UseCases)
+	requirementModule.ConnectExecution(executionModule.UseCases)
+	requirementModule.ConnectDefect(defectModule.UseCases)
 
 	gin.SetMode(gin.ReleaseMode)
 	engine := gin.New()
@@ -98,5 +124,8 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 	changeModule.RegisterAPI(api)
 	requirementModule.RegisterAPI(api)
 	riskModule.RegisterAPI(api)
+	testdesignModule.RegisterAPI(api)
+	executionModule.RegisterAPI(api)
+	defectModule.RegisterAPI(api)
 	return engine, nil
 }
