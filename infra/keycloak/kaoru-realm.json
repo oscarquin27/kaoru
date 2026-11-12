@@ -1,6 +1,7 @@
 {
   "realm": "kaoru",
   "displayName": "Kaoru",
+  "loginTheme": "kaoru",
   "enabled": true,
   "sslRequired": "external",
   "registrationAllowed": false,

@@ -4,10 +4,10 @@
 IMAGE ?= kaoru-api:dev
 GOLANGCI_VERSION ?= v2.15.0
 
-.PHONY: check generate image offline-bundle check-go check-generated check-openapi check-migrations check-sqlvet \
+.PHONY: check generate image offline-bundle check-go check-generated check-openapi check-migrations check-sqlvet check-perf \
 	check-integration check-image check-web check-e2e check-front check-offline
 
-check: check-go check-generated check-openapi check-migrations check-sqlvet check-integration check-image check-web check-e2e check-front
+check: check-go check-generated check-openapi check-migrations check-sqlvet check-integration check-perf check-image check-web check-e2e check-front
 	@echo "make check: OK"
 
 # Imagen de kaoru-api.
@@ -32,6 +32,10 @@ check-go:
 # El código generado está al día: sqlc compara lo que generaría con lo que hay en disco.
 check-generated:
 	cd src && sqlc diff
+	@# La marca del login de Keycloak es una copia de la del boceto, y el tema no pide nada a internet.
+	cmp tools/boceto/img/kaoru.svg infra/keycloak/themes/kaoru/login/resources/img/kaoru.svg
+	@! grep -rnE "https?://" infra/keycloak/themes/kaoru --include="*.css" --include="*.properties" || (echo "el tema de login no puede traer recursos externos" && exit 1)
+	@python3 -c "import xml.dom.minidom, sys; xml.dom.minidom.parse('tools/boceto/img/kaoru.svg')"
 
 check-openapi:
 	ruby tools/check-openapi.rb api/openapi.yaml
@@ -44,6 +48,10 @@ check-sqlvet:
 # Migraciones sobre un Postgres limpio: suben, bajan, suben, y los permisos de kaoru_app.
 check-migrations:
 	./tools/with-postgres.sh ./tools/check-migrations.sh
+
+# Rendimiento con 10 000 REQ y 100 000 RUN: la ficha del REQ y la búsqueda en menos de 1 s.
+check-perf:
+	./tools/with-postgres.sh sh -c 'cd src && go test -count=1 -tags "integration perf" -run TestPerformanceWithVolume -v ./internal/bootstrap/ | grep -E "mediana|AVISO|FAIL|^ok|^---"'
 
 # Pruebas de integración: un paquete a la vez, porque comparten la base.
 check-integration:

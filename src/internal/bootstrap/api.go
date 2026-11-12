@@ -8,7 +8,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/sync/errgroup"
 
 	"kaoru/internal/core/pkg/clock"
@@ -39,7 +38,7 @@ func RunAPI(ctx context.Context) error {
 	}
 	log.InfoContext(ctx, "migraciones al día", "applied", applied)
 
-	pool, err := pgxpool.New(ctx, cfg.Postgres.AppURL)
+	pool, err := corepg.NewPool(ctx, cfg.Postgres.AppURL)
 	if err != nil {
 		return fmt.Errorf("crear pool de Postgres: %w", err)
 	}

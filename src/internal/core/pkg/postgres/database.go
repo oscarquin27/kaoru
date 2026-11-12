@@ -57,3 +57,15 @@ func (d *Database) Conn(ctx context.Context) DBTX {
 
 // Ping comprueba que la base responde.
 func (d *Database) Ping(ctx context.Context) error { return d.pool.Ping(ctx) }
+
+// NewPool crea el pool de la aplicación. Las listas filtran con «parámetro nulo O condición»;
+// con un plan genérico Postgres no sabe qué filtros vienen y elige planes que recorren tablas
+// enteras muchas veces. Por eso cada consulta se planifica con sus valores reales.
+func NewPool(ctx context.Context, url string) (*pgxpool.Pool, error) {
+	cfg, err := pgxpool.ParseConfig(url)
+	if err != nil {
+		return nil, err
+	}
+	cfg.ConnConfig.RuntimeParams["plan_cache_mode"] = "force_custom_plan"
+	return pgxpool.NewWithConfig(ctx, cfg)
+}

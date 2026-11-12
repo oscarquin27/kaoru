@@ -21,6 +21,10 @@ El JSON usa dos variables que llegan por entorno: `KAORU_PUBLIC_URL` (origen pú
 
 El tema de login propio todavía no está en el realm: se agrega cuando exista, derivado del boceto (fase 2).
 
+## Tema de login
+
+El login usa el tema `kaoru` (`infra/keycloak/themes/kaoru`), que viaja completo en el paquete. Una instalación nueva lo trae activo. En una que ya existía se activa una vez en la consola: **Realm settings → Themes → Login theme → kaoru**. Si se cambian archivos del tema, hay que recrear el contenedor: `docker compose up -d --force-recreate keycloak`.
+
 ## Roles y permisos
 
 Keycloak solo dice qué roles tiene el usuario (`realm_access.roles` en el token). Qué puede hacer cada rol es configuración de Kaoru: tabla `role_permission`, editable por `qa-admin`. Los valores predeterminados están en [flujos.md](flujos.md#permisos-por-rol-predeterminados).

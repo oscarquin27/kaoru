@@ -78,6 +78,16 @@ change="$(api lab-manager POST /api/changes '{"title":"Cambio e2e","system":"SYP
 chg="$(printf '%s' "$change" | json_code CHG)"
 case "$change" in *'"displayName":"Carla Mora"'*) ;; *) fail "el CHG debe decir quién lo creó: $change" ;; esac
 
+# El login lleva el tema de Kaoru, y sus recursos salen del propio servidor.
+page="$(curl -skL "$base/")"
+css="$(printf '%s' "$page" | grep -o '/auth/resources/[a-z0-9]*/login/kaoru/css/kaoru.css' | head -1)"
+[ -n "$css" ] || fail "la página de login no usa el tema de Kaoru"
+[ "$(curl -sk -o /dev/null -w '%{http_code}' "$base$css")" = 200 ] || fail "la hoja de estilos del tema no se sirve"
+[ "$(curl -sk -o /dev/null -w '%{http_code}' "$base${css%css/kaoru.css}img/kaoru.svg")" = 200 ] || fail "la marca del tema no se sirve"
+if printf '%s' "$page" | grep -Eo '(src|href)="https?://[^"]*"' | grep -v "$base" | grep -q .; then
+    fail "la página de login pide recursos a otro servidor"
+fi
+
 # Un recorrido corto con las dos sesiones: REQ, documento adjunto y auditoría.
 req="$(api lab-manager POST /api/requirements "{\"title\":\"REQ e2e\",\"system\":\"SYPAGO\",\"change\":\"$chg\"}" | json_code REQ)"
 [ -n "$req" ] || fail "no se creó el REQ"
