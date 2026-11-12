@@ -26,7 +26,8 @@ docker build -q -f "$root/infra/api/Dockerfile" -t kaoru-api:dev "$root" >/dev/n
 compose up -d --wait --wait-timeout 300 >/dev/null 2>&1 || fail "el Compose no llegó a estar sano"
 
 kcadm_login
-if ! kcadm get users -r kaoru -q username=lab-qa 2>/dev/null | grep -q '"username" : "lab-qa"'; then
+# Los usuarios se crean una sola vez: los datos se conservan entre corridas.
+if ! kcadm get users -r kaoru -q username=lab-qa --fields username 2>/dev/null | grep -q 'lab-qa'; then
     new_user lab-manager Carla Mora change-manager
     new_user lab-qa Ana Rojas qa
     new_user lab-dev Juan Díaz dev
