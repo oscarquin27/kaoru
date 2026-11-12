@@ -6,8 +6,6 @@ import (
 	"os"
 	"slices"
 
-	"github.com/jackc/pgx/v5/pgxpool"
-
 	"kaoru/internal/core/pkg/clock"
 	"kaoru/internal/core/pkg/filestore"
 	corepg "kaoru/internal/core/pkg/postgres"
@@ -21,7 +19,7 @@ func PruneDocuments(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	pool, err := pgxpool.New(ctx, cfg.Postgres.AppURL)
+	pool, err := corepg.NewPool(ctx, cfg.Postgres.AppURL)
 	if err != nil {
 		return fmt.Errorf("crear pool de Postgres: %w", err)
 	}

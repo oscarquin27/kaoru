@@ -1,6 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
   <!-- Símbolo de Kaoru: K de una línea continua que une cuatro puntos. Un solo color.
-       Los dos valores repiten --accent-text (oscuro) y --accent (claro) de css/tokens.css. -->
+       Los dos valores repiten los tokens accent-text (oscuro) y accent (claro) de css/tokens.css.
+       (Un comentario XML no admite dos guiones seguidos: con ellos el navegador no pinta la imagen.) -->
   <style>
     .k { stroke: #a9b2ff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .p { fill: #a9b2ff; }

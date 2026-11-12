@@ -1,0 +1,208 @@
+/* Login de Kaoru. Los valores repiten tools/boceto/css/tokens.css (fuente única de apariencia):
+   Keycloak sirve sus temas aparte y no puede importar esa hoja. Si un token cambia allá, cambia aquí.
+   Claro (washi) por omisión y oscuro (sumi) cuando el equipo lo prefiere: Keycloak pone la clase
+   pf-v5-theme-dark según el sistema, porque en el login todavía no hay preferencias de usuario. */
+
+:root {
+  --k-bg: #f5f1e8;
+  --k-bg-glow: #e4e2f3;
+  --k-bg-glow-2: #efe8d8;
+  --k-surface: #fffdf8;
+  --k-glass: rgba(255, 255, 255, 0.55);
+  --k-border: rgba(28, 32, 48, 0.12);
+  --k-text: #1c2030;
+  --k-text-2: #454c5f;
+  --k-accent: #3d48b5;
+  --k-accent-hover: #323c9e;
+  --k-accent-text: #3540a6;
+  --k-bloq: #a12a25;
+  --k-shadow: 0 2px 6px rgba(28, 32, 48, 0.1), 0 18px 48px rgba(28, 32, 48, 0.18);
+  --k-font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.pf-v5-theme-dark {
+  --k-bg: #0d1017;
+  --k-bg-glow: #1b2145;
+  --k-bg-glow-2: #131a2c;
+  --k-surface: #141822;
+  --k-glass: rgba(255, 255, 255, 0.06);
+  --k-border: rgba(255, 255, 255, 0.12);
+  --k-text: #e9ebf2;
+  --k-text-2: #b3b9c9;
+  --k-accent: #4f5bd6;
+  --k-accent-hover: #5d69e2;
+  --k-accent-text: #a9b2ff;
+  --k-bloq: #ff9a90;
+  --k-shadow: 0 2px 6px rgba(0, 0, 0, 0.35), 0 18px 48px rgba(0, 0, 0, 0.45);
+}
+
+/* PatternFly toma de aquí sus colores. */
+:root,
+.pf-v5-theme-dark {
+  --pf-v5-global--FontFamily--text: var(--k-font);
+  --pf-v5-global--FontFamily--heading: var(--k-font);
+  --pf-v5-global--Color--100: var(--k-text);
+  --pf-v5-global--Color--200: var(--k-text-2);
+  --pf-v5-global--primary-color--100: var(--k-accent);
+  --pf-v5-global--primary-color--200: var(--k-accent-hover);
+  --pf-v5-global--link--Color: var(--k-accent-text);
+  --pf-v5-global--link--Color--hover: var(--k-accent-text);
+  --pf-v5-global--active-color--100: var(--k-accent);
+  --pf-v5-global--danger-color--100: var(--k-bloq);
+  --pf-v5-global--BackgroundColor--100: var(--k-surface);
+  --pf-v5-global--BorderColor--100: var(--k-border);
+}
+
+html.login-pf,
+html.login-pf body,
+#keycloak-bg {
+  min-height: 100vh;
+  color: var(--k-text);
+  font-family: var(--k-font);
+  background-color: var(--k-bg);
+  background-image:
+    radial-gradient(1100px 700px at 88% -12%, var(--k-bg-glow), transparent 62%),
+    radial-gradient(900px 600px at -8% 112%, var(--k-bg-glow-2), transparent 60%);
+  background-attachment: fixed;
+}
+
+.pf-v5-c-login {
+  background: none;
+}
+
+.pf-v5-c-login__container {
+  grid-template-columns: minmax(0, 420px);
+  grid-template-areas: "header" "main";
+  justify-content: center;
+  gap: 24px;
+}
+
+/* La marca: el símbolo y el nombre en minúsculas con el espaciado de la aplicación. */
+#kc-header-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 0;
+  color: var(--k-text);
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  text-transform: lowercase;
+}
+
+#kc-header-wrapper::before {
+  content: "";
+  flex: none;
+  width: 36px;
+  height: 36px;
+  background: url("../img/kaoru.svg") center / contain no-repeat;
+}
+
+/* El lema va bajo la marca, como en la aplicación. */
+#kc-header::after {
+  content: "Trazabilidad a prueba de errores";
+  display: block;
+  margin-top: 8px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--k-text-2);
+}
+
+/* La tarjeta: vidrio sobre el fondo, con borde fino. */
+.pf-v5-c-login__main {
+  color: var(--k-text);
+  background: var(--k-glass);
+  border: 1px solid var(--k-border);
+  border-radius: 16px;
+  box-shadow: var(--k-shadow);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+/* Keycloak marca la tarjeta con una franja de su azul; aquí el borde ya la delimita. */
+.pf-v5-c-login__main-header {
+  border-top: 0;
+}
+
+.pf-v5-c-button.pf-m-control::after {
+  border: 0;
+}
+
+.pf-v5-c-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--k-text);
+}
+
+.pf-v5-c-form__label-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--k-text-2);
+}
+
+.pf-v5-c-form-control,
+.pf-v5-c-button.pf-m-control {
+  --pf-v5-c-form-control--BackgroundColor: var(--k-surface);
+  --pf-v5-c-form-control--Color: var(--k-text);
+  --pf-v5-c-button--m-control--BackgroundColor: var(--k-surface);
+  --pf-v5-c-button--m-control--Color: var(--k-text-2);
+  border-radius: 10px;
+}
+
+.pf-v5-c-form-control::before,
+.pf-v5-c-form-control::after {
+  border-radius: 10px;
+  border-color: var(--k-border);
+}
+
+.pf-v5-c-form-control > input {
+  color: var(--k-text);
+  background: transparent;
+  border-radius: 10px;
+}
+
+.pf-v5-c-button.pf-m-primary {
+  --pf-v5-c-button--m-primary--BackgroundColor: var(--k-accent);
+  --pf-v5-c-button--m-primary--hover--BackgroundColor: var(--k-accent-hover);
+  --pf-v5-c-button--m-primary--focus--BackgroundColor: var(--k-accent-hover);
+  --pf-v5-c-button--m-primary--active--BackgroundColor: var(--k-accent-hover);
+  --pf-v5-c-button--m-primary--Color: #ffffff;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+a,
+.pf-v5-c-button.pf-m-link {
+  color: var(--k-accent-text);
+}
+
+:focus-visible {
+  outline: 2px solid var(--k-accent-text);
+  outline-offset: 2px;
+}
+
+.pf-v5-c-alert {
+  border-radius: 10px;
+}
+
+.pf-v5-c-login__main-footer-band {
+  background: transparent;
+  border-top: 1px solid var(--k-border);
+}
+
+/* «Reducir transparencia» y «reducir movimiento» del sistema también valen aquí. */
+@media (prefers-reduced-transparency: reduce) {
+  .pf-v5-c-login__main {
+    background: var(--k-surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

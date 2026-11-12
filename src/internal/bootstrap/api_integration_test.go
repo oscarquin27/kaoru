@@ -16,7 +16,6 @@ import (
 	"testing"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 
 	"kaoru/internal/core/pkg/clock"
 	"kaoru/internal/core/pkg/filestore"
@@ -58,7 +57,7 @@ func newAPI(t *testing.T) *api {
 	if _, err := corepg.Migrate(ctx, ownerURL, migrations.FS); err != nil {
 		t.Fatal(err)
 	}
-	pool, err := pgxpool.New(ctx, appURL)
+	pool, err := corepg.NewPool(ctx, appURL)
 	if err != nil {
 		t.Fatal(err)
 	}

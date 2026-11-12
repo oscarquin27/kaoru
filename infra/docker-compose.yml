@@ -50,6 +50,8 @@ services:
       KAORU_OIDC_CLIENT_SECRET: ${KAORU_OIDC_CLIENT_SECRET:?}
     volumes:
       - ./keycloak/kaoru-realm.json:/opt/keycloak/data/import/kaoru-realm.json:ro
+      # Tema de login con la marca de Kaoru; viaja completo, sin recursos externos.
+      - ./keycloak/themes/kaoru:/opt/keycloak/themes/kaoru:ro
     ports:
       # La consola de administración solo se alcanza desde el propio servidor.
       - "127.0.0.1:${KEYCLOAK_ADMIN_PORT:-8081}:8080"
