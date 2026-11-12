@@ -345,3 +345,26 @@ Tomadas el 11 nov 2026 al construir el core y el primer corte vertical (`workflo
 - **Vista previa de Office:** probado también un `.xlsx` real (la matriz exportada por Kaoru) en el conversor real. Cierra una parte de lo no verificado en D46.
 - **Lo que no se verificó:** el tema claro del login y sus pantallas de error, cambio de contraseña y OTP (solo se vio la pantalla de entrada en oscuro); el rendimiento en el servidor objetivo.
 - **Sigue pendiente del MVP:** importación de la hoja (pregunta 5), visor de OpenAPI empaquetado, PDF.js empaquetado (hoy se usa el visor de PDF de Chrome) y resaltado de logs. Las columnas de PKG y RPT, el catálogo de componentes, los ambientes y el informe de conformidad son de las fases 3 y 4.
+
+### D48 — Diseño de la fase 3: componentes, BUILD, ambientes, paquetes y regresión
+- **Fecha:** 12 nov 2026
+- **Estado:** `[SUPUESTO]` hasta que QA, dev y change management lo revisen. La fase 3 se empezó a pedido, sin que el MVP haya cumplido su criterio de salida (usarse en un CHG real de SyPago).
+- **Esquema:** migraciones 00014 (tablas) y 00015 (flujo del PKG, permisos y reglas). **Contrato:** `api/openapi.yaml`, etiquetas `component`, `build`, `environment`, `bundle` y `regression`.
+- **Features nuevos y sus tablas** (cada uno escribe solo las suyas):
+  - `component`: `component`. El impacto lo guardan `requirement` (`requirement_component`) y `testdesign` (`test_case_component`), que son los dueños del REQ y del TC.
+  - `build`: `build`, `build_requirement`. Solo inserción: un BUILD no se edita ni se borra.
+  - `environment`: `environment`, `deployment`. El despliegue es de solo inserción.
+  - `bundle`: `package`, `package_build`, `package_requirement`. Se llama `bundle` porque `package` es palabra reservada de Go.
+  - `regression`: `regression_selection`, `regression_item`.
+- **COMP.** Pertenece a un sistema; su nombre no se repite dentro del sistema. No se borra: se retira, y retirado ya no se ofrece para declarar impacto. Un REQ o un TC solo declara componentes de su mismo sistema.
+- **BUILD.** Versión, checksum SHA-256 (único: el mismo artefacto no se registra dos veces) y manifiesto: REQ incluidos, migraciones y dependencias como texto, una por línea. `[SUPUESTO]`: el manifiesto es texto libre porque su formato real no está definido.
+- **RUN y EXP sobre BUILD y ENV del catálogo.** El alta pide el código del BUILD y del ENV, del mismo sistema que el TC (o el REQ). La versión, el checksum y el nombre del ambiente **se siguen copiando en la fila**: son la evidencia tal como era al ejecutar. Esto se aparta de lo previsto en `docs/modelo-datos.md` (reemplazar esas columnas por llaves foráneas): así las filas anteriores siguen valiendo sin inventarles un BUILD, y un RUN no cambia si alguien retira o renombra un ambiente. Un ambiente de producción no admite RUN (regla de negocio 6: QA no ejecuta en producción).
+- **ENV y DEP.** Un ambiente pertenece a un sistema y tiene tipo (limpio, línea base, offline, producción) y sistema operativo (Windows, Linux). Lo instalado se lee de su último despliegue exitoso; no hay campo de versión que mantener a mano. Un despliegue registra un BUILD **o** un PKG. En producción exige `dep.create_production` (change management); en los demás, `dep.create` (QA).
+- **PKG.** Flujo de §8.4 con un paso más, `[SUPUESTO]`: «En pruebas → En armado» con motivo, para poder corregir el contenido. El contenido (BUILD y REQ) solo cambia en armado. Un REQ entra si está «Aprobado QA» o «En paquete»; si está «Aprobado QA», la misma acción lo pasa a «En paquete» (y por eso exige también ese permiso). Un REQ puede estar en más de un PKG: el diferido pasa al siguiente.
+- **Reglas de bloqueo del PKG** (configurables como las demás):
+  - A «En pruebas»: tiene al menos un BUILD y un REQ (`package_has_content`), y la regresión está confirmada (`regression_confirmed`). `[SUPUESTO]`.
+  - A «Listo para liberar»: todos los TC de la regresión final tienen su último RUN sobre un BUILD del PKG aprobado (`regression_passed`, `[SUPUESTO]`), y ningún REQ del PKG tiene un DEF de severidad alta abierto (regla de negocio 2).
+  - A «Desplegado»: existe un despliegue exitoso del PKG en un ambiente de producción (`deployed_to_production`, `[SUPUESTO]`).
+- **Regresión por impacto (regla de negocio 4).** El sistema propone los TC activos que ejercitan algún componente tocado por los REQ del PKG, más los TC críticos del sistema. QA incluye o excluye TC; el criterio es obligatorio cuando la decisión difiere de lo propuesto, y queda con su autor y su fecha. Se guardan las dos cosas (`proposed` e `included`) para compararlas. Volver a proponer conserva los ajustes de QA. Confirmada, la selección no cambia.
+- **Permisos nuevos y su reparto inicial:** `comp.manage` (dev, qa), `build.register` (dev), `pkg.build` (dev; quién arma el PKG sigue `[POR DEFINIR]`, regla 10), `pkg.start_testing`, `pkg.reopen`, `pkg.mark_ready`, `pkg.verify`, `regression.manage`, `env.manage`, `dep.create` (qa), `pkg.approve_production`, `pkg.deploy`, `dep.create_production` (change management).
+- **Fuera de esta fase:** ingesta de JUnit XML y cobertura (regla 8), aceptación formal de DEF medios o bajos al pasar al siguiente paquete más allá del «Diferido» que ya existe, y todo lo de la fase 4 (checklist de producción, DIAG, SMOKE, informe de conformidad).

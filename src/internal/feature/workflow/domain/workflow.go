@@ -18,6 +18,7 @@ const (
 	EntityRequirement EntityType = "requirement"
 	EntityChange      EntityType = "change"
 	EntityDefect      EntityType = "defect"
+	EntityPackage     EntityType = "package"
 )
 
 // Errores de dominio.
@@ -33,7 +34,7 @@ var (
 // ParseEntityType valida el tipo de entidad.
 func ParseEntityType(raw string) (EntityType, error) {
 	switch t := EntityType(raw); t {
-	case EntityRequirement, EntityChange, EntityDefect:
+	case EntityRequirement, EntityChange, EntityDefect, EntityPackage:
 		return t, nil
 	default:
 		return "", ErrUnknownEntityType

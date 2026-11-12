@@ -20,6 +20,11 @@ const (
 	PrefixExploration    = "EXP"
 	PrefixDefect         = "DEF"
 	PrefixDocument       = "DOC"
+	PrefixComponent      = "COMP"
+	PrefixBuild          = "BUILD"
+	PrefixPackage        = "PKG"
+	PrefixEnvironment    = "ENV"
+	PrefixDeployment     = "DEP"
 )
 
 // Code es el ID legible e inmutable de una entidad: prefijo, año y secuencia (REQ-2026-0042).
