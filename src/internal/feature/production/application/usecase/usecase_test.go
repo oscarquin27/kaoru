@@ -208,7 +208,7 @@ func (w *world) FindChecklist(_ context.Context, code shared.Code) (domain.Check
 	return domain.RehydrateChecklist(s), nil
 }
 
-func (w *world) ListChecklists(ctx context.Context, f port.Filter) ([]domain.Checklist, int, error) {
+func (w *world) ListChecklists(_ context.Context, f port.Filter) ([]domain.Checklist, int, error) {
 	var out []domain.Checklist
 	for _, code := range slices.Backward(slices.Sorted(maps.Keys(w.checklists))) {
 		if c := w.checklists[code]; f.PackageCode == "" || c.Snapshot().Package.Code == f.PackageCode {

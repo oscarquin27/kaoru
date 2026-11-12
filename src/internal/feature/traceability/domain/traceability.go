@@ -204,7 +204,9 @@ type MatrixRow struct {
 	RiskLevel        string
 	OwnerName        string
 	// Packages son los códigos de los PKG que incluyen el REQ.
-	Packages        []string
+	Packages []string
+	// Reports son los RPT vigentes de esos PKG.
+	Reports         []string
 	FunctionalCases []string
 	// TestCase.Code vacío significa que el REQ no tiene TC.
 	TestCase TestCaseSummary
@@ -241,4 +243,55 @@ type SearchHit struct {
 	Title string
 	// State.Key vacío significa que la entidad no tiene ciclo de vida.
 	State StateRef
+}
+
+// PackageTraceRow es una fila de la trazabilidad de un PKG: un REQ del PKG con uno de sus TC (o sin ninguno)
+// y el último RUN de ese TC sobre un BUILD del PKG.
+type PackageTraceRow struct {
+	RequirementCode  string
+	RequirementTitle string
+	StateName        string
+	ChangeCode       string
+	Route            string
+	RiskCode         string
+	RiskLevel        string
+	FunctionalCases  []string
+	// TestCaseCode vacío significa que el REQ no tiene TC; RunCode vacío, que el TC no tiene RUN sobre el PKG.
+	TestCaseCode     string
+	TestCaseCritical bool
+	RunCode          string
+	RunResult        string
+	Defects          []string
+}
+
+// PackageRun es un RUN sobre un BUILD del PKG.
+type PackageRun struct {
+	Code            string
+	TestCaseCode    string
+	Result          string
+	BuildCode       string
+	BuildVersion    string
+	EnvironmentName string
+	ExecutedAt      time.Time
+	ExecutedByName  string
+}
+
+// PackageDefect es un DEF no cerrado de un REQ del PKG. Para uno diferido, DeferredBy dice quién lo difirió.
+type PackageDefect struct {
+	Code            string
+	Title           string
+	Severity        string
+	State           StateRef
+	RequirementCode string
+	DeferredBy      string
+	// DeferredAt es nil si el DEF no está diferido.
+	DeferredAt     *time.Time
+	DeferredReason string
+}
+
+// PackageTrace es lo que el informe de conformidad necesita de la trazabilidad de un PKG.
+type PackageTrace struct {
+	Rows    []PackageTraceRow
+	Runs    []PackageRun
+	Defects []PackageDefect
 }

@@ -27,6 +27,7 @@ type world struct {
 	missing         []domain.Readiness
 	coverage        domain.Coverage
 	hits            []domain.SearchHit
+	trace           domain.PackageTrace
 
 	indicators domain.Indicators
 	totalRows  int // lo que dice MatrixIndicators
@@ -103,6 +104,10 @@ func (w *world) MatrixIndicators(_ context.Context, filter domain.MatrixFilter) 
 
 func (w *world) Search(_ context.Context, query string, limit int) ([]domain.SearchHit, error) {
 	return w.hits, w.call("Search", query, limit)
+}
+
+func (w *world) PackageTrace(_ context.Context, packageCode string) (domain.PackageTrace, error) {
+	return w.trace, w.call("PackageTrace", packageCode)
 }
 
 // readiness y coverage separan los dos puertos que comparten el nombre de método Of.
@@ -406,5 +411,20 @@ func TestSearch(t *testing.T) {
 	w.fail["Search"] = down
 	if _, err := uc.Search.Execute(ctx, usecase.SearchInput{Query: "saldo"}); !errors.Is(err, down) {
 		t.Errorf("si el repositorio falla: %v", err)
+	}
+}
+
+func TestGetPackageTrace(t *testing.T) {
+	uc, w := setup(t)
+	w.trace = domain.PackageTrace{
+		Rows: []domain.PackageTraceRow{{RequirementCode: "REQ-2026-0001", TestCaseCode: "TC-2026-0001", RunCode: "RUN-2026-0001"}},
+		Runs: []domain.PackageRun{{Code: "RUN-2026-0001"}},
+	}
+	got, err := uc.GetPackageTrace.Execute(context.Background(), usecase.GetPackageTraceInput{PackageCode: "PKG-2026-0001"})
+	if err != nil || !reflect.DeepEqual(got, w.trace) {
+		t.Errorf("trazabilidad del PKG: %v %+v", err, got)
+	}
+	if !reflect.DeepEqual(w.calls, []string{"PackageTrace PKG-2026-0001"}) {
+		t.Errorf("llamadas: %v", w.calls)
 	}
 }

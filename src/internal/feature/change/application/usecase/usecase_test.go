@@ -91,6 +91,18 @@ func (w *world) List(context.Context, port.Filter) ([]port.ChangeView, int, erro
 	return views, len(views), nil
 }
 
+// ListWindows devuelve, como la base, los CHG con ventana completa que no están cerrados ni rechazados.
+func (w *world) ListWindows(context.Context) ([]port.ChangeView, error) {
+	var views []port.ChangeView
+	for _, c := range w.changes {
+		s := c.Snapshot()
+		if s.WindowStart != nil && s.WindowEnd != nil && s.State.Key != "closed" && s.State.Key != "rejected" {
+			views = append(views, port.ChangeView{Change: c, CreatedByName: "Ana"})
+		}
+	}
+	return views, nil
+}
+
 func (w *world) Record(_ context.Context, r port.AuditRecord) error {
 	if w.auditErr != nil {
 		return w.auditErr
@@ -349,4 +361,24 @@ func TestTransitionChange(t *testing.T) {
 func (w *world) Lock(ctx context.Context, code shared.Code) error {
 	_, err := w.FindByCode(ctx, code)
 	return err
+}
+
+func TestListWindows(t *testing.T) {
+	uc, w := setup(t)
+	start, end := now.Add(24*time.Hour), now.Add(48*time.Hour)
+	for i, state := range []string{"approved", "closed", "approved"} {
+		c := create(t, uc).Change
+		if i < 2 {
+			c.WindowStart, c.WindowEnd = &start, &end
+		}
+		c.State.Key = state
+		w.changes[c.Code.String()] = domain.Rehydrate(c)
+	}
+	out, err := uc.ListWindows.Execute(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(out) != 1 || out[0].Change.Code.String() != "CHG-2026-0001" {
+		t.Errorf("ventanas = %+v", out)
+	}
 }

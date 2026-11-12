@@ -184,6 +184,7 @@ func (r *Repository) Matrix(ctx context.Context, f domain.MatrixFilter, page, si
 			State:      domain.StateRef{Key: row.StateKey, Name: row.StateName},
 			ChangeCode: row.ChangeCode, RiskCode: row.RiskCode, RiskLevel: row.RiskLevel, OwnerName: row.OwnerName,
 			Packages:        row.Packages,
+			Reports:         row.Reports,
 			FunctionalCases: row.FunctionalCases,
 			TestCase: domain.TestCaseSummary{
 				Code: row.TestCaseCode, Title: row.TestCaseTitle, IsCritical: row.TestCaseCritical,
@@ -267,4 +268,53 @@ func nullable(s string) *string {
 		return nil
 	}
 	return &s
+}
+
+// PackageTrace devuelve la trazabilidad, los RUN y los DEF no cerrados de un PKG.
+func (r *Repository) PackageTrace(ctx context.Context, packageCode string) (domain.PackageTrace, error) {
+	q := r.queries(ctx)
+	rows, err := q.ListPackageTrace(ctx, packageCode)
+	if err != nil {
+		return domain.PackageTrace{}, corepg.TranslateError(err)
+	}
+	out := domain.PackageTrace{Rows: make([]domain.PackageTraceRow, len(rows))}
+	for i, row := range rows {
+		out.Rows[i] = domain.PackageTraceRow{
+			RequirementCode: row.RequirementCode, RequirementTitle: row.RequirementTitle, StateName: row.StateName,
+			ChangeCode: row.ChangeCode, Route: row.Route, RiskCode: row.RiskCode, RiskLevel: row.RiskLevel,
+			FunctionalCases: row.FunctionalCases, TestCaseCode: row.TestCaseCode, TestCaseCritical: row.TestCaseCritical,
+			RunCode: row.RunCode, RunResult: row.RunResult, Defects: row.Defects,
+		}
+	}
+	runs, err := q.ListPackageRuns(ctx, packageCode)
+	if err != nil {
+		return domain.PackageTrace{}, corepg.TranslateError(err)
+	}
+	out.Runs = make([]domain.PackageRun, len(runs))
+	for i, run := range runs {
+		out.Runs[i] = domain.PackageRun{
+			Code: run.Code, TestCaseCode: run.TestCaseCode, Result: run.Result, BuildCode: run.BuildCode,
+			BuildVersion: run.BuildVersion, EnvironmentName: run.EnvironmentName, ExecutedAt: run.ExecutedAt.UTC(),
+			ExecutedByName: run.ExecutedByName,
+		}
+	}
+	defects, err := q.ListPackageDefects(ctx, packageCode)
+	if err != nil {
+		return domain.PackageTrace{}, corepg.TranslateError(err)
+	}
+	out.Defects = make([]domain.PackageDefect, len(defects))
+	for i, d := range defects {
+		out.Defects[i] = domain.PackageDefect{
+			Code: d.Code, Title: d.Title, Severity: d.Severity, State: domain.StateRef{Key: d.StateKey, Name: d.StateName},
+			RequirementCode: d.RequirementCode, DeferredBy: d.DeferredByName, DeferredReason: d.DeferredReason,
+		}
+		if d.DeferredAt != "" {
+			at, err := time.Parse(time.RFC3339Nano, d.DeferredAt)
+			if err != nil {
+				return domain.PackageTrace{}, axis.Wrap(axis.InternalServerError, "fecha de diferimiento no válida en la base", err)
+			}
+			out.Defects[i].DeferredAt = &at
+		}
+	}
+	return out, nil
 }

@@ -13,6 +13,7 @@ import (
 	"kaoru/internal/feature/document/domain"
 	environmentuc "kaoru/internal/feature/environment/application/usecase"
 	executionuc "kaoru/internal/feature/execution/application/usecase"
+	productionuc "kaoru/internal/feature/production/application/usecase"
 	requirementuc "kaoru/internal/feature/requirement/application/usecase"
 	testdesignuc "kaoru/internal/feature/testdesign/application/usecase"
 )
@@ -26,6 +27,7 @@ type Sources struct {
 	Defect      *defectuc.UseCases
 	Bundle      *bundleuc.UseCases
 	Environment *environmentuc.UseCases
+	Production  *productionuc.UseCases
 }
 
 // Entities resuelve la entidad a la que se enlaza un documento.
@@ -69,6 +71,15 @@ func (e *Entities) Resolve(ctx context.Context, entityType, code string) (domain
 		id, err = out.Id, e2
 	case "deployment":
 		out, e2 := e.s.Environment.GetDeployment.Execute(ctx, environmentuc.GetDeploymentInput{Code: code})
+		id, err = out.Id, e2
+	case "checklist":
+		out, e2 := e.s.Production.GetChecklist.Execute(ctx, productionuc.GetChecklistInput{Code: code})
+		id, err = out.Checklist.Id, e2
+	case "diagnostic":
+		out, e2 := e.s.Production.GetDiagnostic.Execute(ctx, productionuc.GetDiagnosticInput{Code: code})
+		id, err = out.Id, e2
+	case "smoke_test":
+		out, e2 := e.s.Production.GetSmokeTest.Execute(ctx, productionuc.GetSmokeTestInput{Code: code})
 		id, err = out.Id, e2
 	default:
 		return domain.EntityRef{}, axis.New(axis.NotFoundResource, "Ese tipo de entidad no admite documentos.")

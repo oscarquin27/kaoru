@@ -24,6 +24,9 @@ type Repository interface {
 	MatrixIndicators(ctx context.Context, filter domain.MatrixFilter) (indicators domain.Indicators, totalRows int, err error)
 
 	Search(ctx context.Context, query string, limit int) ([]domain.SearchHit, error)
+
+	// PackageTrace devuelve la trazabilidad, los RUN y los DEF no cerrados de un PKG; vacíos si no existe.
+	PackageTrace(ctx context.Context, packageCode string) (domain.PackageTrace, error)
 }
 
 // Readiness pregunta a requirement qué falta para que un REQ avance.

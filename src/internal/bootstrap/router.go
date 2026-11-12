@@ -26,8 +26,10 @@ import (
 	"kaoru/internal/feature/document/adapter/entities"
 	"kaoru/internal/feature/environment"
 	"kaoru/internal/feature/execution"
+	"kaoru/internal/feature/planning"
 	"kaoru/internal/feature/production"
 	"kaoru/internal/feature/regression"
+	"kaoru/internal/feature/report"
 	"kaoru/internal/feature/requirement"
 	"kaoru/internal/feature/risk"
 	"kaoru/internal/feature/savedview"
@@ -164,7 +166,7 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 		Entities: entities.Sources{
 			Requirement: requirementModule.UseCases, Change: changeModule.UseCases, TestDesign: testdesignModule.UseCases,
 			Execution: executionModule.UseCases, Defect: defectModule.UseCases,
-			Bundle: bundleModule.UseCases, Environment: environmentModule.UseCases,
+			Bundle: bundleModule.UseCases, Environment: environmentModule.UseCases, Production: productionModule.UseCases,
 		},
 		AllowedExtensions: d.Config.Documents.AllowedExtensions,
 		ConverterURL:      d.Config.Documents.ConverterURL,
@@ -185,6 +187,21 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 	}
 	traceabilityModule, err := traceability.New(traceability.Deps{
 		Database: d.Database, Clock: d.Clock, Requirements: requirementModule.UseCases, Execution: executionModule.UseCases,
+	})
+	if err != nil {
+		return nil, err
+	}
+	reportModule, err := report.New(report.Deps{
+		Database: d.Database, Clock: d.Clock, IdGenerator: d.IdGenerator, Workflow: workflowModule.UseCases,
+		Audit: auditModule.UseCases, Bundle: bundleModule.UseCases, Traceability: traceabilityModule.UseCases,
+		Regression: regressionModule.UseCases, Production: productionModule.UseCases,
+	})
+	if err != nil {
+		return nil, err
+	}
+	planningModule, err := planning.New(planning.Deps{
+		Database: d.Database, Clock: d.Clock, IdGenerator: d.IdGenerator, Workflow: workflowModule.UseCases,
+		Audit: auditModule.UseCases, Changes: changeModule.UseCases,
 	})
 	if err != nil {
 		return nil, err
@@ -236,5 +253,7 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 	commentModule.RegisterAPI(api)
 	savedviewModule.RegisterAPI(api)
 	traceabilityModule.RegisterAPI(api)
+	reportModule.RegisterAPI(api)
+	planningModule.RegisterAPI(api)
 	return engine, nil
 }

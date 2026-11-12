@@ -27,6 +27,7 @@ type UseCases struct {
 	GetMatrix              *GetMatrix
 	ExportMatrix           *ExportMatrix
 	Search                 *Search
+	GetPackageTrace        *GetPackageTrace
 }
 
 // New arma los casos de uso; falla si falta una dependencia.
@@ -40,5 +41,6 @@ func New(d Deps) (*UseCases, error) {
 		GetMatrix:              &GetMatrix{d: d},
 		ExportMatrix:           &ExportMatrix{d: d},
 		Search:                 &Search{d: d},
+		GetPackageTrace:        &GetPackageTrace{d: d},
 	}, nil
 }
