@@ -96,7 +96,7 @@ func TestParseConfig(t *testing.T) {
 		"http": {"addr": ":8080", "internalAddr": ":9090", "publicOrigin": "${KAORU_PUBLIC_URL}", "maxBodyBytes": 1048576},
 		"postgres": {"ownerUrl": "postgres://o:${PW}@db/kaoru", "appUrl": "postgres://a:${PW}@db/kaoru"},
 		"oidc": {"issuer": "https://x/realms/kaoru", "jwksUrl": "http://kc/certs", "clientId": "kaoru-web", "logoutUrl": "/oauth2/sign_out"},
-		"documents": {"dir": "/var/lib/kaoru/documents", "maxBytes": 26214400, "allowedExtensions": [".pdf"]},
+		"documents": {"dir": "/var/lib/kaoru/documents", "maxBytes": 26214400, "allowedExtensions": [".pdf"], "converterUrl": "${KAORU_CONVERTER_URL:-}"},
 		"log": {"format": "json"}
 	}`
 	env := func(vars map[string]string) func(string) (string, bool) {
@@ -110,6 +110,14 @@ func TestParseConfig(t *testing.T) {
 	}
 	if cfg.HTTP.PublicOrigin != "https://kaoru.lab.invalid" || cfg.Postgres.AppURL != `postgres://a:cl"ave\rara@db/kaoru` {
 		t.Errorf("no reemplazó las variables: %+v", cfg)
+	}
+	// Una variable opcional (${X:-}) puede faltar; si está, se usa.
+	if cfg.Documents.ConverterURL != "" {
+		t.Errorf("la variable opcional ausente debía quedar vacía: %q", cfg.Documents.ConverterURL)
+	}
+	withOffice := map[string]string{"KAORU_PUBLIC_URL": "https://kaoru.lab.invalid", "PW": "x", "KAORU_CONVERTER_URL": "http://libreoffice:3000"}
+	if cfg, err := ParseConfig([]byte(valid), env(withOffice)); err != nil || cfg.Documents.ConverterURL != "http://libreoffice:3000" {
+		t.Errorf("la variable opcional presente debía usarse: %+v, %v", cfg.Documents, err)
 	}
 
 	cases := []struct {

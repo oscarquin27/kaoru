@@ -35,6 +35,8 @@ type Deps struct {
 	UnitOfWork  uow.Factory
 	Clock       clock.Clock
 	IdGenerator idgen.IdGenerator
+	// Converter es opcional: nil cuando el servidor no tiene conversor de Office.
+	Converter port.Converter
 	// AllowedExtensions es la lista configurada de tipos permitidos, como extensiones con punto.
 	AllowedExtensions []string
 }
@@ -47,6 +49,7 @@ type UseCases struct {
 	GetDocument    *GetDocument
 	ListDocuments  *ListDocuments
 	OpenContent    *OpenContent
+	OpenPreview    *OpenPreview
 }
 
 // New arma los casos de uso; falla si falta una dependencia.
@@ -62,6 +65,7 @@ func New(d Deps) (*UseCases, error) {
 		GetDocument:    &GetDocument{d: d},
 		ListDocuments:  &ListDocuments{d: d},
 		OpenContent:    &OpenContent{d: d},
+		OpenPreview:    &OpenPreview{d: d},
 	}, nil
 }
 

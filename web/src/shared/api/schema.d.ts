@@ -725,6 +725,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/documents/{code}/versions/{version}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+                version: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * Vista previa en PDF de una versión de Office
+         * @description Solo para versiones con `previewable`. Responde `NOT_SUPPORTED` si el archivo no es de Office o el servidor no tiene conversor.
+         */
+        get: operations["getDocumentPreview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/documents/{code}/links": {
         parameters: {
             query?: never;
@@ -757,6 +780,46 @@ export interface paths {
         /** Comenta en una entidad */
         post: operations["createComment"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/saved-views": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Vistas que guardó el usuario en sesión en una lista */
+        get: operations["listSavedViews"];
+        put?: never;
+        /**
+         * Guarda los filtros de una lista con un nombre
+         * @description Es personal y no exige permiso. Hasta 30 por lista; el nombre no se repite dentro de una lista.
+         */
+        post: operations["saveView"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/saved-views/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Quita una vista propia */
+        delete: operations["deleteSavedView"];
         options?: never;
         head?: never;
         patch?: never;
@@ -948,6 +1011,17 @@ export interface components {
             id: string;
             username: string;
             displayName: string;
+        };
+        /** @enum {string} */
+        SavedViewScreen: "requirements" | "changes" | "defects" | "matrix" | "test-cases" | "audit";
+        SavedView: {
+            /** Format: uuid */
+            id: string;
+            screen: components["schemas"]["SavedViewScreen"];
+            name: string;
+            query: string;
+            /** Format: date-time */
+            createdAt: string;
         };
         StateRef: {
             key: string;
@@ -1292,6 +1366,8 @@ export interface components {
             uploadedBy: components["schemas"]["UserRef"];
             /** Format: date-time */
             createdAt: string;
+            /** @description Hay vista previa en PDF (`/preview`) de un archivo de Office. Solo si el servidor tiene conversor. */
+            previewable: boolean;
         };
         Document: {
             code: components["schemas"]["Code"];
@@ -2970,6 +3046,30 @@ export interface operations {
             default: components["responses"]["Problem"];
         };
     };
+    getDocumentPreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PDF */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
     linkDocument: {
         parameters: {
             query?: never;
@@ -3046,6 +3146,82 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Comment"];
                 };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listSavedViews: {
+        parameters: {
+            query: {
+                screen: components["schemas"]["SavedViewScreen"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lista, por nombre */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["SavedView"][];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    saveView: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    screen: components["schemas"]["SavedViewScreen"];
+                    name: string;
+                    /** @description Los filtros como van en la URL, sin el signo de interrogación. */
+                    query: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Vista guardada */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedView"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    deleteSavedView: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Vista quitada */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             default: components["responses"]["Problem"];
         };

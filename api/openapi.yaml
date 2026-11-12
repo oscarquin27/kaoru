@@ -40,6 +40,8 @@ tags:
     description: Documentos versionados (DOC)
   - name: comment
     description: Comentarios
+  - name: savedview
+    description: Vistas guardadas (filtros de una lista con nombre, personales)
   - name: traceability
     description: Ficha consolidada, matriz y búsqueda
   - name: audit
@@ -1150,6 +1152,26 @@ paths:
               schema: { type: string, format: binary }
         default: { $ref: '#/components/responses/Problem' }
 
+  /api/documents/{code}/versions/{version}/preview:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+      - name: version
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1 }
+    get:
+      tags: [document]
+      operationId: getDocumentPreview
+      summary: Vista previa en PDF de una versión de Office
+      description: Solo para versiones con `previewable`. Responde `NOT_SUPPORTED` si el archivo no es de Office o el servidor no tiene conversor.
+      responses:
+        '200':
+          description: PDF
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        default: { $ref: '#/components/responses/Problem' }
+
   /api/documents/{code}/links:
     parameters:
       - $ref: '#/components/parameters/Code'
@@ -1212,6 +1234,71 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Comment' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/saved-views:
+    get:
+      tags: [savedview]
+      operationId: listSavedViews
+      summary: Vistas que guardó el usuario en sesión en una lista
+      parameters:
+        - name: screen
+          in: query
+          required: true
+          schema: { $ref: '#/components/schemas/SavedViewScreen' }
+      responses:
+        '200':
+          description: Lista, por nombre
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/SavedView' }
+        default: { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [savedview]
+      operationId: saveView
+      summary: Guarda los filtros de una lista con un nombre
+      description: Es personal y no exige permiso. Hasta 30 por lista; el nombre no se repite dentro de una lista.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [screen, name, query]
+              properties:
+                screen: { $ref: '#/components/schemas/SavedViewScreen' }
+                name: { type: string, minLength: 1, maxLength: 60 }
+                query:
+                  type: string
+                  maxLength: 2000
+                  description: Los filtros como van en la URL, sin el signo de interrogación.
+      responses:
+        '201':
+          description: Vista guardada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SavedView' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/saved-views/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    delete:
+      tags: [savedview]
+      operationId: deleteSavedView
+      summary: Quita una vista propia
+      responses:
+        '204':
+          description: Vista quitada
         default: { $ref: '#/components/responses/Problem' }
 
   /api/search:
@@ -1576,6 +1663,20 @@ components:
         id: { type: string }
         username: { type: string }
         displayName: { type: string }
+
+    SavedViewScreen:
+      type: string
+      enum: [requirements, changes, defects, matrix, test-cases, audit]
+
+    SavedView:
+      type: object
+      required: [id, screen, name, query, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        screen: { $ref: '#/components/schemas/SavedViewScreen' }
+        name: { type: string }
+        query: { type: string }
+        createdAt: { type: string, format: date-time }
 
     StateRef:
       type: object
@@ -2024,7 +2125,7 @@ components:
 
     DocumentVersion:
       type: object
-      required: [version, fileName, mediaType, sizeBytes, checksum, uploadedBy, createdAt]
+      required: [version, fileName, mediaType, sizeBytes, checksum, uploadedBy, createdAt, previewable]
       properties:
         version: { type: integer }
         fileName: { type: string }
@@ -2033,6 +2134,9 @@ components:
         checksum: { $ref: '#/components/schemas/Checksum' }
         uploadedBy: { $ref: '#/components/schemas/UserRef' }
         createdAt: { type: string, format: date-time }
+        previewable:
+          type: boolean
+          description: Hay vista previa en PDF (`/preview`) de un archivo de Office. Solo si el servidor tiene conversor.
     Document:
       type: object
       required: [code, title, kind, versions, linkedTo, createdAt]

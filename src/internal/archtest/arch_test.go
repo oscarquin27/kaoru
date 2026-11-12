@@ -289,6 +289,7 @@ func TestQueriesOnlyWriteTheirOwnTables(t *testing.T) {
 		"defect":      {"defect", "code_sequence"},
 		"document":    {"document", "document_version", "document_link", "code_sequence"},
 		"comment":     {"comment"},
+		"savedview":   {"saved_view"},
 		// traceability es de solo lectura: no puede escribir en ninguna tabla.
 		"traceability": {},
 	}

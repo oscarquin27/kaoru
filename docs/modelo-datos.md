@@ -192,6 +192,6 @@ erDiagram
 
 ## Pendiente
 
-- **Vistas guardadas (§7.3):** no tienen tabla. En el MVP los filtros se comparten por URL.
+- **Vistas guardadas (§7.3):** tabla `saved_view` (dueño, lista, nombre, filtros). Son personales y no se auditan; compartir sigue siendo por URL (decisión D46).
 - **Importación de la hoja:** sin tablas hasta conocer su formato (pregunta 5).
 - **Índices de búsqueda de texto:** no se agregan sin una medición (reglas §A.1.1). El objetivo de menos de 1 s con 10 000 REQ y 100 000 RUN se mide en la fase 2 con datos generados.

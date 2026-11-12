@@ -57,6 +57,9 @@ type DocumentsConfig struct {
 	MaxBytes int64 `json:"maxBytes"`
 	// AllowedExtensions es la lista de tipos permitidos, como extensiones con punto.
 	AllowedExtensions []string `json:"allowedExtensions"`
+	// ConverterURL es la dirección interna del conversor de Office a PDF (el servicio opcional
+	// `libreoffice`). Vacía: los archivos de Office solo se descargan.
+	ConverterURL string `json:"converterUrl"`
 }
 
 // LogConfig elige el formato de los logs: "json" o "text".
@@ -65,7 +68,7 @@ type LogConfig struct {
 }
 
 // LoadConfig lee config.json de la ruta de KAORU_CONFIG_PATH, reemplaza las
-// referencias ${VARIABLE} con el entorno y valida que no falte nada.
+// referencias ${VARIABLE} con el entorno (${VARIABLE:-} si es opcional) y valida que no falte nada.
 func LoadConfig() (Config, error) {
 	path := os.Getenv(ConfigPathEnv)
 	if path == "" {
@@ -82,8 +85,10 @@ func LoadConfig() (Config, error) {
 func ParseConfig(raw []byte, lookup func(string) (string, bool)) (Config, error) {
 	var missing []string
 	expanded := os.Expand(string(raw), func(name string) string {
+		// ${VARIABLE:-} marca una variable opcional: si falta, queda vacía.
+		name, optional := strings.CutSuffix(name, ":-")
 		value, ok := lookup(name)
-		if !ok || value == "" {
+		if (!ok || value == "") && !optional {
 			missing = append(missing, name)
 		}
 		// El valor va dentro de una cadena JSON: se escapa.

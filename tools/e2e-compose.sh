@@ -89,6 +89,19 @@ upload="$(curl -sk -b "$work/lab-qa.jar" -H "Origin: $base" -o "$work/body" -w '
 doc="$(json_code DOC <"$work/body")"
 curl -sk -b "$work/lab-qa.jar" -o "$work/descarga.pdf" "$base/api/documents/$doc/versions/1/content"
 cmp -s "$work/spec.pdf" "$work/descarga.pdf" || fail "el documento descargado no es el que se subió"
+# El visor incrusta el contenido: solo el propio Kaoru puede enmarcarlo, y el archivo va aislado.
+content="$base/api/documents/$doc/versions/1/content"
+headers="$(curl -sk -b "$work/lab-qa.jar" -o /dev/null -D - "$content" | tr -d '\r')"
+printf '%s' "$headers" | grep -qi "^content-security-policy: frame-ancestors 'self'$" || fail "el contenido de un documento debe poder incrustarse solo desde Kaoru"
+printf '%s' "$headers" | grep -qi "^content-security-policy: sandbox" || fail "el contenido de un documento debe servirse aislado"
+printf '%s' "$headers" | grep -qi "^x-frame-options: SAMEORIGIN$" || fail "X-Frame-Options del contenido debe ser SAMEORIGIN"
+[ "$(curl -sk -o /dev/null -w '%{http_code}' "$content")" = 401 ] || fail "el contenido de un documento exige sesión"
+[ "$(curl -sk -o /dev/null -w '%{http_code}' -H 'Authorization: Bearer falso' "$content")" = 401 ] || fail "el contenido no acepta un token puesto a mano"
+curl -sk -b "$work/lab-qa.jar" -o /dev/null -D - "$base/api/documents/$doc" | tr -d '\r' | grep -qi "^x-frame-options: DENY$" \
+    || fail "el resto de la API no debe poder enmarcarse"
+# Sin el servicio opcional de Office, la vista previa convertida no existe.
+[ "$(curl -sk -b "$work/lab-qa.jar" -o /dev/null -w '%{http_code}' "$base/api/documents/$doc/versions/1/preview")" = 415 ] \
+    || fail "sin conversor, la vista previa debe responder 415"
 overview="$(api lab-qa GET "/api/requirements/$req/overview")"
 case "$overview" in *'"status":"current"'*'"missing"'*) ;; *) fail "ficha consolidada inesperada: $overview" ;; esac
 api lab-qa GET /api/audit/verification | grep -q '"intact":true' || fail "la cadena de auditoría debe estar íntegra"

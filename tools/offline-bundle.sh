@@ -2,6 +2,7 @@
 # Arma el paquete para instalar Kaoru en un servidor sin internet: las imágenes (docker save),
 # el Compose, la configuración y los scripts de instalación, respaldo y restauración.
 # Se ejecuta donde hay internet. Deja dist/kaoru-offline-<versión>.tar.gz
+#   OFFLINE_OFFICE=1 tools/offline-bundle.sh   → incluye el conversor de Office (unos 2,7 GB más)
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -34,6 +35,8 @@ printf '\n# Imagen de kaoru-api incluida en este paquete.\nKAORU_API_IMAGE=%s\n'
 # la da la suma de images.tar.gz.
 sed -E -i.bak 's/@sha256:[0-9a-f]{64}//' "$stage/docker-compose.yml" && rm "$stage/docker-compose.yml.bak"
 
+# Las imágenes de servicios opcionales solo viajan si se piden.
+if [ "${OFFLINE_OFFICE:-}" = 1 ]; then export COMPOSE_PROFILES=office; fi
 images="$(docker compose -f "$stage/docker-compose.yml" --env-file "$stage/.env.example" config --images | sort -u)"
 # shellcheck disable=SC2086
 docker save $images | gzip >"$stage/images.tar.gz"

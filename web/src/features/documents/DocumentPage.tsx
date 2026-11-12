@@ -14,7 +14,7 @@ import { Async, PageSkeleton } from '../../shared/ui/feedback.tsx'
 import { Icon } from '../../shared/ui/Icon.tsx'
 import { Crumbs, MetaItem, PageHead } from '../../shared/ui/layout.tsx'
 import { Dialog } from '../../shared/ui/Modal.tsx'
-import { contentUrl, useDocument, useTextContent } from './api.ts'
+import { contentUrl, previewUrl, useDocument, useTextContent } from './api.ts'
 import { Markdown } from './Markdown.tsx'
 import { UploadForm } from './UploadForm.tsx'
 
@@ -47,11 +47,14 @@ function Content({ code, version }: { code: string; version: DocumentVersion }) 
       </Async>
     )
   }
-  if (version.mediaType === 'application/pdf') {
+  if (version.mediaType === 'application/pdf' || version.previewable) {
     return (
-      <object className="viewer__object" data={url} type="application/pdf" aria-label={version.fileName}>
-        <p className="soft">El PDF no se pudo mostrar aquí. Descárgalo para verlo.</p>
-      </object>
+      <>
+        {version.previewable && <p className="muted">Vista previa convertida a PDF. El archivo original es el que se descarga y el que cuenta como evidencia.</p>}
+        <object className="viewer__object" data={version.previewable ? previewUrl(code, version.version) : url} type="application/pdf" aria-label={version.fileName}>
+          <p className="soft">La vista previa no se pudo mostrar aquí. Descarga el archivo para verlo.</p>
+        </object>
+      </>
     )
   }
   if (version.mediaType.startsWith('image/')) return <img className="viewer__image" src={url} alt={version.fileName} />

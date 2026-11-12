@@ -16,6 +16,11 @@ export function contentUrl(code: string, version: number, download = false): str
   return apiUrl(`/api/documents/${code}/versions/${version}/content`, { download: download || undefined })
 }
 
+/** PDF convertido de una versión de Office; solo existe si la versión dice `previewable`. */
+export function previewUrl(code: string, version: number): string {
+  return apiUrl(`/api/documents/${code}/versions/${version}/preview`)
+}
+
 async function sha256(bytes: ArrayBuffer): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', bytes)
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')

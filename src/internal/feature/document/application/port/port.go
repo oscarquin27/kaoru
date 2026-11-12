@@ -93,3 +93,9 @@ type ChecksumIndex interface {
 	// Referenced devuelve, de los checksums dados, los que usa alguna versión de un documento.
 	Referenced(ctx context.Context, checksums []string) ([]string, error)
 }
+
+// Converter convierte un archivo de Office a PDF. Es opcional: sin él, esos archivos solo se descargan.
+type Converter interface {
+	// ToPDF devuelve el PDF; quien lo recibe lo cierra.
+	ToPDF(ctx context.Context, fileName string, content io.Reader) (io.ReadCloser, error)
+}

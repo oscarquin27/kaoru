@@ -161,3 +161,12 @@ func (d Document) Version(number int) (Version, bool) {
 func (d Document) IsLinkedTo(entity EntityRef) bool {
 	return slices.ContainsFunc(d.s.LinkedTo, func(l EntityRef) bool { return l.Type == entity.Type && l.Id == entity.Id })
 }
+
+// officeTypes son los tipos de Office que se pueden convertir a PDF para verlos dentro del sistema.
+var officeTypes = []string{
+	"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+	"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+}
+
+// IsOffice dice si un tipo es de Office: no se ve en el navegador sin convertirlo.
+func IsOffice(mediaType string) bool { return slices.Contains(officeTypes, mediaType) }

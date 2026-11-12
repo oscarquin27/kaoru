@@ -10,10 +10,12 @@ import (
 	corepg "kaoru/internal/core/pkg/postgres"
 	audituc "kaoru/internal/feature/audit/application/usecase"
 	"kaoru/internal/feature/document/adapter/audit"
+	"kaoru/internal/feature/document/adapter/converter"
 	"kaoru/internal/feature/document/adapter/entities"
 	"kaoru/internal/feature/document/adapter/filestore"
 	"kaoru/internal/feature/document/adapter/postgres"
 	"kaoru/internal/feature/document/adapter/workflow"
+	"kaoru/internal/feature/document/application/port"
 	"kaoru/internal/feature/document/application/usecase"
 	"kaoru/internal/feature/document/delivery/api"
 	workflowuc "kaoru/internal/feature/workflow/application/usecase"
@@ -29,6 +31,8 @@ type Deps struct {
 	Audit             *audituc.UseCases
 	Entities          entities.Sources
 	AllowedExtensions []string
+	// ConverterURL es la dirección del conversor de Office; vacía si el servidor no lo tiene.
+	ConverterURL string
 }
 
 // Module expone los casos de uso y las rutas del feature.
@@ -39,7 +43,12 @@ type Module struct {
 
 // New arma el módulo.
 func New(d Deps) (*Module, error) {
+	var office port.Converter
+	if d.ConverterURL != "" {
+		office = converter.New(d.ConverterURL)
+	}
 	uc, err := usecase.New(usecase.Deps{
+		Converter:         office,
 		Repository:        postgres.NewRepository(d.Database),
 		FileStore:         filestore.New(d.FileStore),
 		Entities:          entities.New(d.Entities),

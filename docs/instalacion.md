@@ -36,6 +36,15 @@ Entra con el administrador de `.env`, elige el realm `kaoru`, crea cada usuario 
 
 Descomprime el paquete nuevo sobre la carpeta (conserva tu `.env` y tu `tls/`) y ejecuta `./install.sh` otra vez. Los datos viven en volúmenes de Docker y no se tocan; las migraciones nuevas se aplican al arrancar. Haz un [respaldo](respaldo.md) antes.
 
+## Vista previa de Word y Excel (opcional)
+
+Sin esto, los archivos de Office se descargan. Para verlos dentro de Kaoru hace falta un contenedor más (unos 2,7 GB), que solo viaja en el paquete si se armó con `OFFLINE_OFFICE=1 tools/offline-bundle.sh`. Para activarlo, quita el `#` de estas dos líneas de `.env` y vuelve a correr `./install.sh`:
+
+```
+COMPOSE_PROFILES=office
+KAORU_CONVERTER_URL=http://libreoffice:3000
+```
+
 ## Mantenimiento
 
 Si una subida de documento falla después de guardar el archivo, el archivo queda en el volumen sin registro. Para verlos (no borra nada):

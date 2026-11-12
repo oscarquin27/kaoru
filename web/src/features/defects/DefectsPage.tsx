@@ -35,7 +35,7 @@ export default function DefectsPage() {
           )
         }
       />
-      <FilterBar>
+      <FilterBar views={{ screen: 'defects', names: ['state', 'severity', 'requirement', 'assignee', 'q'] }}>
         <FilterSelect name="state" label="Estado" options={states.map((state) => ({ value: state.key, label: state.name }))} />
         <FilterSelect name="severity" label="Severidad" options={options(SEVERITY_LABELS)} />
         <FilterSelect name="assignee" label="Asignado a" options={users} />

@@ -20,7 +20,8 @@
   "documents": {
     "dir": "/var/lib/kaoru/documents",
     "maxBytes": 26214400,
-    "allowedExtensions": [".pdf", ".png", ".jpg", ".jpeg", ".md", ".txt", ".log", ".csv", ".docx", ".xlsx"]
+    "allowedExtensions": [".pdf", ".png", ".jpg", ".jpeg", ".md", ".txt", ".log", ".csv", ".docx", ".xlsx"],
+    "converterUrl": "${KAORU_CONVERTER_URL:-}"
   },
   "log": {
     "format": "json"
