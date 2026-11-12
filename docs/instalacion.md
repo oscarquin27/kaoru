@@ -36,6 +36,16 @@ Entra con el administrador de `.env`, elige el realm `kaoru`, crea cada usuario 
 
 Descomprime el paquete nuevo sobre la carpeta (conserva tu `.env` y tu `tls/`) y ejecuta `./install.sh` otra vez. Los datos viven en volúmenes de Docker y no se tocan; las migraciones nuevas se aplican al arrancar. Haz un [respaldo](respaldo.md) antes.
 
+## Mantenimiento
+
+Si una subida de documento falla después de guardar el archivo, el archivo queda en el volumen sin registro. Para verlos (no borra nada):
+
+```bash
+docker compose -p kaoru exec kaoru-api /kaoru-api prune-documents
+```
+
+Con `--apply` al final los borra. Solo cuenta archivos con más de un día, para no tocar una subida en curso.
+
 ## Comprobar que quedó bien
 
 - `docker compose -p kaoru ps` muestra los cinco servicios como `healthy`.

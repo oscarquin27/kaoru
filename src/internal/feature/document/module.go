@@ -58,3 +58,8 @@ func New(d Deps) (*Module, error) {
 
 // RegisterAPI monta las rutas del feature.
 func (m *Module) RegisterAPI(r gin.IRouter) { m.handler.Register(r) }
+
+// NewPruner arma la limpieza de archivos sin registro, que corre fuera del servidor.
+func NewPruner(db *corepg.Database, files *corefs.Local, c clock.Clock) (*usecase.PruneOrphans, error) {
+	return usecase.NewPruneOrphans(filestore.New(files), postgres.NewRepository(db), c)
+}

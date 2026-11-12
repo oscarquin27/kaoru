@@ -4,10 +4,10 @@
 IMAGE ?= kaoru-api:dev
 GOLANGCI_VERSION ?= v2.15.0
 
-.PHONY: check generate image offline-bundle check-go check-generated check-openapi check-migrations \
+.PHONY: check generate image offline-bundle check-go check-generated check-openapi check-migrations check-sqlvet \
 	check-integration check-image check-web check-e2e check-front check-offline
 
-check: check-go check-generated check-openapi check-migrations check-integration check-image check-web check-e2e check-front
+check: check-go check-generated check-openapi check-migrations check-sqlvet check-integration check-image check-web check-e2e check-front
 	@echo "make check: OK"
 
 # Imagen de kaoru-api.
@@ -35,6 +35,11 @@ check-generated:
 
 check-openapi:
 	ruby tools/check-openapi.rb api/openapi.yaml
+	cd web && node ../tools/lint-openapi.mjs
+
+# Cada consulta de sqlc se prepara contra un Postgres real ya migrado.
+check-sqlvet:
+	./tools/with-postgres.sh ./tools/check-sqlc-vet.sh
 
 # Migraciones sobre un Postgres limpio: suben, bajan, suben, y los permisos de kaoru_app.
 check-migrations:

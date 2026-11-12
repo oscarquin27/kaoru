@@ -57,3 +57,44 @@ SET params     = $2,
     enabled    = $4,
     updated_at = $5
 WHERE id = $1;
+
+-- name: InsertState :exec
+INSERT INTO workflow_state (id, entity_type, key, name, position, is_final, created_at, updated_at)
+VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $6);
+
+-- name: UpdateState :execrows
+UPDATE workflow_state
+SET name       = $3,
+    position   = $4,
+    updated_at = $5
+WHERE entity_type = $1
+  AND key = $2;
+
+-- name: DeleteState :execrows
+DELETE
+FROM workflow_state
+WHERE entity_type = $1
+  AND key = $2;
+
+-- name: UpsertTransition :execrows
+INSERT INTO workflow_transition (id, from_state_id, to_state_id, permission_key, requires_reason, created_at, updated_at)
+SELECT gen_random_uuid(), f.id, s.id, sqlc.arg(permission_key), sqlc.arg(requires_reason), sqlc.arg(now), sqlc.arg(now)
+FROM workflow_state f
+         JOIN workflow_state s ON s.entity_type = f.entity_type
+WHERE f.entity_type = sqlc.arg(entity_type)
+  AND f.key = sqlc.arg(from_key)
+  AND s.key = sqlc.arg(to_key)
+ON CONFLICT (from_state_id, to_state_id) DO UPDATE
+    SET permission_key  = excluded.permission_key,
+        requires_reason = excluded.requires_reason,
+        updated_at      = excluded.updated_at;
+
+-- name: DeleteTransition :execrows
+DELETE
+FROM workflow_transition t
+    USING workflow_state f, workflow_state s
+WHERE t.from_state_id = f.id
+  AND t.to_state_id = s.id
+  AND f.entity_type = sqlc.arg(entity_type)
+  AND f.key = sqlc.arg(from_key)
+  AND s.key = sqlc.arg(to_key);

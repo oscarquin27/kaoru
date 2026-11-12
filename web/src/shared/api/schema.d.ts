@@ -21,6 +21,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Usuarios que ya entraron a Kaoru, para elegir responsables
+         * @description Devuelve como máximo 50, ordenados por nombre. El directorio completo vive en Keycloak.
+         */
+        get: operations["listUsers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/systems": {
         parameters: {
             query?: never;
@@ -110,6 +130,83 @@ export interface paths {
         head?: never;
         /** Activa, desactiva o ajusta una regla de bloqueo */
         patch: operations["updateBlockingRule"];
+        trace?: never;
+    };
+    "/api/admin/workflows/{entityType}/states": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entityType: components["parameters"]["WorkflowEntityType"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Agrega un estado a un flujo
+         * @description Exige `admin.configure`. El estado nace sin transiciones y nunca como inicial.
+         */
+        post: operations["addWorkflowState"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/workflows/{entityType}/states/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entityType: components["parameters"]["WorkflowEntityType"];
+                key: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Quita un estado sin transiciones y sin registros
+         * @description Exige `admin.configure`. Responde `INVALID_ACTION` si el estado es el inicial, tiene transiciones o algún registro está en él.
+         */
+        delete: operations["removeWorkflowState"];
+        options?: never;
+        head?: never;
+        /**
+         * Cambia el nombre de un estado o su lugar en la línea de vida
+         * @description Exige `admin.configure`. La clave no cambia.
+         */
+        patch: operations["updateWorkflowState"];
+        trace?: never;
+    };
+    "/api/admin/workflows/{entityType}/transitions/{from}/{to}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entityType: components["parameters"]["WorkflowEntityType"];
+                from: string;
+                to: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Agrega una transición o cambia su permiso y si exige motivo
+         * @description Exige `admin.configure`. Las reglas de bloqueo de una transición existente no cambian.
+         */
+        put: operations["setWorkflowTransition"];
+        post?: never;
+        /**
+         * Quita una transición y sus reglas de bloqueo
+         * @description Exige `admin.configure`.
+         */
+        delete: operations["removeWorkflowTransition"];
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/changes": {
@@ -847,6 +944,11 @@ export interface components {
             id: string;
             displayName: string;
         };
+        User: {
+            id: string;
+            username: string;
+            displayName: string;
+        };
         StateRef: {
             key: string;
             name: string;
@@ -1413,6 +1515,32 @@ export interface operations {
             default: components["responses"]["Problem"];
         };
     };
+    listUsers: {
+        parameters: {
+            query?: {
+                /** @description Texto contenido en el nombre o en el usuario */
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lista */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["User"][];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
     listSystems: {
         parameters: {
             query?: never;
@@ -1537,6 +1665,152 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BlockingRule"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    addWorkflowState: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entityType: components["parameters"]["WorkflowEntityType"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    key: string;
+                    name: string;
+                    /** @description Orden en la línea de vida. Sin él, el estado es lateral. */
+                    position?: number;
+                    isFinal?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Flujo como quedó */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Workflow"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    removeWorkflowState: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entityType: components["parameters"]["WorkflowEntityType"];
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Flujo como quedó */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Workflow"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    updateWorkflowState: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entityType: components["parameters"]["WorkflowEntityType"];
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    /** @description Con `null`, el estado pasa a ser lateral. */
+                    position?: number | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Flujo como quedó */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Workflow"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    setWorkflowTransition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entityType: components["parameters"]["WorkflowEntityType"];
+                from: string;
+                to: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    permission: string;
+                    requiresReason?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Flujo como quedó */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Workflow"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    removeWorkflowTransition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entityType: components["parameters"]["WorkflowEntityType"];
+                from: string;
+                to: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Flujo como quedó */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Workflow"];
                 };
             };
             default: components["responses"]["Problem"];

@@ -26,7 +26,7 @@ uc="$(get "/api/requirements/$req/functional-cases" | json_code UC)"
 run="$(get "/api/runs?requirement=$req" | json_code RUN)"
 
 paths=(
-    /api/me /api/systems
+    /api/me /api/users /api/systems
     /api/workflows/requirement /api/workflows/change /api/workflows/defect
     /api/changes "/api/changes/$chg" "/api/requirements?change=$chg"
     /api/requirements "/api/requirements/$req" "/api/requirements/$req/overview"

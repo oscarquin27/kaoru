@@ -38,7 +38,12 @@ export const ROLE_LABELS: Record<Role, string> = {
   ops: 'Operaciones',
   auditor: 'Auditoría',
 }
-export const ENTITY_LABELS: Record<EntityType | SearchHit['type'], string> = {
+// Además de las entidades, la auditoría registra cambios de configuración.
+export const ENTITY_LABELS: Record<EntityType | SearchHit['type'] | 'role_permission' | 'blocking_rule' | 'workflow_state' | 'workflow_transition', string> = {
+  role_permission: 'Permisos de rol',
+  blocking_rule: 'Regla de bloqueo',
+  workflow_state: 'Estado de flujo',
+  workflow_transition: 'Transición de flujo',
   requirement: 'Requerimiento',
   change: 'Cambio',
   risk_assessment: 'Riesgo',

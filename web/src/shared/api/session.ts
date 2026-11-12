@@ -1,6 +1,6 @@
 // Lo que varias pantallas necesitan de la API sin ser de un feature: sesión, sistemas y flujos.
 import { useApiQuery } from './query.ts'
-import type { Items, Me, System, Workflow } from './types.ts'
+import type { Items, Me, System, User, Workflow } from './types.ts'
 
 export function useMe() {
   return useApiQuery<Me>('/api/me')
@@ -18,4 +18,16 @@ export function useSystems() {
 
 export function useWorkflow(entityType: 'requirement' | 'change' | 'defect') {
   return useApiQuery<Workflow>(`/api/workflows/${entityType}`)
+}
+
+/** Quienes ya entraron a Kaoru, para elegir responsables. El directorio vive en Keycloak. */
+export function useUsers() {
+  return useApiQuery<Items<User>>('/api/users')
+}
+
+/** Los usuarios como opciones de un filtro o de un campo; el de la sesión va marcado. */
+export function useUserOptions(): { value: string; label: string }[] {
+  const me = useMe().data
+  const users = useUsers().data?.items ?? []
+  return users.map((user) => ({ value: user.id, label: user.id === me?.id ? `Yo (${user.displayName})` : user.displayName }))
 }

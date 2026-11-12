@@ -75,3 +75,21 @@ type AuditRecord struct {
 type AuditTrail interface {
 	Record(ctx context.Context, record AuditRecord) error
 }
+
+// StoredFile es un archivo del almacén, tenga o no registro.
+type StoredFile struct {
+	Checksum   string
+	ModifiedAt time.Time
+}
+
+// FileInventory recorre el almacén para limpiar lo que quedó sin registro.
+type FileInventory interface {
+	List(ctx context.Context) ([]StoredFile, error)
+	Remove(ctx context.Context, checksum string) error
+}
+
+// ChecksumIndex dice qué contenidos tienen registro.
+type ChecksumIndex interface {
+	// Referenced devuelve, de los checksums dados, los que usa alguna versión de un documento.
+	Referenced(ctx context.Context, checksums []string) ([]string, error)
+}

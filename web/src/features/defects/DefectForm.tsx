@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router'
 import type { FieldError } from '../../shared/api/errors.ts'
 import type { Defect, Severity } from '../../shared/api/types.ts'
 import { SEVERITY_LABELS, options } from '../../shared/lib/labels.ts'
-import { Form, SelectField, TextAreaField, TextField, text } from '../../shared/ui/Form.tsx'
+import { Form, SelectField, TextAreaField, TextField, optional, text } from '../../shared/ui/Form.tsx'
+import { UserField } from '../../shared/ui/UserField.tsx'
 import { useCreateDefect, useUpdateDefect } from './api.ts'
 
 interface DefectFormProps {
@@ -35,10 +36,10 @@ export function DefectForm({ defect, requirement, runs, onClose }: DefectFormPro
   async function submit(data: FormData) {
     const common = { title: text(data, 'title'), description: text(data, 'description'), severity: text(data, 'severity') as Severity }
     if (defect) {
-      await update.mutateAsync(common)
+      await update.mutateAsync({ ...common, assignee: optional(data, 'assignee') ?? null })
       return
     }
-    const created = await create.mutateAsync({ ...common, requirement: requirement ?? text(data, 'requirement'), run: text(data, 'run') })
+    const created = await create.mutateAsync({ ...common, assignee: optional(data, 'assignee'), requirement: requirement ?? text(data, 'requirement'), run: text(data, 'run') })
     void navigate(`/defectos/${created.code}`)
   }
 
@@ -70,6 +71,7 @@ export function DefectForm({ defect, requirement, runs, onClose }: DefectFormPro
             <TextField name="run" label="RUN que lo reprodujo" required placeholder="RUN-2026-0001" />
           ))}
       </div>
+      <UserField name="assignee" label="Asignado a" current={defect?.assignee} />
       {!defect && <p className="muted">Un hallazgo de una exploración no se abre como defecto sin reproducirlo antes en un RUN.</p>}
     </Form>
   )

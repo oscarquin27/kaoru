@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:real": "bash ../tools/dev-front.sh",
     "build": "vite build",
     "generate": "openapi-typescript ../api/openapi.yaml -o src/shared/api/schema.d.ts",
     "lint": "eslint .",

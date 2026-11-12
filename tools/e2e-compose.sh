@@ -32,6 +32,7 @@ trap cleanup EXIT
 "$root/tools/make-lab-cert.sh" localhost >/dev/null
 docker build -q -f "$root/infra/api/Dockerfile" -t kaoru-api:dev "$root" >/dev/null
 compose down -v --remove-orphans >/dev/null 2>&1 || true
+require_dev_down
 compose up -d --wait --wait-timeout 300 >/dev/null 2>&1 || fail "el Compose no llegó a estar sano"
 
 # Usuarios de laboratorio, creados con la herramienta de administración de Keycloak.

@@ -33,8 +33,9 @@ login() {
     http="$(curl -skL -c "$jar" -b "$jar" -o "$work/$1.html" -w '%{http_code}' \
         --data-urlencode "username=$1" --data-urlencode "password=$lab_password" "$action")"
     [ "$http" = 200 ] || fail "el inicio de sesión de $1 terminó en $http"
-    # LANDING_MARK es un texto que solo trae la página de la aplicación (no la de Keycloak).
-    grep -q "${LANDING_MARK:-Sesión iniciada}" "$work/$1.html" || fail "tras iniciar sesión, $1 no llegó a la aplicación"
+    # LANDING_MARK es un texto que solo trae la página de la aplicación (no la de Keycloak):
+    # por omisión, el de la página provisional o el del front compilado.
+    grep -Eq "${LANDING_MARK:-Sesión iniciada|id=\"root\"}" "$work/$1.html" || fail "tras iniciar sesión, $1 no llegó a la aplicación"
 }
 
 # api usuario método ruta [cuerpo]: imprime el cuerpo; el código HTTP queda en $work/code.
@@ -48,3 +49,10 @@ api() {
 
 # json_code prefijo: saca el primer ID legible con ese prefijo de lo que lee por la entrada.
 json_code() { grep -o "\"code\":\"$1-[0-9]*-[0-9]*\"" | head -1 | cut -d'"' -f4; }
+
+# El entorno de desarrollo usa los mismos puertos que estas pruebas: con él arriba, no levantan.
+require_dev_down() {
+    if [ -n "$(docker ps -q --filter name=kaoru-dev-nginx)" ]; then
+        fail "el entorno de desarrollo está arriba y usa los mismos puertos: apágalo con tools/dev-down.sh"
+    fi
+}

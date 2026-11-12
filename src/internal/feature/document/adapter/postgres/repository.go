@@ -177,3 +177,11 @@ func parseID(raw string) (uuid.UUID, error) {
 	}
 	return id, nil
 }
+
+var _ port.ChecksumIndex = (*Repository)(nil)
+
+// Referenced devuelve, de los checksums dados, los que usa alguna versión de un documento.
+func (r *Repository) Referenced(ctx context.Context, checksums []string) ([]string, error) {
+	rows, err := sqlcgen.New(r.db.Conn(ctx)).ReferencedChecksums(ctx, checksums)
+	return rows, corepg.TranslateError(err)
+}

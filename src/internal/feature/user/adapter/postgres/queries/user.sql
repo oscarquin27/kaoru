@@ -8,3 +8,12 @@ ON CONFLICT (id) DO UPDATE
         updated_at   = excluded.updated_at
 WHERE (app_user.username, app_user.display_name, app_user.email)
           IS DISTINCT FROM (excluded.username, excluded.display_name, excluded.email);
+
+-- name: ListUsers :many
+SELECT id, username, display_name
+FROM app_user
+WHERE sqlc.arg(query)::text = ''
+   OR username ILIKE '%' || sqlc.arg(query)::text || '%'
+   OR display_name ILIKE '%' || sqlc.arg(query)::text || '%'
+ORDER BY display_name, username
+LIMIT sqlc.arg(max_rows);
