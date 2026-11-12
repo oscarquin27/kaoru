@@ -22,6 +22,7 @@ type Deps struct {
 type UseCases struct {
 	SyncProfile *SyncProfile
 	GetMe       *GetMe
+	ListUsers   *ListUsers
 }
 
 // New arma los casos de uso; falla si falta una dependencia.
@@ -29,7 +30,7 @@ func New(d Deps) (*UseCases, error) {
 	if d.Repository == nil || d.Permissions == nil || d.Clock == nil || d.LogoutURL == "" {
 		return nil, errors.New("user: faltan dependencias")
 	}
-	return &UseCases{SyncProfile: &SyncProfile{d: d}, GetMe: &GetMe{d: d}}, nil
+	return &UseCases{SyncProfile: &SyncProfile{d: d}, GetMe: &GetMe{d: d}, ListUsers: &ListUsers{d: d}}, nil
 }
 
 // ProfileInput son los datos de identidad que el handler saca del token.

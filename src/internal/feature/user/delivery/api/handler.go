@@ -25,6 +25,7 @@ func NewHandler(uc *usecase.UseCases) *Handler { return &Handler{uc: uc} }
 // Register monta las rutas.
 func (h *Handler) Register(r gin.IRouter) {
 	r.GET("/api/me", h.getMe)
+	r.GET("/api/users", h.listUsers)
 }
 
 func profileInput(p oidc.Principal) usecase.ProfileInput {
@@ -70,4 +71,23 @@ func (h *Handler) getMe(c *gin.Context) {
 		Email: out.Profile.Email, Roles: out.Roles, Permissions: out.Permissions,
 		LogoutURL: out.LogoutURL, AccountURL: out.AccountURL,
 	})
+}
+
+type userDTO struct {
+	ID          string `json:"id"`
+	Username    string `json:"username"`
+	DisplayName string `json:"displayName"`
+}
+
+func (h *Handler) listUsers(c *gin.Context) {
+	users, err := h.uc.ListUsers.Execute(c.Request.Context(), c.Query("q"))
+	if err != nil {
+		problem.Write(c, err)
+		return
+	}
+	items := make([]userDTO, 0, len(users))
+	for _, u := range users {
+		items = append(items, userDTO{ID: string(u.Id), Username: u.Username, DisplayName: u.DisplayName})
+	}
+	c.JSON(http.StatusOK, gin.H{"items": items})
 }

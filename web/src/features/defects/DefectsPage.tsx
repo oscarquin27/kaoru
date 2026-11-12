@@ -1,5 +1,5 @@
 // Lista de defectos con filtros en la URL y alta. `?nuevo=1` abre el formulario (acción de Ctrl+K).
-import { useCan, useMe, useWorkflow } from '../../shared/api/session.ts'
+import { useCan, useUserOptions, useWorkflow } from '../../shared/api/session.ts'
 import { SEVERITY_LABELS, options } from '../../shared/lib/labels.ts'
 import { useUrlFilters } from '../../shared/lib/urlFilters.ts'
 import { Async } from '../../shared/ui/feedback.tsx'
@@ -13,7 +13,7 @@ import { DefectsTable } from './DefectsTable.tsx'
 
 export default function DefectsPage() {
   const can = useCan()
-  const me = useMe().data
+  const users = useUserOptions()
   const { params, pick, setFilter } = useUrlFilters()
   const states = useWorkflow('defect').data?.states ?? []
   const page = Number(params.get('page')) || 1
@@ -38,7 +38,7 @@ export default function DefectsPage() {
       <FilterBar>
         <FilterSelect name="state" label="Estado" options={states.map((state) => ({ value: state.key, label: state.name }))} />
         <FilterSelect name="severity" label="Severidad" options={options(SEVERITY_LABELS)} />
-        <FilterSelect name="assignee" label="Asignado a" options={me ? [{ value: me.id, label: `Yo (${me.displayName})` }] : []} />
+        <FilterSelect name="assignee" label="Asignado a" options={users} />
         <FilterInput name="requirement" label="REQ" placeholder="REQ-2026-0001" />
         <FilterInput name="q" label="Texto en el título" />
       </FilterBar>

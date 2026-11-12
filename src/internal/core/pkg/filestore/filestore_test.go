@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -95,5 +96,38 @@ func TestDetect(t *testing.T) {
 		if got := store.Detect([]byte(head)); got != want {
 			t.Errorf("Detect(%q) = %s, quiero %s", head, got, want)
 		}
+	}
+}
+
+func TestListAndRemove(t *testing.T) {
+	store, err := filestore.NewLocal(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	a, _ := store.Put(ctx, strings.NewReader("uno"))
+	b, _ := store.Put(ctx, strings.NewReader("dos"))
+
+	entries, err := store.List(ctx)
+	if err != nil || len(entries) != 2 {
+		t.Fatalf("List = %+v, %v; quiero los dos archivos y ningún temporal", entries, err)
+	}
+	for _, e := range entries {
+		if (e.Checksum != a.Checksum && e.Checksum != b.Checksum) || e.ModifiedAt.IsZero() {
+			t.Errorf("entrada inesperada: %+v", e)
+		}
+	}
+	if err := store.Remove(ctx, a.Checksum); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.Open(ctx, a.Checksum); !axis.IsCode(err, axis.NotFoundResource) {
+		t.Errorf("el archivo borrado no debía abrirse: %v", err)
+	}
+	// Borrar dos veces, o algo que no es un checksum, no falla ni toca nada.
+	if err := errors.Join(store.Remove(ctx, a.Checksum), store.Remove(ctx, "../../etc/passwd")); err != nil {
+		t.Errorf("Remove debía ser inofensivo: %v", err)
+	}
+	if entries, _ := store.List(ctx); len(entries) != 1 || entries[0].Checksum != b.Checksum {
+		t.Errorf("debía quedar solo el segundo archivo: %+v", entries)
 	}
 }

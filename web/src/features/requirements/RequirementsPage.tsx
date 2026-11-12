@@ -1,6 +1,6 @@
 // Lista de requerimientos con filtros en la URL y alta.
 import { useState } from 'react'
-import { useCan, useMe, useSystems, useWorkflow } from '../../shared/api/session.ts'
+import { useCan, useUserOptions, useSystems, useWorkflow } from '../../shared/api/session.ts'
 import { useUrlFilters } from '../../shared/lib/urlFilters.ts'
 import { Async } from '../../shared/ui/feedback.tsx'
 import { FilterBar, FilterInput, FilterSelect, Pager } from '../../shared/ui/Filters.tsx'
@@ -13,7 +13,7 @@ import { RequirementForm } from './RequirementForm.tsx'
 
 export default function RequirementsPage() {
   const can = useCan()
-  const me = useMe().data
+  const users = useUserOptions()
   const { params, pick } = useUrlFilters()
   const [creating, setCreating] = useState(false)
   const systems = useSystems().data?.items ?? []
@@ -41,7 +41,7 @@ export default function RequirementsPage() {
         <FilterSelect name="system" label="Sistema" options={systems.map((system) => ({ value: system.key, label: system.name }))} />
         <FilterSelect name="state" label="Estado" options={states.map((state) => ({ value: state.key, label: state.name }))} />
         <FilterSelect name="change" label="CHG" options={changes.map((change) => ({ value: change.code, label: change.code }))} />
-        <FilterSelect name="owner" label="Responsable" options={me ? [{ value: me.id, label: `Yo (${me.displayName})` }] : []} />
+        <FilterSelect name="owner" label="Responsable" options={users} />
         <FilterInput name="q" label="Texto en el título" />
       </FilterBar>
       <Async query={requirements}>

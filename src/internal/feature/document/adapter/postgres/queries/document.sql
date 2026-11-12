@@ -60,3 +60,8 @@ SELECT document_id, entity_type, entity_id, entity_code
 FROM document_link
 WHERE document_id = ANY (sqlc.arg(document_ids)::uuid[])
 ORDER BY document_id, entity_code;
+
+-- name: ReferencedChecksums :many
+SELECT DISTINCT checksum
+FROM document_version
+WHERE checksum = ANY (sqlc.arg(checksums)::text[]);

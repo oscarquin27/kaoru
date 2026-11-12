@@ -167,3 +167,158 @@ func TestAuditExport(t *testing.T) {
 	}
 	a.download("auditor", "/api/audit/export?from=ayer", 422)
 }
+
+type workflowBody struct {
+	States []struct {
+		Key      string `json:"key"`
+		Name     string `json:"name"`
+		Position *int   `json:"position"`
+	} `json:"states"`
+	Transitions []struct {
+		From           string `json:"from"`
+		To             string `json:"to"`
+		Permission     string `json:"permission"`
+		RequiresReason bool   `json:"requiresReason"`
+	} `json:"transitions"`
+}
+
+func (w workflowBody) stateName(key string) string {
+	for _, s := range w.States {
+		if s.Key == key {
+			return s.Name
+		}
+	}
+	return ""
+}
+
+func (w workflowBody) hasTransition(from, to string) bool {
+	for _, tr := range w.Transitions {
+		if tr.From == from && tr.To == to {
+			return true
+		}
+	}
+	return false
+}
+
+// Los estados y las transiciones de un flujo se editan desde la administración,
+// tienen efecto de inmediato sobre las entidades y quedan auditados.
+func TestAdminEditsWorkflowStatesAndTransitions(t *testing.T) {
+	a := newAPI(t)
+	var p problemBody
+	var wf, original workflowBody
+	const states, transitions = "/api/admin/workflows/change/states", "/api/admin/workflows/change/transitions"
+
+	a.call("admin", "GET", "/api/workflows/change", nil, 200, &original)
+	a.call("qa", "POST", states, map[string]any{"key": "on_hold", "name": "En espera"}, 403, nil)
+	a.call("admin", "POST", "/api/admin/workflows/risk/states", map[string]any{"key": "on_hold", "name": "En espera"}, 404, nil)
+	a.call("admin", "POST", states, map[string]any{"key": "En Espera", "name": ""}, 422, &p)
+	if len(p.Errors) != 1 || p.Errors[0].Field != "key" {
+		t.Errorf("clave inválida: %+v", p)
+	}
+	a.call("admin", "POST", states, map[string]any{"key": "on_hold", "name": "En espera"}, 201, &wf)
+	if len(wf.States) != len(original.States)+1 || wf.stateName("on_hold") != "En espera" {
+		t.Fatalf("el estado nuevo debía aparecer en el flujo: %+v", wf.States)
+	}
+	a.call("admin", "POST", states, map[string]any{"key": "on_hold", "name": "Otra vez"}, 409, &p)
+	if p.Code != "DUPLICATE_RESOURCE" {
+		t.Errorf("clave repetida: %+v", p)
+	}
+
+	// Transiciones: registrado → en espera (con motivo) y en espera → aprobado.
+	hold := transitions + "/registered/on_hold"
+	a.call("qa", "PUT", hold, map[string]any{"permission": "chg.approve"}, 403, nil)
+	a.call("admin", "PUT", hold, map[string]any{"permission": "volar"}, 422, nil)
+	a.call("admin", "PUT", transitions+"/registered/nope", map[string]any{"permission": "chg.approve"}, 404, nil)
+	a.call("admin", "PUT", hold, map[string]any{"permission": "chg.approve"}, 200, nil)
+	a.call("admin", "PUT", hold, map[string]any{"permission": "chg.approve", "requiresReason": true}, 200, &wf)
+	a.call("admin", "PUT", transitions+"/on_hold/approved", map[string]any{"permission": "chg.approve"}, 200, &wf)
+	if len(wf.Transitions) != len(original.Transitions)+2 {
+		t.Fatalf("debían sumarse dos transiciones, sin duplicar la que se ajustó: %+v", wf.Transitions)
+	}
+
+	// Un CHG usa la transición nueva de inmediato, con sus condiciones.
+	var chg changeBody
+	a.call("manager", "POST", "/api/changes", map[string]any{"title": "Flujo editado", "system": "SYPAGO"}, 201, &chg)
+	move := "/api/changes/" + chg.Code + "/transitions"
+	a.call("manager", "POST", move, map[string]any{"to": "on_hold"}, 422, nil)
+	a.call("manager", "POST", move, map[string]any{"to": "on_hold", "reason": "Falta el análisis"}, 200, &chg)
+	if chg.State.Key != "on_hold" || chg.State.Name != "En espera" {
+		t.Fatalf("el CHG debía quedar en espera: %+v", chg.State)
+	}
+
+	// Renombrar se ve en la entidad; la clave no cambia.
+	a.call("admin", "PATCH", states+"/on_hold", map[string]any{"name": "En pausa", "position": nil}, 200, &wf)
+	a.call("ops", "GET", "/api/changes/"+chg.Code, nil, 200, &chg)
+	if chg.State.Name != "En pausa" || wf.stateName("on_hold") != "En pausa" {
+		t.Errorf("el nombre nuevo debía verse en el CHG: %+v", chg.State)
+	}
+	a.call("admin", "PATCH", states+"/nope", map[string]any{"name": "X"}, 404, nil)
+
+	// Quitar: ni el inicial, ni uno con transiciones, ni uno con registros.
+	a.call("admin", "DELETE", states+"/registered", nil, 409, &p)
+	a.call("admin", "DELETE", states+"/on_hold", nil, 409, &p)
+	if p.Code != "INVALID_ACTION" {
+		t.Errorf("estado con transiciones: %+v", p)
+	}
+	a.call("admin", "DELETE", hold, nil, 200, nil)
+	a.call("admin", "DELETE", hold, nil, 404, nil)
+	a.call("admin", "DELETE", transitions+"/on_hold/approved", nil, 200, &wf)
+	a.call("admin", "DELETE", states+"/on_hold", nil, 409, &p)
+	if p.Code != "INVALID_ACTION" || wf.stateName("on_hold") == "" {
+		t.Errorf("un estado con un CHG dentro no se quita: %+v", p)
+	}
+
+	var audit auditPage
+	a.call("auditor", "GET", "/api/audit?entityCode=change:on_hold", nil, 200, &audit)
+	if audit.Total != 2 {
+		t.Errorf("alta y cambio de nombre del estado deben quedar auditados: %+v", audit.Items)
+	}
+	a.call("auditor", "GET", "/api/audit?entityCode=change:registered%3Eon_hold", nil, 200, &audit)
+	if audit.Total != 3 {
+		t.Errorf("alta, ajuste y baja de la transición deben quedar auditados: %+v", audit.Items)
+	}
+
+	// Las demás pruebas comparten la base: el CHG sale del estado y el flujo vuelve a como estaba.
+	a.call("admin", "PUT", transitions+"/on_hold/approved", map[string]any{"permission": "chg.approve"}, 200, nil)
+	a.call("manager", "POST", move, map[string]any{"to": "approved"}, 200, nil)
+	a.call("admin", "DELETE", transitions+"/on_hold/approved", nil, 200, nil)
+	a.call("admin", "DELETE", states+"/on_hold", nil, 200, &wf)
+	if len(wf.States) != len(original.States) || len(wf.Transitions) != len(original.Transitions) || wf.hasTransition("registered", "on_hold") {
+		t.Errorf("el flujo debía volver a su forma original: %+v", wf)
+	}
+}
+
+// La lista de usuarios sirve para elegir responsables: solo quien ya entró, sin correos.
+func TestUsersAreListedForAssignment(t *testing.T) {
+	a := newAPI(t)
+	a.call("", "GET", "/api/users", nil, 401, nil)
+	a.call("manager", "GET", "/api/me", nil, 200, nil)
+	a.call("qa", "GET", "/api/me", nil, 200, nil)
+
+	var raw bytes.Buffer
+	var page struct {
+		Items []map[string]string `json:"items"`
+	}
+	a.call("qa", "GET", "/api/users", nil, 200, &page)
+	if len(page.Items) < 2 {
+		t.Fatalf("deben aparecer quienes ya entraron: %+v", page.Items)
+	}
+	for _, u := range page.Items {
+		if u["id"] == "" || u["username"] == "" || u["displayName"] == "" || len(u) != 3 {
+			t.Errorf("un usuario trae id, usuario y nombre, nada más: %v", u)
+		}
+		raw.WriteString(u["displayName"] + "\n")
+	}
+	names := raw.String()
+	if i, j := bytes.Index(raw.Bytes(), []byte("A. Rojas")), bytes.Index(raw.Bytes(), []byte("C. Mora")); i < 0 || j < 0 || i > j {
+		t.Errorf("deben venir ordenados por nombre: %s", names)
+	}
+	a.call("qa", "GET", "/api/users?q=MOR", nil, 200, &page)
+	if len(page.Items) != 1 || page.Items[0]["id"] != "sub-manager" {
+		t.Errorf("la búsqueda es por nombre o usuario, sin distinguir mayúsculas: %+v", page.Items)
+	}
+	a.call("qa", "GET", "/api/users?q=%25", nil, 200, &page)
+	if len(page.Items) != 0 {
+		t.Errorf("un comodín se busca como texto: %+v", page.Items)
+	}
+}

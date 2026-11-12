@@ -1,7 +1,9 @@
 // Alta y edición de un REQ. El sistema no se cambia después de registrar.
 import { useNavigate } from 'react-router'
-import { useMe, useSystems } from '../../shared/api/session.ts'
-import { CheckField, Form, SelectField, TextAreaField, TextField, optional, text } from '../../shared/ui/Form.tsx'
+import { useSystems } from '../../shared/api/session.ts'
+import type { UserRef } from '../../shared/api/types.ts'
+import { Form, SelectField, TextAreaField, TextField, optional, text } from '../../shared/ui/Form.tsx'
+import { UserField } from '../../shared/ui/UserField.tsx'
 import { useChangeOptions, useCreateRequirement, useUpdateRequirement } from './api.ts'
 
 interface Editable {
@@ -10,12 +12,11 @@ interface Editable {
   description: string
   acceptanceCriteria: string
   change?: { code: string }
-  owner?: { id: string }
+  owner?: UserRef
 }
 
 export function RequirementForm({ requirement, onClose }: { requirement?: Editable; onClose: () => void }) {
   const navigate = useNavigate()
-  const me = useMe().data
   const systems = useSystems().data?.items ?? []
   const changes = useChangeOptions().data?.items ?? []
   const create = useCreateRequirement()
@@ -23,12 +24,11 @@ export function RequirementForm({ requirement, onClose }: { requirement?: Editab
 
   async function submit(data: FormData) {
     const common = { title: text(data, 'title'), description: text(data, 'description'), acceptanceCriteria: text(data, 'acceptanceCriteria') }
-    const mine = data.get('mine') === 'on'
     if (requirement) {
-      await update.mutateAsync({ ...common, change: optional(data, 'change') ?? null, owner: mine ? me?.id : requirement.owner?.id === me?.id ? null : undefined })
+      await update.mutateAsync({ ...common, change: optional(data, 'change') ?? null, owner: optional(data, 'owner') ?? null })
       return
     }
-    const created = await create.mutateAsync({ ...common, system: text(data, 'system'), change: optional(data, 'change'), owner: mine ? me?.id : undefined })
+    const created = await create.mutateAsync({ ...common, system: text(data, 'system'), change: optional(data, 'change'), owner: optional(data, 'owner') })
     void navigate(`/requerimientos/${created.code}`)
   }
 
@@ -68,7 +68,7 @@ export function RequirementForm({ requirement, onClose }: { requirement?: Editab
         hint="Uno por línea."
         defaultValue={requirement?.acceptanceCriteria}
       />
-      <CheckField name="mine" label="Soy responsable de este requerimiento" defaultChecked={requirement ? requirement.owner?.id === me?.id : false} />
+      <UserField name="owner" label="Responsable" current={requirement?.owner} />
     </Form>
   )
 }

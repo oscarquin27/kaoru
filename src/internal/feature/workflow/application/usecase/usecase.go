@@ -32,6 +32,12 @@ type UseCases struct {
 	ListRolePermissions *ListRolePermissions
 	SetRolePermissions  *SetRolePermissions
 	UpdateBlockingRule  *UpdateBlockingRule
+
+	AddState         *AddState
+	UpdateState      *UpdateState
+	RemoveState      *RemoveState
+	SetTransition    *SetTransition
+	RemoveTransition *RemoveTransition
 }
 
 // New arma los casos de uso; falla si falta una dependencia.
@@ -49,6 +55,12 @@ func New(d Deps) (*UseCases, error) {
 		ListRolePermissions: &ListRolePermissions{d: d},
 		SetRolePermissions:  &SetRolePermissions{d: d},
 		UpdateBlockingRule:  &UpdateBlockingRule{d: d},
+
+		AddState:         &AddState{d: d},
+		UpdateState:      &UpdateState{d: d},
+		RemoveState:      &RemoveState{d: d},
+		SetTransition:    &SetTransition{d: d},
+		RemoveTransition: &RemoveTransition{d: d},
 	}, nil
 }
 

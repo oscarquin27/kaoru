@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"time"
 
 	"kaoru/internal/core/pkg/axis"
 )
@@ -83,6 +84,49 @@ func (l *Local) Open(_ context.Context, checksum string) (io.ReadCloser, error) 
 		return nil, fmt.Errorf("abrir archivo: %w", err)
 	}
 	return file, nil
+}
+
+// Entry es un archivo guardado.
+type Entry struct {
+	Checksum   string
+	ModifiedAt time.Time
+}
+
+// List devuelve los archivos guardados. Los temporales de subidas en curso no cuentan.
+func (l *Local) List(ctx context.Context) ([]Entry, error) {
+	var entries []Entry
+	err := filepath.WalkDir(l.dir, func(_ string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if d.IsDir() || !checksumPattern.MatchString(d.Name()) {
+			return nil
+		}
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+		entries = append(entries, Entry{Checksum: d.Name(), ModifiedAt: info.ModTime()})
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("listar archivos: %w", err)
+	}
+	return entries, nil
+}
+
+// Remove borra un archivo por su checksum. Borrar uno que no está no es un error.
+func (l *Local) Remove(_ context.Context, checksum string) error {
+	if !checksumPattern.MatchString(checksum) {
+		return nil
+	}
+	if err := os.Remove(l.path(checksum)); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return fmt.Errorf("borrar archivo: %w", err)
+	}
+	return nil
 }
 
 // Detect dice el tipo real de un contenido a partir de sus primeros bytes, sin fiarse del nombre.

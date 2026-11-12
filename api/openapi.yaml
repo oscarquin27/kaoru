@@ -21,17 +21,29 @@ security:
   - session: []
 tags:
   - name: user
+    description: Sesión, perfil y usuarios
   - name: workflow
+    description: Flujos configurables, permisos por rol y reglas de bloqueo
   - name: change
+    description: Cambios (CHG)
   - name: requirement
+    description: Requerimientos (REQ), enlaces y contrato de entrada
   - name: risk
+    description: Evaluación de riesgo (RISK)
   - name: testdesign
+    description: Casos de uso (UC) y casos de prueba (TC)
   - name: execution
+    description: Ejecuciones (RUN) y exploraciones (EXP)
   - name: defect
+    description: Defectos (DEF)
   - name: document
+    description: Documentos versionados (DOC)
   - name: comment
+    description: Comentarios
   - name: traceability
+    description: Ficha consolidada, matriz y búsqueda
   - name: audit
+    description: Auditoría inmutable
 
 paths:
   /api/me:
@@ -45,6 +57,31 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Me' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/users:
+    get:
+      tags: [user]
+      operationId: listUsers
+      summary: Usuarios que ya entraron a Kaoru, para elegir responsables
+      description: Devuelve como máximo 50, ordenados por nombre. El directorio completo vive en Keycloak.
+      parameters:
+        - name: q
+          in: query
+          description: Texto contenido en el nombre o en el usuario
+          schema: { type: string }
+      responses:
+        '200':
+          description: Lista
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/User' }
         default: { $ref: '#/components/responses/Problem' }
 
   /api/systems:
@@ -146,6 +183,130 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/BlockingRule' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/admin/workflows/{entityType}/states:
+    parameters:
+      - $ref: '#/components/parameters/WorkflowEntityType'
+    post:
+      tags: [workflow]
+      operationId: addWorkflowState
+      summary: Agrega un estado a un flujo
+      description: Exige `admin.configure`. El estado nace sin transiciones y nunca como inicial.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [key, name]
+              properties:
+                key:
+                  type: string
+                  pattern: '^[a-z][a-z0-9_]{1,39}$'
+                name: { type: string, minLength: 1, maxLength: 60 }
+                position:
+                  type: integer
+                  minimum: 1
+                  description: Orden en la línea de vida. Sin él, el estado es lateral.
+                isFinal: { type: boolean }
+      responses:
+        '201':
+          description: Flujo como quedó
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Workflow' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/admin/workflows/{entityType}/states/{key}:
+    parameters:
+      - $ref: '#/components/parameters/WorkflowEntityType'
+      - name: key
+        in: path
+        required: true
+        schema: { type: string }
+    patch:
+      tags: [workflow]
+      operationId: updateWorkflowState
+      summary: Cambia el nombre de un estado o su lugar en la línea de vida
+      description: Exige `admin.configure`. La clave no cambia.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, minLength: 1, maxLength: 60 }
+                position:
+                  type: integer
+                  minimum: 1
+                  nullable: true
+                  description: Con `null`, el estado pasa a ser lateral.
+      responses:
+        '200':
+          description: Flujo como quedó
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Workflow' }
+        default: { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [workflow]
+      operationId: removeWorkflowState
+      summary: Quita un estado sin transiciones y sin registros
+      description: Exige `admin.configure`. Responde `INVALID_ACTION` si el estado es el inicial, tiene transiciones o algún registro está en él.
+      responses:
+        '200':
+          description: Flujo como quedó
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Workflow' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/admin/workflows/{entityType}/transitions/{from}/{to}:
+    parameters:
+      - $ref: '#/components/parameters/WorkflowEntityType'
+      - name: from
+        in: path
+        required: true
+        schema: { type: string }
+      - name: to
+        in: path
+        required: true
+        schema: { type: string }
+    put:
+      tags: [workflow]
+      operationId: setWorkflowTransition
+      summary: Agrega una transición o cambia su permiso y si exige motivo
+      description: Exige `admin.configure`. Las reglas de bloqueo de una transición existente no cambian.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [permission]
+              properties:
+                permission: { type: string }
+                requiresReason: { type: boolean }
+      responses:
+        '200':
+          description: Flujo como quedó
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Workflow' }
+        default: { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [workflow]
+      operationId: removeWorkflowTransition
+      summary: Quita una transición y sus reglas de bloqueo
+      description: Exige `admin.configure`.
+      responses:
+        '200':
+          description: Flujo como quedó
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Workflow' }
         default: { $ref: '#/components/responses/Problem' }
 
   /api/changes:
@@ -1406,6 +1567,14 @@ components:
       required: [id, displayName]
       properties:
         id: { type: string }
+        displayName: { type: string }
+
+    User:
+      type: object
+      required: [id, username, displayName]
+      properties:
+        id: { type: string }
+        username: { type: string }
         displayName: { type: string }
 
     StateRef:

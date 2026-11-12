@@ -23,6 +23,51 @@ func (q *Queries) DeleteRoleGrants(ctx context.Context, role string) error {
 	return err
 }
 
+const deleteState = `-- name: DeleteState :execrows
+DELETE
+FROM workflow_state
+WHERE entity_type = $1
+  AND key = $2
+`
+
+type DeleteStateParams struct {
+	EntityType string
+	Key        string
+}
+
+func (q *Queries) DeleteState(ctx context.Context, arg DeleteStateParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteState, arg.EntityType, arg.Key)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const deleteTransition = `-- name: DeleteTransition :execrows
+DELETE
+FROM workflow_transition t
+    USING workflow_state f, workflow_state s
+WHERE t.from_state_id = f.id
+  AND t.to_state_id = s.id
+  AND f.entity_type = $1
+  AND f.key = $2
+  AND s.key = $3
+`
+
+type DeleteTransitionParams struct {
+	EntityType string
+	FromKey    string
+	ToKey      string
+}
+
+func (q *Queries) DeleteTransition(ctx context.Context, arg DeleteTransitionParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteTransition, arg.EntityType, arg.FromKey, arg.ToKey)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const getRule = `-- name: GetRule :one
 SELECT r.id, r.rule_key, r.params, r.route, r.blocks, r.enabled
 FROM blocking_rule r
@@ -64,6 +109,32 @@ type InsertGrantParams struct {
 
 func (q *Queries) InsertGrant(ctx context.Context, arg InsertGrantParams) error {
 	_, err := q.db.Exec(ctx, insertGrant, arg.Role, arg.PermissionKey)
+	return err
+}
+
+const insertState = `-- name: InsertState :exec
+INSERT INTO workflow_state (id, entity_type, key, name, position, is_final, created_at, updated_at)
+VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $6)
+`
+
+type InsertStateParams struct {
+	EntityType string
+	Key        string
+	Name       string
+	Position   *int32
+	IsFinal    bool
+	CreatedAt  time.Time
+}
+
+func (q *Queries) InsertState(ctx context.Context, arg InsertStateParams) error {
+	_, err := q.db.Exec(ctx, insertState,
+		arg.EntityType,
+		arg.Key,
+		arg.Name,
+		arg.Position,
+		arg.IsFinal,
+		arg.CreatedAt,
+	)
 	return err
 }
 
@@ -303,6 +374,75 @@ func (q *Queries) UpdateRule(ctx context.Context, arg UpdateRuleParams) (int64, 
 		arg.Blocks,
 		arg.Enabled,
 		arg.UpdatedAt,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const updateState = `-- name: UpdateState :execrows
+UPDATE workflow_state
+SET name       = $3,
+    position   = $4,
+    updated_at = $5
+WHERE entity_type = $1
+  AND key = $2
+`
+
+type UpdateStateParams struct {
+	EntityType string
+	Key        string
+	Name       string
+	Position   *int32
+	UpdatedAt  time.Time
+}
+
+func (q *Queries) UpdateState(ctx context.Context, arg UpdateStateParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateState,
+		arg.EntityType,
+		arg.Key,
+		arg.Name,
+		arg.Position,
+		arg.UpdatedAt,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const upsertTransition = `-- name: UpsertTransition :execrows
+INSERT INTO workflow_transition (id, from_state_id, to_state_id, permission_key, requires_reason, created_at, updated_at)
+SELECT gen_random_uuid(), f.id, s.id, $1, $2, $3, $3
+FROM workflow_state f
+         JOIN workflow_state s ON s.entity_type = f.entity_type
+WHERE f.entity_type = $4
+  AND f.key = $5
+  AND s.key = $6
+ON CONFLICT (from_state_id, to_state_id) DO UPDATE
+    SET permission_key  = excluded.permission_key,
+        requires_reason = excluded.requires_reason,
+        updated_at      = excluded.updated_at
+`
+
+type UpsertTransitionParams struct {
+	PermissionKey  string
+	RequiresReason bool
+	Now            time.Time
+	EntityType     string
+	FromKey        string
+	ToKey          string
+}
+
+func (q *Queries) UpsertTransition(ctx context.Context, arg UpsertTransitionParams) (int64, error) {
+	result, err := q.db.Exec(ctx, upsertTransition,
+		arg.PermissionKey,
+		arg.RequiresReason,
+		arg.Now,
+		arg.EntityType,
+		arg.FromKey,
+		arg.ToKey,
 	)
 	if err != nil {
 		return 0, err

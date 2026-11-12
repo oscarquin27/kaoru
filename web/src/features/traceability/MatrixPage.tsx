@@ -1,7 +1,7 @@
 // Matriz de trazabilidad (boceto: matriz.html). Una fila por REQ y TC; las celdas del REQ se
 // agrupan. Clic en un ID abre su ficha en el panel lateral sin perder la posición.
 import { useState } from 'react'
-import { useMe, useSystems, useWorkflow } from '../../shared/api/session.ts'
+import { useUserOptions, useSystems, useWorkflow } from '../../shared/api/session.ts'
 import type { Matrix, MatrixRow } from '../../shared/api/types.ts'
 import { RISK_LABELS, options } from '../../shared/lib/labels.ts'
 import { useUrlFilters } from '../../shared/lib/urlFilters.ts'
@@ -143,7 +143,7 @@ function MatrixTable({ rows, systemNames }: { rows: MatrixRow[]; systemNames: Re
 }
 
 export default function MatrixPage() {
-  const me = useMe().data
+  const users = useUserOptions()
   const { params, pick } = useUrlFilters()
   const [copied, setCopied] = useState(false)
   const systems = useSystems().data?.items ?? []
@@ -194,7 +194,7 @@ export default function MatrixPage() {
         <FilterSelect name="system" label="Sistema" options={systems.map((system) => ({ value: system.key, label: system.name }))} />
         <FilterSelect name="state" label="Estado" options={states.map((state) => ({ value: state.key, label: state.name }))} />
         <FilterSelect name="risk" label="Riesgo" options={options(RISK_LABELS)} />
-        <FilterSelect name="owner" label="Responsable" options={me ? [{ value: me.id, label: `Yo (${me.displayName})` }] : []} />
+        <FilterSelect name="owner" label="Responsable" options={users} />
         <FilterInput name="from" label="Desde" type="date" />
         <FilterInput name="to" label="Hasta" type="date" />
       </FilterBar>

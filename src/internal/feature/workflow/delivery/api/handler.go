@@ -2,6 +2,7 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -28,6 +29,11 @@ func (h *Handler) Register(r gin.IRouter) {
 	r.GET("/api/admin/role-permissions", h.listRolePermissions)
 	r.PUT("/api/admin/role-permissions/:role", h.setRolePermissions)
 	r.PATCH("/api/admin/blocking-rules/:id", h.updateBlockingRule)
+	r.POST("/api/admin/workflows/:entityType/states", h.addState)
+	r.PATCH("/api/admin/workflows/:entityType/states/:key", h.updateState)
+	r.DELETE("/api/admin/workflows/:entityType/states/:key", h.removeState)
+	r.PUT("/api/admin/workflows/:entityType/transitions/:from/:to", h.setTransition)
+	r.DELETE("/api/admin/workflows/:entityType/transitions/:from/:to", h.removeTransition)
 }
 
 type stateDTO struct {
@@ -185,4 +191,97 @@ func (h *Handler) updateBlockingRule(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, toRuleDTO(rule))
+}
+
+type newStateDTO struct {
+	Key      string `json:"key"`
+	Name     string `json:"name"`
+	Position *int   `json:"position"`
+	IsFinal  bool   `json:"isFinal"`
+}
+
+// nullableInt distingue «no vino» de «vino null» en un PATCH.
+type nullableInt struct {
+	set   bool
+	value *int
+}
+
+func (n *nullableInt) UnmarshalJSON(data []byte) error {
+	n.set = true
+	if string(data) == "null" {
+		return nil
+	}
+	return json.Unmarshal(data, &n.value)
+}
+
+type statePatchDTO struct {
+	Name     *string     `json:"name"`
+	Position nullableInt `json:"position"`
+}
+
+type transitionPutDTO struct {
+	Permission     string `json:"permission"`
+	RequiresReason bool   `json:"requiresReason"`
+}
+
+// respond escribe el flujo como quedó, o el error.
+func respond(c *gin.Context, status int, wf domain.Workflow, err error) {
+	if err != nil {
+		problem.Write(c, err)
+		return
+	}
+	c.JSON(status, toWorkflowDTO(wf))
+}
+
+func (h *Handler) addState(c *gin.Context) {
+	var body newStateDTO
+	if err := httpserver.DecodeJSON(c, &body); err != nil {
+		problem.Write(c, err)
+		return
+	}
+	wf, err := h.uc.AddState.Execute(c.Request.Context(), usecase.AddStateInput{
+		Actor: actorOf(c), EntityType: c.Param("entityType"),
+		Key: body.Key, Name: body.Name, Position: body.Position, IsFinal: body.IsFinal,
+	})
+	respond(c, http.StatusCreated, wf, err)
+}
+
+func (h *Handler) updateState(c *gin.Context) {
+	var body statePatchDTO
+	if err := httpserver.DecodeJSON(c, &body); err != nil {
+		problem.Write(c, err)
+		return
+	}
+	wf, err := h.uc.UpdateState.Execute(c.Request.Context(), usecase.UpdateStateInput{
+		Actor: actorOf(c), EntityType: c.Param("entityType"), Key: c.Param("key"),
+		Edit: domain.StateEdit{Name: body.Name, PositionSet: body.Position.set, Position: body.Position.value},
+	})
+	respond(c, http.StatusOK, wf, err)
+}
+
+func (h *Handler) removeState(c *gin.Context) {
+	wf, err := h.uc.RemoveState.Execute(c.Request.Context(), usecase.RemoveStateInput{
+		Actor: actorOf(c), EntityType: c.Param("entityType"), Key: c.Param("key"),
+	})
+	respond(c, http.StatusOK, wf, err)
+}
+
+func (h *Handler) setTransition(c *gin.Context) {
+	var body transitionPutDTO
+	if err := httpserver.DecodeJSON(c, &body); err != nil {
+		problem.Write(c, err)
+		return
+	}
+	wf, err := h.uc.SetTransition.Execute(c.Request.Context(), usecase.SetTransitionInput{
+		Actor: actorOf(c), EntityType: c.Param("entityType"), From: c.Param("from"), To: c.Param("to"),
+		Permission: body.Permission, RequiresReason: body.RequiresReason,
+	})
+	respond(c, http.StatusOK, wf, err)
+}
+
+func (h *Handler) removeTransition(c *gin.Context) {
+	wf, err := h.uc.RemoveTransition.Execute(c.Request.Context(), usecase.RemoveTransitionInput{
+		Actor: actorOf(c), EntityType: c.Param("entityType"), From: c.Param("from"), To: c.Param("to"),
+	})
+	respond(c, http.StatusOK, wf, err)
 }

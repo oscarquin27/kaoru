@@ -3,7 +3,9 @@ package domain
 
 import (
 	"fmt"
+	"regexp"
 	"slices"
+	"strings"
 
 	"kaoru/internal/core/pkg/axis"
 )
@@ -24,6 +26,8 @@ var (
 	ErrPermissionDenied  = axis.New(axis.PermissionDenied, "Tu rol no tiene permiso para esta acción.")
 	ErrNoInitialState    = axis.New(axis.PreconditionFailed, "El flujo no tiene un estado inicial configurado.")
 	ErrUnknownState      = axis.New(axis.InvalidRequest, "El estado no existe en este flujo.")
+	ErrStateNotFound     = axis.New(axis.NotFoundResource, "El estado no existe en este flujo.")
+	ErrTransitionMissing = axis.New(axis.NotFoundResource, "La transición no existe en este flujo.")
 )
 
 // ParseEntityType valida el tipo de entidad.
@@ -159,4 +163,122 @@ func ValidateRolePermissions(role string, permissions []string, known []Permissi
 	}
 	slices.Sort(out)
 	return out, nil
+}
+
+// maxStateName es el largo máximo del nombre de un estado: debe caber en una etiqueta.
+const maxStateName = 60
+
+var stateKeyPattern = regexp.MustCompile(`^[a-z][a-z0-9_]{1,39}$`)
+
+func validStateName(raw string) (string, error) {
+	name := strings.TrimSpace(raw)
+	if name == "" {
+		return "", axis.Invalid(axis.Required("name", "El nombre es obligatorio."))
+	}
+	if len([]rune(name)) > maxStateName {
+		return "", axis.Invalid(axis.InvalidField("name", fmt.Sprintf("El nombre admite hasta %d caracteres.", maxStateName)))
+	}
+	return name, nil
+}
+
+func validPosition(position *int) error {
+	if position != nil && *position < 1 {
+		return axis.Invalid(axis.InvalidField("position", "La posición en la línea de vida empieza en 1."))
+	}
+	return nil
+}
+
+// NewState valida un estado que se agrega al flujo. Nunca nace como inicial:
+// el estado inicial lo fija la instalación.
+func (w Workflow) NewState(key, name string, position *int, isFinal bool) (State, error) {
+	if !stateKeyPattern.MatchString(key) {
+		return State{}, axis.Invalid(axis.InvalidField("key",
+			"La clave va en minúsculas, empieza con una letra y admite letras, números y guion bajo (2 a 40)."))
+	}
+	if _, err := w.State(key); err == nil {
+		return State{}, axis.New(axis.DuplicateResource, "Ya existe un estado con esa clave en este flujo.")
+	}
+	name, err := validStateName(name)
+	if err != nil {
+		return State{}, err
+	}
+	if err := validPosition(position); err != nil {
+		return State{}, err
+	}
+	return State{Key: key, Name: name, Position: position, IsFinal: isFinal}, nil
+}
+
+// StateEdit son los cambios a un estado; nil deja el nombre como está y
+// PositionSet en falso deja la posición como está.
+type StateEdit struct {
+	Name        *string
+	PositionSet bool
+	Position    *int
+}
+
+// EditState devuelve el estado con los cambios aplicados. La clave no cambia:
+// es la que referencian las transiciones y el historial.
+func (w Workflow) EditState(key string, edit StateEdit) (State, error) {
+	state, err := w.State(key)
+	if err != nil {
+		return State{}, ErrStateNotFound
+	}
+	if edit.Name != nil {
+		if state.Name, err = validStateName(*edit.Name); err != nil {
+			return State{}, err
+		}
+	}
+	if edit.PositionSet {
+		if err := validPosition(edit.Position); err != nil {
+			return State{}, err
+		}
+		state.Position = edit.Position
+	}
+	return state, nil
+}
+
+// RemovableState dice si un estado se puede quitar: no puede ser el inicial ni tener transiciones.
+// Que ningún registro esté en ese estado lo garantiza la base.
+func (w Workflow) RemovableState(key string) (State, error) {
+	state, err := w.State(key)
+	if err != nil {
+		return State{}, ErrStateNotFound
+	}
+	if state.IsInitial {
+		return State{}, axis.New(axis.InvalidAction, "El estado inicial no se puede quitar.")
+	}
+	if slices.ContainsFunc(w.Transitions, func(t Transition) bool { return t.From == key || t.To == key }) {
+		return State{}, axis.New(axis.InvalidAction, "Quita primero las transiciones que entran o salen de este estado.")
+	}
+	return state, nil
+}
+
+// FindTransition busca la transición entre dos estados.
+func (w Workflow) FindTransition(from, to string) (Transition, bool) {
+	i := slices.IndexFunc(w.Transitions, func(t Transition) bool { return t.From == from && t.To == to })
+	if i < 0 {
+		return Transition{}, false
+	}
+	return w.Transitions[i], true
+}
+
+// NewTransition valida una transición que se agrega o se ajusta: los dos estados deben existir
+// y ser distintos, y el permiso debe existir.
+func (w Workflow) NewTransition(from, to, permission string, requiresReason bool, known []Permission) (Transition, error) {
+	if _, err := w.State(from); err != nil {
+		return Transition{}, ErrStateNotFound
+	}
+	if _, err := w.State(to); err != nil {
+		return Transition{}, ErrStateNotFound
+	}
+	if from == to {
+		return Transition{}, axis.New(axis.InvalidAction, "Una transición va de un estado a otro distinto.")
+	}
+	if permission == "" {
+		return Transition{}, axis.Invalid(axis.Required("permission", "El permiso es obligatorio."))
+	}
+	if !slices.ContainsFunc(known, func(p Permission) bool { return p.Key == permission }) {
+		return Transition{}, axis.Invalid(axis.InvalidField("permission", "El permiso «"+permission+"» no existe."))
+	}
+	return Transition{From: from, To: to, Permission: permission, RequiresReason: requiresReason}, nil
 }

@@ -300,6 +300,32 @@ func (q *Queries) NextVersion(ctx context.Context, documentID uuid.UUID) (int32,
 	return column_1, err
 }
 
+const referencedChecksums = `-- name: ReferencedChecksums :many
+SELECT DISTINCT checksum
+FROM document_version
+WHERE checksum = ANY ($1::text[])
+`
+
+func (q *Queries) ReferencedChecksums(ctx context.Context, checksums []string) ([]string, error) {
+	rows, err := q.db.Query(ctx, referencedChecksums, checksums)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var checksum string
+		if err := rows.Scan(&checksum); err != nil {
+			return nil, err
+		}
+		items = append(items, checksum)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const touchDocument = `-- name: TouchDocument :exec
 UPDATE document
 SET updated_at = $2

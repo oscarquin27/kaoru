@@ -176,3 +176,76 @@ func (r *Repository) UpdateRule(ctx context.Context, rule domain.Rule, now time.
 	}
 	return nil
 }
+
+func positionColumn(position *int) *int32 {
+	if position == nil {
+		return nil
+	}
+	p := int32(*position) //nolint:gosec // el dominio acota la posición
+	return &p
+}
+
+// InsertState agrega un estado al flujo.
+func (r *Repository) InsertState(ctx context.Context, entityType domain.EntityType, s domain.State, now time.Time) error {
+	return corepg.TranslateError(r.queries(ctx).InsertState(ctx, sqlcgen.InsertStateParams{
+		EntityType: string(entityType), Key: s.Key, Name: s.Name, Position: positionColumn(s.Position),
+		IsFinal: s.IsFinal, CreatedAt: now,
+	}))
+}
+
+// UpdateState guarda el nombre y la posición del estado con esa clave.
+func (r *Repository) UpdateState(ctx context.Context, entityType domain.EntityType, s domain.State, now time.Time) error {
+	rows, err := r.queries(ctx).UpdateState(ctx, sqlcgen.UpdateStateParams{
+		EntityType: string(entityType), Key: s.Key, Name: s.Name, Position: positionColumn(s.Position), UpdatedAt: now,
+	})
+	if err != nil {
+		return corepg.TranslateError(err)
+	}
+	if rows == 0 {
+		return domain.ErrStateNotFound
+	}
+	return nil
+}
+
+// DeleteState quita un estado. La base lo impide si algún registro está en él.
+func (r *Repository) DeleteState(ctx context.Context, entityType domain.EntityType, key string) error {
+	rows, err := r.queries(ctx).DeleteState(ctx, sqlcgen.DeleteStateParams{EntityType: string(entityType), Key: key})
+	if err != nil {
+		err = corepg.TranslateError(err)
+		if axis.IsCode(err, axis.InvalidRequest) {
+			return axis.Wrap(axis.InvalidAction, "Hay registros en este estado o transiciones que lo usan; no se puede quitar.", err)
+		}
+		return err
+	}
+	if rows == 0 {
+		return domain.ErrStateNotFound
+	}
+	return nil
+}
+
+// SaveTransition crea la transición o actualiza su permiso y si exige motivo.
+func (r *Repository) SaveTransition(ctx context.Context, entityType domain.EntityType, t domain.Transition, now time.Time) error {
+	rows, err := r.queries(ctx).UpsertTransition(ctx, sqlcgen.UpsertTransitionParams{
+		EntityType: string(entityType), FromKey: t.From, ToKey: t.To,
+		PermissionKey: t.Permission, RequiresReason: t.RequiresReason, Now: now,
+	})
+	if err != nil {
+		return corepg.TranslateError(err)
+	}
+	if rows == 0 {
+		return domain.ErrStateNotFound
+	}
+	return nil
+}
+
+// DeleteTransition quita la transición y, en cascada, sus reglas de bloqueo.
+func (r *Repository) DeleteTransition(ctx context.Context, entityType domain.EntityType, from, to string) error {
+	rows, err := r.queries(ctx).DeleteTransition(ctx, sqlcgen.DeleteTransitionParams{EntityType: string(entityType), FromKey: from, ToKey: to})
+	if err != nil {
+		return corepg.TranslateError(err)
+	}
+	if rows == 0 {
+		return domain.ErrTransitionMissing
+	}
+	return nil
+}

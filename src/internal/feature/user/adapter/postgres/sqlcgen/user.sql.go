@@ -10,6 +10,47 @@ import (
 	"time"
 )
 
+const listUsers = `-- name: ListUsers :many
+SELECT id, username, display_name
+FROM app_user
+WHERE $1::text = ''
+   OR username ILIKE '%' || $1::text || '%'
+   OR display_name ILIKE '%' || $1::text || '%'
+ORDER BY display_name, username
+LIMIT $2
+`
+
+type ListUsersParams struct {
+	Query   string
+	MaxRows int32
+}
+
+type ListUsersRow struct {
+	ID          string
+	Username    string
+	DisplayName string
+}
+
+func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]ListUsersRow, error) {
+	rows, err := q.db.Query(ctx, listUsers, arg.Query, arg.MaxRows)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListUsersRow
+	for rows.Next() {
+		var i ListUsersRow
+		if err := rows.Scan(&i.ID, &i.Username, &i.DisplayName); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const upsertUser = `-- name: UpsertUser :exec
 INSERT INTO app_user (id, username, display_name, email, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5, $5)

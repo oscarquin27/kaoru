@@ -42,6 +42,8 @@ printf '%s' "$metrics" | grep -q '^db_pool_max_connections ' || fail "/metrics n
 [ "$(status http://127.0.0.1:58081/metrics)" = 404 ] || fail "el puerto público no debe servir /metrics"
 
 docker exec "$name" /kaoru-api healthcheck || fail "el healthcheck del contenedor falló"
+docker exec "$name" /kaoru-api prune-documents | grep -q '0 archivos revisados, 0 sin registro' \
+    || fail "la limpieza de archivos sin registro no corrió"
 migrations="$(ls "$(dirname "$0")/../src/migrations"/*.sql | wc -l | tr -d ' ')"
 docker logs "$name" 2>&1 | grep -q "\"msg\":\"migraciones al día\",\"applied\":$migrations" || fail "no aplicó las $migrations migraciones al arrancar"
 

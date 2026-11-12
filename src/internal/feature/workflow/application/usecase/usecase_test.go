@@ -55,6 +55,19 @@ func (fakeRepo) AllGrants(context.Context) ([]domain.Grant, error)         { ret
 func (fakeRepo) ReplaceRoleGrants(context.Context, string, []string) error { return nil }
 func (fakeRepo) FindRule(context.Context, string) (domain.Rule, error)     { return domain.Rule{}, nil }
 func (fakeRepo) UpdateRule(context.Context, domain.Rule, time.Time) error  { return nil }
+func (fakeRepo) InsertState(context.Context, domain.EntityType, domain.State, time.Time) error {
+	return nil
+}
+func (fakeRepo) UpdateState(context.Context, domain.EntityType, domain.State, time.Time) error {
+	return nil
+}
+func (fakeRepo) DeleteState(context.Context, domain.EntityType, string) error { return nil }
+func (fakeRepo) SaveTransition(context.Context, domain.EntityType, domain.Transition, time.Time) error {
+	return nil
+}
+func (fakeRepo) DeleteTransition(context.Context, domain.EntityType, string, string) error {
+	return nil
+}
 
 type noAudit struct{}
 
