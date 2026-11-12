@@ -26,6 +26,7 @@ import (
 	"kaoru/internal/feature/document/adapter/entities"
 	"kaoru/internal/feature/environment"
 	"kaoru/internal/feature/execution"
+	"kaoru/internal/feature/production"
 	"kaoru/internal/feature/regression"
 	"kaoru/internal/feature/requirement"
 	"kaoru/internal/feature/risk"
@@ -141,11 +142,18 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 	if err != nil {
 		return nil, err
 	}
+	productionModule, err := production.New(production.Deps{
+		Database: d.Database, Clock: d.Clock, IdGenerator: d.IdGenerator,
+		Workflow: workflowModule.UseCases, Audit: auditModule.UseCases,
+	})
+	if err != nil {
+		return nil, err
+	}
 	bundleModule, err := bundle.New(bundle.Deps{
 		Database: d.Database, Clock: d.Clock, IdGenerator: d.IdGenerator,
 		Workflow: workflowModule.UseCases, Audit: auditModule.UseCases,
 		Builds: buildModule.UseCases, Requirements: requirementModule.UseCases, Regression: regressionModule.UseCases,
-		Defects: defectModule.UseCases, Environments: environmentModule.UseCases,
+		Defects: defectModule.UseCases, Environments: environmentModule.UseCases, Production: productionModule.UseCases,
 	})
 	if err != nil {
 		return nil, err
@@ -223,6 +231,7 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 	defectModule.RegisterAPI(api)
 	bundleModule.RegisterAPI(api)
 	regressionModule.RegisterAPI(api)
+	productionModule.RegisterAPI(api)
 	documentModule.RegisterAPI(api)
 	commentModule.RegisterAPI(api)
 	savedviewModule.RegisterAPI(api)

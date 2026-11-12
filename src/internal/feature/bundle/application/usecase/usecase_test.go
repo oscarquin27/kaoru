@@ -36,6 +36,8 @@ type world struct {
 	regression domain.RegressionFact
 	defects    map[string][]domain.DefectFact // por código de REQ
 	deployed   bool
+	production domain.ProductionFact
+	routes     map[string]string // ruta por código de REQ; el que no está va por la ruta ligera
 
 	// rules reemplaza las reglas de una transición: "desde>hasta".
 	rules map[string][]domain.Rule
@@ -280,6 +282,21 @@ func (f fakeFacts) DeployedToProduction(context.Context, shared.Code) (bool, err
 	return f.w.deployed, nil
 }
 
+func (f fakeFacts) Production(context.Context, shared.Code) (domain.ProductionFact, error) {
+	return f.w.production, nil
+}
+
+func (f fakeFacts) Routes(_ context.Context, requirementCodes []string) ([]string, error) {
+	routes := make([]string, len(requirementCodes))
+	for i, code := range requirementCodes {
+		routes[i] = domain.RouteLight
+		if route, ok := f.w.routes[code]; ok {
+			routes[i] = route
+		}
+	}
+	return routes, nil
+}
+
 // --- AuditTrail ---
 
 func (w *world) Record(_ context.Context, r port.AuditRecord) error {
@@ -322,8 +339,13 @@ var flow = []flowStep{
 		blocking(domain.RuleRegressionPassed), {Key: domain.RuleNoOpenDefect, Params: map[string]any{"severity": "high"}, Blocks: true},
 	}},
 	{"ready_to_release", "approved_for_production", "pkg.approve_production", false, nil},
-	{"approved_for_production", "deployed", "pkg.deploy", false, []domain.Rule{blocking(domain.RuleDeployedToProduction)}},
-	{"deployed", "verified", "pkg.verify", false, nil},
+	{"approved_for_production", "deployed", "pkg.deploy", false, []domain.Rule{
+		blocking(domain.RuleDeployedToProduction), {Key: domain.RuleChecklistSigned, Route: domain.RouteHigh, Blocks: true},
+	}},
+	{"deployed", "verified", "pkg.verify", false, []domain.Rule{
+		{Key: domain.RuleDiagnosticReviewed, Route: domain.RouteHigh, Blocks: true},
+		{Key: domain.RuleSmokePassed, Route: domain.RouteLight, Blocks: true},
+	}},
 }
 
 var granted = map[string][]string{
@@ -411,6 +433,7 @@ func setup(t *testing.T) (*usecase.UseCases, *world, *fixedClock) {
 			"REQ-2026-0009": requirement("9", "SIMF", "approved_qa"),
 		},
 		defects: map[string][]domain.DefectFact{},
+		routes:  map[string]string{},
 		rules:   map[string][]domain.Rule{},
 	}
 	clock := &fixedClock{now: t0}
@@ -997,11 +1020,75 @@ func TestTransitionPackage(t *testing.T) {
 	}
 	blocked(manager, "deployed", "No se puede pasar a «Desplegado». Falta un despliegue exitoso del PKG en un ambiente de producción.")
 	w.deployed = true
-	if _, err := move(uc, manager, pkg, "deployed", ""); err != nil {
+	// El PKG va por la ruta ligera: no exige checklist, y para verificarlo basta la prueba de humo.
+	if out, err = move(uc, manager, pkg, "deployed", ""); err != nil {
 		t.Fatal(err)
 	}
+	if out.Route != domain.RouteLight || missing(out) != "verified[smoke_passed!]" {
+		t.Errorf("desplegado por la ruta ligera: ruta %q, falta %s", out.Route, missing(out))
+	}
+	blocked(qa, "verified", "No se puede pasar a «Verificado». Falta la prueba de humo posterior al despliegue.")
+	w.production.Smoke = "failed"
+	blocked(qa, "verified", "La última prueba de humo falló.")
+	w.production.Smoke = domain.SmokePassed
 	if out, err = move(uc, qa, pkg, "verified", ""); err != nil || out.Package.State.Key != "verified" || len(out.Missing) != 0 {
 		t.Errorf("verificado: %v %+v", err, out)
+	}
+}
+
+// Un PKG con un REQ de la ruta alta exige checklist firmado para desplegarse y DIAG revisado para verificarse.
+func TestTransitionPackageOnTheHighRoute(t *testing.T) {
+	uc, w, _ := setup(t)
+	pkg := create(t, uc)
+	if out, err := uc.GetPackage.Execute(ctx, usecase.GetPackageInput{Code: pkg}); err != nil || out.Route != domain.RouteLight {
+		t.Fatalf("un PKG sin REQ va por la ruta de su sistema: %v %q", err, out.Route)
+	}
+	for _, req := range []string{"REQ-2026-0001", "REQ-2026-0002"} {
+		if _, err := addRequirement(uc, dev, pkg, req); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := addBuild(uc, dev, pkg, "BUILD-2026-0001"); err != nil {
+		t.Fatal(err)
+	}
+	// Basta un REQ de la ruta alta para que todo el PKG vaya por ella.
+	w.routes["REQ-2026-0002"] = domain.RouteHigh
+	w.regression, w.deployed = domain.RegressionFact{Exists: true, Confirmed: true}, true
+	for _, step := range []struct {
+		actor shared.Actor
+		to    string
+	}{{qa, "in_testing"}, {qa, "ready_to_release"}, {manager, "approved_for_production"}} {
+		if _, err := move(uc, step.actor, pkg, step.to, ""); err != nil {
+			t.Fatalf("a %s: %v", step.to, err)
+		}
+	}
+	blocked := func(actor shared.Actor, to, want string) {
+		t.Helper()
+		if _, err := move(uc, actor, pkg, to, ""); !axis.IsCode(err, axis.InvalidAction) || !strings.Contains(err.Error(), want) {
+			t.Fatalf("pasar a %s debía bloquearse con %q: %v", to, want, err)
+		}
+	}
+	blocked(manager, "deployed", "Falta abrir y firmar el checklist de producción.")
+	w.production = domain.ProductionFact{ChecklistExists: true, ChecklistPending: 2}
+	blocked(manager, "deployed", "Al checklist de producción le faltan 2 pasos por firmar.")
+	w.production.ChecklistPending = 0
+	out, err := move(uc, manager, pkg, "deployed", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out.Route != domain.RouteHigh || missing(out) != "verified[diagnostic_reviewed!]" {
+		t.Errorf("desplegado por la ruta alta: ruta %q, falta %s", out.Route, missing(out))
+	}
+	// La prueba de humo no cuenta en la ruta alta.
+	w.production.Smoke = domain.SmokePassed
+	blocked(qa, "verified", "Falta el diagnóstico posterior al despliegue.")
+	w.production.Diagnostic = domain.DiagnosticPending
+	blocked(qa, "verified", "Falta que QA revise el diagnóstico posterior al despliegue.")
+	w.production.Diagnostic = "non_conforming"
+	blocked(qa, "verified", "El último diagnóstico no está conforme.")
+	w.production.Diagnostic = domain.DiagnosticConforming
+	if _, err := move(uc, qa, pkg, "verified", ""); err != nil {
+		t.Fatalf("verificado: %v", err)
 	}
 }
 

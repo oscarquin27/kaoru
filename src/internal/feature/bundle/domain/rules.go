@@ -2,6 +2,7 @@ package domain
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -9,6 +10,8 @@ import (
 type Rule struct {
 	Key    string
 	Params map[string]any
+	// Route limita la regla a una ruta; vacío aplica a todas.
+	Route string
 	// Blocks en falso significa que la regla solo avisa.
 	Blocks bool
 }
@@ -20,7 +23,28 @@ const (
 	RuleRegressionPassed     = "regression_passed"
 	RuleNoOpenDefect         = "no_open_defect_with_severity"
 	RuleDeployedToProduction = "deployed_to_production"
+	RuleChecklistSigned      = "checklist_signed"
+	RuleDiagnosticReviewed   = "diagnostic_reviewed"
+	RuleSmokePassed          = "smoke_passed"
 )
+
+// Rutas, de la más exigente a la menos (requerimiento §8.2).
+const (
+	RouteHigh     = "high"
+	RouteLight    = "light"
+	RouteMinorFix = "minor_fix"
+)
+
+// MostDemandingRoute es la ruta de un PKG: la más exigente de las de sus REQ. Sin REQ, o si
+// ninguna es una ruta conocida, es la de su sistema.
+func MostDemandingRoute(requirementRoutes []string, systemRoute string) string {
+	for _, route := range []string{RouteHigh, RouteLight, RouteMinorFix} {
+		if slices.Contains(requirementRoutes, route) {
+			return route
+		}
+	}
+	return systemRoute
+}
 
 // RegressionFact es lo que el PKG necesita saber de su selección de regresión.
 type RegressionFact struct {
@@ -38,13 +62,36 @@ type DefectFact struct {
 	Severity string
 }
 
+// ProductionFact es lo que el PKG necesita saber de producción: lo último de cada cosa.
+type ProductionFact struct {
+	// ChecklistExists es false si el PKG no tiene ningún checklist abierto.
+	ChecklistExists bool
+	// ChecklistPending son los pasos sin firmar del último checklist.
+	ChecklistPending int
+	// Diagnostic es el estado del último DIAG: vacío si no hay, DiagnosticPending si falta
+	// revisarlo, o el resultado de su revisión.
+	Diagnostic string
+	// Smoke es el resultado del último SMOKE; vacío si no hay.
+	Smoke string
+}
+
+// Estados del último DIAG y del último SMOKE que las reglas reconocen.
+const (
+	DiagnosticPending    = "pending"
+	DiagnosticConforming = "conforming"
+	SmokePassed          = "passed"
+)
+
 // Facts son los hechos con los que se evalúan las reglas de una transición.
 type Facts struct {
+	// Route es la ruta del PKG: decide qué reglas aplican.
+	Route                string
 	Builds               int
 	Requirements         int
 	Regression           RegressionFact
 	OpenDefects          []DefectFact
 	DeployedToProduction bool
+	Production           ProductionFact
 }
 
 // Condition es una regla que no se cumple: lo que falta para avanzar.
@@ -56,10 +103,13 @@ type Condition struct {
 	Related []string
 }
 
-// Unmet evalúa las reglas de una transición y devuelve las que no se cumplen.
+// Unmet evalúa las reglas de una transición que aplican a la ruta del PKG y devuelve las que no se cumplen.
 func Unmet(rules []Rule, f Facts) []Condition {
 	var conditions []Condition
 	for _, rule := range rules {
+		if rule.Route != "" && rule.Route != f.Route {
+			continue
+		}
 		if message, related, ok := evaluate(rule, f); !ok {
 			conditions = append(conditions, Condition{RuleKey: rule.Key, Message: message, Blocks: rule.Blocks, Related: related})
 		}
@@ -119,6 +169,32 @@ func evaluate(rule Rule, f Facts) (message string, related []string, ok bool) {
 	case RuleDeployedToProduction:
 		if !f.DeployedToProduction {
 			return "Falta un despliegue exitoso del PKG en un ambiente de producción.", nil, false
+		}
+	case RuleChecklistSigned:
+		switch p := f.Production; {
+		case !p.ChecklistExists:
+			return "Falta abrir y firmar el checklist de producción.", nil, false
+		case p.ChecklistPending > 0:
+			return fmt.Sprintf("Al checklist de producción %s por firmar.",
+				plural(p.ChecklistPending, "le falta 1 paso", "le faltan %d pasos")), nil, false
+		}
+	case RuleDiagnosticReviewed:
+		switch f.Production.Diagnostic {
+		case DiagnosticConforming:
+		case "":
+			return "Falta el diagnóstico posterior al despliegue.", nil, false
+		case DiagnosticPending:
+			return "Falta que QA revise el diagnóstico posterior al despliegue.", nil, false
+		default:
+			return "El último diagnóstico no está conforme.", nil, false
+		}
+	case RuleSmokePassed:
+		switch f.Production.Smoke {
+		case SmokePassed:
+		case "":
+			return "Falta la prueba de humo posterior al despliegue.", nil, false
+		default:
+			return "La última prueba de humo falló.", nil, false
 		}
 	default:
 		// Una regla que el dominio no conoce bloquea: mejor parar que dejar pasar sin evaluar.

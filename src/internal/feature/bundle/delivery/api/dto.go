@@ -53,6 +53,7 @@ type packageDTO struct {
 	Description  string              `json:"description"`
 	System       systemDTO           `json:"system"`
 	State        stateDTO            `json:"state"`
+	Route        string              `json:"route,omitempty"`
 	Builds       []buildRefDTO       `json:"builds"`
 	Requirements []requirementRefDTO `json:"requirements"`
 	Missing      []missingDTO        `json:"missing"`
@@ -87,6 +88,7 @@ func toDTO(out usecase.PackageOutput) packageDTO {
 		Code: s.Code.String(), Title: s.Title, Description: s.Description,
 		System:       systemDTO{Key: s.System.Key, Name: s.System.Name, DefaultRoute: s.System.DefaultRoute},
 		State:        stateDTO{Key: s.State.Key, Name: s.State.Name},
+		Route:        out.Route,
 		Builds:       make([]buildRefDTO, len(s.Builds)),
 		Requirements: make([]requirementRefDTO, len(s.Requirements)),
 		Missing:      make([]missingDTO, len(out.Missing)),
