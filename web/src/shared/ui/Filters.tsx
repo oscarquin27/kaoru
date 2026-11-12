@@ -1,13 +1,16 @@
 // Filtros de una lista. Su valor vive en la URL (compartible).
 import type { ReactNode } from 'react'
 import { useUrlFilters } from '../lib/urlFilters.ts'
+import { SavedViews, type ViewScope } from './SavedViews.tsx'
 
-export function FilterBar({ children, actions }: { children: ReactNode; actions?: ReactNode }) {
+/** Con `views`, la barra deja guardar los filtros puestos como una vista con nombre. */
+export function FilterBar({ children, actions, views }: { children: ReactNode; actions?: ReactNode; views?: ViewScope }) {
   return (
-    <form className="surface pad-s filters" aria-label="Filtros" onSubmit={(event) => event.preventDefault()}>
+    <div className="surface pad-s filters" role="search" aria-label="Filtros">
       {children}
+      {views && <SavedViews {...views} />}
       {actions && <div className="filters__actions">{actions}</div>}
-    </form>
+    </div>
   )
 }
 

@@ -183,6 +183,7 @@ export default function MatrixPage() {
       />
       {matrix.data && <Indicators indicators={matrix.data.indicators} />}
       <FilterBar
+        views={{ screen: 'matrix', names: FILTERS }}
         actions={
           <button className="btn" type="button" onClick={() => void copyLink()}>
             <Icon name={copied ? 'check' : 'link'} />

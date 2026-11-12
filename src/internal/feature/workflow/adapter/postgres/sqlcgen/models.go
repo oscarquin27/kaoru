@@ -223,6 +223,15 @@ type RolePermission struct {
 	PermissionKey string
 }
 
+type SavedView struct {
+	ID        uuid.UUID
+	OwnerID   string
+	Screen    string
+	Name      string
+	Query     string
+	CreatedAt time.Time
+}
+
 type SystemUnderTest struct {
 	ID           uuid.UUID
 	Key          string

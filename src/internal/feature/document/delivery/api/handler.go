@@ -35,6 +35,7 @@ func (h *Handler) Register(r gin.IRouter) {
 	r.GET("/api/documents/:code", h.get)
 	r.POST("/api/documents/:code/versions", h.addVersion)
 	r.GET("/api/documents/:code/versions/:version/content", h.content)
+	r.GET("/api/documents/:code/versions/:version/preview", h.preview)
 	r.POST("/api/documents/:code/links", h.link)
 }
 
@@ -51,6 +52,8 @@ type versionDTO struct {
 	Checksum   string     `json:"checksum"`
 	UploadedBy userRefDTO `json:"uploadedBy"`
 	CreatedAt  time.Time  `json:"createdAt"`
+	// Previewable dice si hay vista previa en PDF de un archivo que el navegador no muestra.
+	Previewable bool `json:"previewable"`
 }
 
 type entityRefDTO struct {
@@ -77,7 +80,7 @@ func actorOf(c *gin.Context) shared.Actor {
 	return shared.Actor{Id: shared.UserId(p.Sub), Roles: p.Roles}
 }
 
-func toDTO(s domain.Snapshot) documentDTO {
+func (h *Handler) toDTO(s domain.Snapshot) documentDTO {
 	dto := documentDTO{
 		Code: s.Code.String(), Title: s.Title, Kind: string(s.Kind), CreatedAt: s.CreatedAt,
 		Versions: make([]versionDTO, len(s.Versions)), LinkedTo: make([]entityRefDTO, len(s.LinkedTo)),
@@ -86,6 +89,7 @@ func toDTO(s domain.Snapshot) documentDTO {
 		dto.Versions[i] = versionDTO{
 			Version: v.Number, FileName: v.FileName, MediaType: v.MediaType, SizeBytes: v.SizeBytes, Checksum: v.Checksum,
 			UploadedBy: userRefDTO{ID: string(v.UploadedBy.Id), DisplayName: v.UploadedBy.Name}, CreatedAt: v.CreatedAt,
+			Previewable: h.uc.OpenPreview.CanPreview(v.MediaType),
 		}
 	}
 	for i, l := range s.LinkedTo {
@@ -125,7 +129,7 @@ func (h *Handler) list(c *gin.Context) {
 	}
 	items := make([]documentDTO, len(out))
 	for i, s := range out {
-		items[i] = toDTO(s)
+		items[i] = h.toDTO(s)
 	}
 	c.JSON(http.StatusOK, gin.H{"items": items})
 }
@@ -145,7 +149,7 @@ func (h *Handler) create(c *gin.Context) {
 		problem.Write(c, err)
 		return
 	}
-	c.JSON(http.StatusCreated, toDTO(out))
+	c.JSON(http.StatusCreated, h.toDTO(out))
 }
 
 func (h *Handler) addVersion(c *gin.Context) {
@@ -160,7 +164,7 @@ func (h *Handler) addVersion(c *gin.Context) {
 		problem.Write(c, err)
 		return
 	}
-	c.JSON(http.StatusCreated, toDTO(out))
+	c.JSON(http.StatusCreated, h.toDTO(out))
 }
 
 func (h *Handler) get(c *gin.Context) {
@@ -169,7 +173,7 @@ func (h *Handler) get(c *gin.Context) {
 		problem.Write(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, toDTO(out))
+	c.JSON(http.StatusOK, h.toDTO(out))
 }
 
 func (h *Handler) link(c *gin.Context) {
@@ -185,7 +189,7 @@ func (h *Handler) link(c *gin.Context) {
 		problem.Write(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, toDTO(out))
+	c.JSON(http.StatusOK, h.toDTO(out))
 }
 
 // inlineTypes son los tipos que el visor muestra dentro del sistema; el resto se descarga.
@@ -223,4 +227,26 @@ func (h *Handler) content(c *gin.Context) {
 	c.Header("Content-Security-Policy", "sandbox; default-src 'none'")
 	c.Header("Cache-Control", "private, max-age=31536000, immutable")
 	c.DataFromReader(http.StatusOK, out.Version.SizeBytes, contentType, out.Content, nil)
+}
+
+// preview sirve la vista previa en PDF de una versión de Office.
+func (h *Handler) preview(c *gin.Context) {
+	number, err := strconv.Atoi(c.Param("version"))
+	if err != nil {
+		problem.Write(c, usecase.ErrDocumentNotFound)
+		return
+	}
+	out, err := h.uc.OpenPreview.Execute(c.Request.Context(), usecase.OpenContentInput{Code: c.Param("code"), Version: number})
+	if err != nil {
+		problem.Write(c, err)
+		return
+	}
+	defer func() { _ = out.Content.Close() }()
+
+	c.Header("Content-Disposition", mime.FormatMediaType("inline", map[string]string{"filename": out.Version.FileName + ".pdf"}))
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.Header("Content-Security-Policy", "sandbox; default-src 'none'")
+	// La versión no cambia nunca: el navegador puede guardar la conversión.
+	c.Header("Cache-Control", "private, max-age=31536000, immutable")
+	c.DataFromReader(http.StatusOK, -1, "application/pdf", out.Content, nil)
 }

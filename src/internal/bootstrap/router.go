@@ -24,6 +24,7 @@ import (
 	"kaoru/internal/feature/execution"
 	"kaoru/internal/feature/requirement"
 	"kaoru/internal/feature/risk"
+	"kaoru/internal/feature/savedview"
 	"kaoru/internal/feature/testdesign"
 	"kaoru/internal/feature/traceability"
 	"kaoru/internal/feature/user"
@@ -114,6 +115,7 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 			Execution: executionModule.UseCases, Defect: defectModule.UseCases,
 		},
 		AllowedExtensions: d.Config.Documents.AllowedExtensions,
+		ConverterURL:      d.Config.Documents.ConverterURL,
 	})
 	if err != nil {
 		return nil, err
@@ -162,6 +164,10 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 	workflowModule.RegisterAPI(api)
 	auditModule.RegisterAPI(api)
 	changeModule.RegisterAPI(api)
+	savedviewModule, err := savedview.New(savedview.Deps{Database: d.Database, Clock: d.Clock, IdGenerator: d.IdGenerator})
+	if err != nil {
+		return nil, err
+	}
 	requirementModule.RegisterAPI(api)
 	riskModule.RegisterAPI(api)
 	testdesignModule.RegisterAPI(api)
@@ -169,6 +175,7 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 	defectModule.RegisterAPI(api)
 	documentModule.RegisterAPI(api)
 	commentModule.RegisterAPI(api)
+	savedviewModule.RegisterAPI(api)
 	traceabilityModule.RegisterAPI(api)
 	return engine, nil
 }

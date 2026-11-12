@@ -37,7 +37,7 @@ export default function RequirementsPage() {
           )
         }
       />
-      <FilterBar>
+      <FilterBar views={{ screen: 'requirements', names: ['system', 'state', 'change', 'owner', 'q'] }}>
         <FilterSelect name="system" label="Sistema" options={systems.map((system) => ({ value: system.key, label: system.name }))} />
         <FilterSelect name="state" label="Estado" options={states.map((state) => ({ value: state.key, label: state.name }))} />
         <FilterSelect name="change" label="CHG" options={changes.map((change) => ({ value: change.code, label: change.code }))} />

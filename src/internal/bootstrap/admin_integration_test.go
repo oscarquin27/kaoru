@@ -322,3 +322,47 @@ func TestUsersAreListedForAssignment(t *testing.T) {
 		t.Errorf("un comodín se busca como texto: %+v", page.Items)
 	}
 }
+
+// Las vistas guardadas son personales: cada quien ve y quita solo las suyas.
+func TestSavedViewsArePersonal(t *testing.T) {
+	a := newAPI(t)
+	var p problemBody
+	type view struct {
+		ID    string `json:"id"`
+		Name  string `json:"name"`
+		Query string `json:"query"`
+	}
+	var page struct {
+		Items []view `json:"items"`
+	}
+	a.call("", "GET", "/api/saved-views?screen=requirements", nil, 401, nil)
+	a.call("qa", "GET", "/api/saved-views?screen=paquetes", nil, 422, nil)
+	a.call("qa", "POST", "/api/saved-views", map[string]any{"screen": "requirements", "name": "", "query": ""}, 422, &p)
+	if len(p.Errors) != 2 {
+		t.Errorf("sin nombre ni filtros: %+v", p.Errors)
+	}
+
+	var saved view
+	body := map[string]any{"screen": "requirements", "name": "En pruebas", "query": "?state=in_testing&system=SYPAGO"}
+	a.call("qa", "POST", "/api/saved-views", body, 201, &saved)
+	if saved.ID == "" || saved.Query != "state=in_testing&system=SYPAGO" {
+		t.Fatalf("vista guardada inesperada: %+v", saved)
+	}
+	t.Cleanup(func() { a.call("qa", "DELETE", "/api/saved-views/"+saved.ID, nil, 204, nil) })
+	a.call("qa", "POST", "/api/saved-views", body, 422, &p)
+	if len(p.Errors) != 1 || p.Errors[0].Field != "name" {
+		t.Errorf("nombre repetido: %+v", p)
+	}
+
+	a.call("qa", "GET", "/api/saved-views?screen=requirements", nil, 200, &page)
+	if len(page.Items) != 1 || page.Items[0].Name != "En pruebas" {
+		t.Errorf("qa debía ver su vista: %+v", page.Items)
+	}
+	a.call("dev", "GET", "/api/saved-views?screen=requirements", nil, 200, &page)
+	a.call("qa", "GET", "/api/saved-views?screen=defects", nil, 200, &page)
+	if len(page.Items) != 0 {
+		t.Errorf("ni otra persona ni otra lista ven la vista: %+v", page.Items)
+	}
+	a.call("dev", "DELETE", "/api/saved-views/"+saved.ID, nil, 404, nil)
+	a.call("qa", "DELETE", "/api/saved-views/no-es-un-id", nil, 404, nil)
+}

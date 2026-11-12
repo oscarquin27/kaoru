@@ -40,6 +40,8 @@ paths=(
     /api/traceability/matrix "/api/search?q=l%C3%ADmite" "/api/search?q=$req"
     /api/audit "/api/audit?entityCode=$req" /api/audit/verification
     /api/admin/role-permissions
+    '/api/saved-views?screen=requirements' '/api/saved-views?screen=changes' '/api/saved-views?screen=defects'
+    '/api/saved-views?screen=matrix' '/api/saved-views?screen=test-cases' '/api/saved-views?screen=audit'
 )
 {
     printf '{\n  "_nota": "Respuestas reales de la API con datos de EJEMPLO. Se regeneran con tools/dev-capture.sh.",\n'

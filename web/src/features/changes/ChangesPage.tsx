@@ -38,7 +38,7 @@ export default function ChangesPage() {
           )
         }
       />
-      <FilterBar>
+      <FilterBar views={{ screen: 'changes', names: ['system', 'state', 'q'] }}>
         <FilterSelect name="system" label="Sistema" options={systems.map((system) => ({ value: system.key, label: system.name }))} />
         <FilterSelect name="state" label="Estado" options={states.map((state) => ({ value: state.key, label: state.name }))} />
         <FilterInput name="q" label="Texto en el título" />

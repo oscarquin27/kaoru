@@ -60,7 +60,7 @@ export default function AuditPage() {
         }
       />
       <Verification />
-      <FilterBar>
+      <FilterBar views={{ screen: 'audit', names: ['entityCode', 'actor', 'from', 'to'] }}>
         <FilterInput name="entityCode" label="ID de la entidad" placeholder="REQ-2026-0001" />
         <FilterInput name="actor" label="Actor (ID de usuario)" placeholder="Clic en un nombre de la tabla" />
         <FilterInput name="from" label="Desde" type="date" />

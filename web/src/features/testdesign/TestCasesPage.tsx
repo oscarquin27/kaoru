@@ -23,7 +23,7 @@ export default function TestCasesPage() {
     <>
       <Crumbs items={[{ label: 'Pruebas', to: '/pruebas' }, { label: 'Casos de prueba' }]} />
       <PageHead title="Casos de prueba" subtitle="Los TC se definen en la ficha de cada requerimiento, sobre sus casos de uso." />
-      <FilterBar>
+      <FilterBar views={{ screen: 'test-cases', names: ['system', 'critical', 'requirement', 'q'] }}>
         <FilterSelect name="system" label="Sistema" options={systems.map((system) => ({ value: system.key, label: system.name }))} />
         <FilterSelect name="critical" label="Crítico" options={YES_NO} />
         <FilterInput name="requirement" label="REQ" placeholder="REQ-2026-0001" />
