@@ -148,9 +148,9 @@ describe('regresión del PKG', () => {
     renderApp(TAB, ['regression.manage'], api(PACKAGE, REGRESSION))
 
     const summary = await screen.findByRole('region', { name: 'Resumen de la regresión' })
-    expect(summary).toHaveTextContent('1 agregados · 1 quitados por QA')
-    expect(summary).toHaveTextContent('1 aprobados')
-    expect(summary).toHaveTextContent('1 pendientes')
+    expect(summary).toHaveTextContent('1 agregado · 1 quitado por QA')
+    expect(summary).toHaveTextContent('1 aprobado')
+    expect(summary).toHaveTextContent('1 pendiente')
     const rows = within(screen.getByRole('table', { name: 'TC de la regresión' })).getAllByRole('row')
     expect(rows[1]).toHaveTextContent('Impacto')
     expect(rows[1]).toHaveTextContent('motor-pagos')

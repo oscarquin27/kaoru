@@ -94,6 +94,26 @@ tc4="$(tc 'Muestra el aviso al 80 %' 'Aviso visible.' false "$uc3")"
 run "$tc4" passed 10 >/dev/null
 move lab-qa requirements "$req2" approved_qa
 
+# --- Fase 3: componentes, impacto, paquete y regresión propuesta ---
+comp() { # nombre clase → código del COMP de SyPago; lo reutiliza si ya existe
+    found="$(api lab-qa GET "/api/components?system=SYPAGO&q=$1" | json_code COMP || true)"
+    [ -n "$found" ] || found="$(post lab-qa /api/components "{\"system\":\"SYPAGO\",\"kind\":\"$2\",\"name\":\"$1\",\"description\":\"Datos de ejemplo.\"}" | json_code COMP)"
+    printf '%s' "$found"
+}
+c_limits="$(comp motor-de-limites microservice)"
+c_notify="$(comp notificaciones microservice)"
+c_schema="$(comp esquema-pagos db_schema)"
+put lab-manager "/api/requirements/$req1/components" "{\"components\":[\"$c_limits\",\"$c_schema\"]}"
+put lab-manager "/api/requirements/$req2/components" "{\"components\":[\"$c_notify\"]}"
+put lab-qa "/api/test-cases/$tc1/components" "{\"components\":[\"$c_limits\"]}"
+put lab-qa "/api/test-cases/$tc2/components" "{\"components\":[\"$c_limits\"]}"
+put lab-qa "/api/test-cases/$tc3/components" "{\"components\":[\"$c_limits\",\"$c_schema\"]}"
+put lab-qa "/api/test-cases/$tc4/components" "{\"components\":[\"$c_notify\"]}"
+pkg="$(post lab-dev /api/packages '{"title":"SyPago 2.14","description":"Datos de ejemplo.","system":"SYPAGO"}' | json_code PKG)"
+put lab-dev "/api/packages/$pkg/builds/$build" ''
+put lab-dev "/api/packages/$pkg/requirements/$req2" ''
+post lab-qa "/api/packages/$pkg/regression/proposal" '' >/dev/null
+
 # REQ 3: recién registrado, sin CHG.
 post lab-manager /api/requirements '{"title":"Límite configurable por tipo de cuenta","system":"SYPAGO"}' >/dev/null
 
@@ -103,4 +123,4 @@ req4="$(post lab-manager /api/requirements "{\"title\":\"Validación de firma en
 put lab-qa "/api/requirements/$req4/risk" '{"level":"high","justification":"Alcance nacional; afecta la seguridad de los mensajes.","characteristics":["security","reliability","compatibility"]}'
 move lab-qa requirements "$req4" risk_assessed
 
-echo "Datos de ejemplo: $chg ($req1 bloqueado por $def, $req2 aprobado), $chg2 ($req4), $build en $env, documento $doc"
+echo "Datos de ejemplo: $chg ($req1 bloqueado por $def, $req2 aprobado), $chg2 ($req4), $build en $env, $pkg con su regresión propuesta, documento $doc"

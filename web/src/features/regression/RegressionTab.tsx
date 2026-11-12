@@ -15,6 +15,11 @@ import { useAdjustRegressionItem, useConfirmRegression, useProposeRegression, us
 
 const CODE = /^[A-Z]+-\d{4}-\d{4,}$/
 
+/** «1 aprobado», «2 aprobados». */
+function count(n: number, one: string, many: string): string {
+  return `${n} ${n === 1 ? one : many}`
+}
+
 function Summary({ summary }: { summary: Regression['summary'] }) {
   return (
     <section className="glass kpis" aria-label="Resumen de la regresión">
@@ -27,7 +32,7 @@ function Summary({ summary }: { summary: Regression['summary'] }) {
         <span className="kpi__label">Incluidos</span>
         <span className="kpi__value">{summary.included}</span>
         <span className="kpi__note">
-          {summary.added} agregados · {summary.removed} quitados por QA
+          {count(summary.added, 'agregado', 'agregados')} · {count(summary.removed, 'quitado', 'quitados')} por QA
         </span>
       </div>
       <div className="kpi">
@@ -37,13 +42,13 @@ function Summary({ summary }: { summary: Regression['summary'] }) {
         </span>
         <span className="row">
           <Chip tone="ok" icon="check">
-            {summary.passed} aprobados
+            {count(summary.passed, 'aprobado', 'aprobados')}
           </Chip>
           <Chip tone="bloq" icon="x">
-            {summary.failed} fallidos
+            {count(summary.failed, 'fallido', 'fallidos')}
           </Chip>
           <Chip tone="neutro" icon="circle">
-            {summary.pending} pendientes
+            {count(summary.pending, 'pendiente', 'pendientes')}
           </Chip>
         </span>
       </div>
@@ -232,7 +237,7 @@ function Selection({ packageCode, regression, canManage }: { packageCode: string
         <Dialog title="Confirmar la regresión" onClose={close}>
           <Form label="Confirmar la regresión" submitLabel="Confirmar regresión" onSubmit={() => confirm.mutateAsync()} onDone={close} onCancel={close}>
             <p>
-              Quedan {regression.summary.included} TC en la selección final. Desde que se confirma, la selección no cambia: no se puede volver a proponer, agregar ni quitar TC.
+              {regression.summary.included === 1 ? 'Queda 1 TC' : `Quedan ${regression.summary.included} TC`} en la selección final. Desde que se confirma, la selección no cambia: no se puede volver a proponer, agregar ni quitar TC.
             </p>
           </Form>
         </Dialog>

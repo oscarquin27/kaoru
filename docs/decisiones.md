@@ -368,3 +368,35 @@ Tomadas el 11 nov 2026 al construir el core y el primer corte vertical (`workflo
 - **Regresión por impacto (regla de negocio 4).** El sistema propone los TC activos que ejercitan algún componente tocado por los REQ del PKG, más los TC críticos del sistema. QA incluye o excluye TC; el criterio es obligatorio cuando la decisión difiere de lo propuesto, y queda con su autor y su fecha. Se guardan las dos cosas (`proposed` e `included`) para compararlas. Volver a proponer conserva los ajustes de QA. Confirmada, la selección no cambia.
 - **Permisos nuevos y su reparto inicial:** `comp.manage` (dev, qa), `build.register` (dev), `pkg.build` (dev; quién arma el PKG sigue `[POR DEFINIR]`, regla 10), `pkg.start_testing`, `pkg.reopen`, `pkg.mark_ready`, `pkg.verify`, `regression.manage`, `env.manage`, `dep.create` (qa), `pkg.approve_production`, `pkg.deploy`, `dep.create_production` (change management).
 - **Fuera de esta fase:** ingesta de JUnit XML y cobertura (regla 8), aceptación formal de DEF medios o bajos al pasar al siguiente paquete más allá del «Diferido» que ya existe, y todo lo de la fase 4 (checklist de producción, DIAG, SMOKE, informe de conformidad).
+
+### D49 — Fase 3 construida: lo decidido al implementar y cómo se verificó
+- **Fecha:** 12 nov 2026
+- **Estado:** `[SUPUESTO]` hasta que QA, dev y change management lo revisen. Completa a D48.
+- **Componentes.** Un nombre repetido en el sistema es error del campo `name`. Declarar impacto reemplaza la lista; declarar la misma no escribe ni audita. Un componente retirado que ya estaba declarado se conserva y se sigue mostrando, pero no se puede volver a declarar: para editar la lista hay que quitarlo. Un TC retirado sí admite declarar componentes.
+- **BUILD.** El checksum repetido dice con qué BUILD choca. Los REQ repetidos del manifiesto cuentan una vez.
+- **Ambientes y despliegues.**
+  - Un ambiente **no pasa a producción ni deja de serlo** editándolo: si se pudiera, QA podría desplegar en producción con el permiso de los ambientes de prueba. Se retira y se registra otro.
+  - Lo instalado es el último despliegue exitoso; uno fallido o revertido posterior no lo cambia.
+  - Una **exploración sí se admite en producción**; lo prohibido es el RUN. `[SUPUESTO]`: la regla 6 dice que QA no ejecuta pasos en producción; conviene que QA confirme si observar en producción cuenta.
+- **RUN y EXP.** Los errores de existencia (TC, BUILD, ENV) salen juntos y antes que los demás del formulario.
+- **Regresión.**
+  - Toda escritura bloquea la fila del PKG, también la primera propuesta.
+  - Incluir exige que el TC exista, esté activo y sea del sistema; quitar no, para poder quitar un TC que se retiró después de propuesto.
+  - Un TC agregado a mano que luego el sistema propone pasa a propuesto y pierde su criterio: la decisión ya coincide con la propuesta.
+  - **Se puede confirmar una selección sin ningún TC**, y entonces la regla `regression_passed` se cumple. No se agregó una regla que nadie pidió: QA decide si quiere un mínimo.
+  - **Los TC críticos de todo el sistema entran en cada propuesta** (regla de negocio 4); QA quita con criterio los que no apliquen.
+  - Auditoría con `entity_type` `regression` sobre el PKG: proponer, cada ajuste (como decisión, con el criterio de motivo), confirmar y reabrir.
+- **PKG.**
+  - «En armado» es el estado inicial del flujo, no una clave fija; las claves `approved_qa` e `in_package` del REQ sí están fijas en `bundle` y en el front. Si QA renombra esas claves del flujo del REQ, hay que tocar código.
+  - Cambiar el contenido, o volver a armado, **quita la confirmación de la regresión**: la selección ya no corresponde.
+  - Fuera de armado, tocar el contenido responde `INVALID_ACTION` siempre.
+  - Las reglas del PKG no miran la ruta del CHG: un paquete no tiene ruta.
+  - Documentos en PKG y DEP, comentarios en PKG.
+- **Matriz y búsqueda.** La matriz tiene columna PKG (también en CSV y XLSX) y filtros por PKG y por COMP. La búsqueda encuentra COMP, BUILD, PKG, ENV y DEP.
+- **Front.** Paquetes y BUILD en la sección «Paquetes»; ambientes y despliegues en «Ambientes»; componentes en «Pruebas», porque los mantienen QA y dev y alimentan la regresión. Las listas nuevas no tienen vistas guardadas. Los selectores traen hasta 200 elementos: un sistema con más BUILD, REQ o componentes no los mostraría todos.
+- **Fallo corregido en las herramientas.** `tools/smoke-api.sh` fallaba a veces: buscaba en los logs con `grep -q` dentro de una tubería y `docker logs` moría por SIGPIPE.
+- **Cómo se verificó.**
+  - `make check` completo, con 192 consultas preparadas contra Postgres, el recorrido de un PKG de punta a punta en integración (componentes → impacto → REQ aprobado → BUILD → PKG → regresión → RUN → producción → verificado), 12 confirmaciones simultáneas de las que vale una, y 105 pruebas del front.
+  - En el navegador, contra la API real: ficha del PKG con lo que falta para avanzar; transición bloqueada por la regresión sin confirmar (409 real); quitar un TC propuesto exige criterio; confirmar; pasar a pruebas; ambiente con lo instalado; BUILD con su manifiesto; catálogo de componentes; matriz filtrada por PKG; y un RUN registrado sobre un BUILD y un ambiente del catálogo.
+- **Lo que no se verificó en el navegador:** alta de BUILD, de ambiente y de componente desde la pantalla; registrar un despliegue; agregar y quitar contenido de un PKG; el resto del flujo del PKG (listo, producción, verificado); impacto en REQ y TC; y las pantallas de administración con el flujo de paquetes. Todo eso está cubierto por pruebas del front con respuestas simuladas y por la integración del backend, no a mano.
+- **Sigue pendiente de la fase 3:** ingesta de JUnit XML y cobertura (regla 8); el piloto de regresión en SyPago comparado contra la hoja, que es el criterio de salida y no depende del código.

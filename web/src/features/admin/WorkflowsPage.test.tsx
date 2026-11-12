@@ -2,6 +2,7 @@
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
+import fixtures from '../../../mocks/fixtures.json' with { type: 'json' }
 import { renderApp } from '../../test-utils.tsx'
 
 const PATH = '/administracion/flujos'
@@ -67,6 +68,8 @@ describe('responsables', () => {
     const user = userEvent.setup()
     const calls = renderApp('/requerimientos', ['req.create'])
 
+    // El id sale de la grabación: cambia cada vez que se regraba.
+    const ana = (fixtures['GET /api/users'] as { items: { id: string; displayName: string }[] }).items.find((item) => item.displayName === 'Ana Rojas')
     await user.click(await screen.findByRole('button', { name: 'Nuevo REQ' }))
     const form = screen.getByRole('form', { name: 'Nuevo requerimiento' })
     const owner = within(form).getByRole('combobox', { name: 'Responsable' })
@@ -78,6 +81,6 @@ describe('responsables', () => {
     await user.selectOptions(owner, 'Ana Rojas')
     await user.click(within(form).getByRole('button', { name: 'Registrar REQ' }))
     await within(form).findByRole('alert')
-    expect(calls.find((call) => call.method === 'POST')?.body).toMatchObject({ title: 'Tope por comercio', owner: 'eb0a2839-b99a-41c5-884d-60a37e4a3127' })
+    expect(calls.find((call) => call.method === 'POST')?.body).toMatchObject({ title: 'Tope por comercio', owner: ana?.id })
   })
 })

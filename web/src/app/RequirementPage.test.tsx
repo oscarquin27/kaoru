@@ -59,7 +59,7 @@ describe('ficha del REQ', () => {
 
     await user.click(screen.getByRole('tab', { name: /Actividad/ }))
     expect(await screen.findByText('Queda en espera de la corrección de DEF-2026-0001.')).toBeInTheDocument()
-    expect(screen.getByText(/Ana Rojas cambió el estado de requerimiento/, { selector: 'li:first-child' })).toHaveTextContent('Con defectos → En pruebas')
+    expect(screen.getAllByText(/Ana Rojas cambió el estado de requerimiento/)[0]).toHaveTextContent('Entregado a QA → En pruebas')
   })
 })
 
