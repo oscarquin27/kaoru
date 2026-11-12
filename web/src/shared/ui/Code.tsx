@@ -10,7 +10,8 @@ const PANEL_PREFIXES = ['REQ', 'CHG', 'DEF', 'DOC', 'UC', 'TC', 'RUN', 'EXP']
 export function Code({ code, panel }: { code: string; panel?: boolean }) {
   const [, setParams] = useSearchParams()
   const route = routeOf(code)
-  if (route && !panel) {
+  // Lo que el panel no sabe leer (PKG, BUILD, ENV, DEP, COMP) va siempre a su ficha.
+  if (route && (!panel || !PANEL_PREFIXES.includes(prefixOf(code)))) {
     return (
       <Link className="id" to={route}>
         {code}

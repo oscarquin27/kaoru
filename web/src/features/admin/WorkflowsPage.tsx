@@ -239,6 +239,7 @@ const FLOWS: { entityType: FlowType; title: string }[] = [
   { entityType: 'requirement', title: 'Requerimientos' },
   { entityType: 'defect', title: 'Defectos' },
   { entityType: 'change', title: 'Cambios' },
+  { entityType: 'package', title: 'Paquetes' },
 ]
 
 function FlowSection({ entityType, title, permissions, editable }: { entityType: FlowType; title: string; permissions: Permission[]; editable: boolean }) {

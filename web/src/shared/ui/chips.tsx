@@ -1,7 +1,7 @@
 // Chip de estado: color + ícono + texto, siempre los tres (boceto, «Estados»).
 import type { ReactNode } from 'react'
-import type { RiskLevel, RunResult, Severity, StateRef } from '../api/types.ts'
-import { RESULT_LABELS, RISK_LABELS, SEVERITY_LABELS } from '../lib/labels.ts'
+import type { ComponentRef, DeploymentResult, RiskLevel, RunResult, Severity, StateRef } from '../api/types.ts'
+import { COMPONENT_KIND_LABELS, DEPLOYMENT_RESULT_LABELS, RESULT_LABELS, RISK_LABELS, SEVERITY_LABELS } from '../lib/labels.ts'
 import { Icon, type IconName } from './Icon.tsx'
 
 export type Tone = 'ok' | 'curso' | 'aviso' | 'bloq' | 'neutro' | 'actual'
@@ -44,6 +44,11 @@ const STATE_LOOKS: Record<string, Look> = {
   reopened: WARNING,
   deferred: WARNING,
   rejected: { tone: 'bloq', icon: 'x' },
+  // PKG
+  in_assembly: IN_PROGRESS,
+  ready_to_release: OK,
+  approved_for_production: OK,
+  deployed: OK,
 }
 
 export function StateChip({ state, current, large }: { state: StateRef; current?: boolean; large?: boolean }) {
@@ -80,4 +85,42 @@ const RESULT_LOOKS: Record<RunResult, Look> = {
 export function ResultChip({ result }: { result: RunResult | undefined }) {
   if (!result) return <Chip {...NEUTRAL}>Pendiente</Chip>
   return <Chip {...RESULT_LOOKS[result]}>{RESULT_LABELS[result]}</Chip>
+}
+
+const DEPLOYMENT_LOOKS: Record<DeploymentResult, Look> = {
+  success: OK,
+  failed: { tone: 'bloq', icon: 'x' },
+  rolled_back: WARNING,
+}
+
+export function DeploymentResultChip({ result }: { result: DeploymentResult }) {
+  return <Chip {...DEPLOYMENT_LOOKS[result]}>{DEPLOYMENT_RESULT_LABELS[result]}</Chip>
+}
+
+/** Vigencia de algo que no se borra, solo se retira (COMP, ENV). */
+export function RetiredChip({ retired }: { retired: boolean }) {
+  return retired ? (
+    <Chip tone="neutro" icon="minus">
+      Retirado
+    </Chip>
+  ) : (
+    <Chip tone="ok" icon="check">
+      Activo
+    </Chip>
+  )
+}
+
+/** Componentes (COMP) como chips; el nombre dice qué es y la clase va en el título. */
+export function ComponentChips({ components, empty = 'Ninguno' }: { components: ComponentRef[]; empty?: string }) {
+  if (components.length === 0) return <span className="muted">{empty}</span>
+  return (
+    <span className="cell-line">
+      {components.map((component) => (
+        <span key={component.code} className="chip chip--neutro" title={`${component.code} · ${COMPONENT_KIND_LABELS[component.kind]}`}>
+          <Icon name="box" />
+          {component.name}
+        </span>
+      ))}
+    </span>
+  )
 }

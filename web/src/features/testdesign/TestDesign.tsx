@@ -7,6 +7,7 @@ import { Empty } from '../../shared/ui/feedback.tsx'
 import { CheckField, CheckGroupField, Form, TextAreaField, TextField, text } from '../../shared/ui/Form.tsx'
 import { Icon } from '../../shared/ui/Icon.tsx'
 import { Dialog } from '../../shared/ui/Modal.tsx'
+import { RunTarget } from '../../shared/ui/RunTarget.tsx'
 import { useCreateFunctionalCase, useCreateTestCase } from './api.ts'
 
 function FunctionalCaseForm({ requirementCode, onClose }: { requirementCode: string; onClose: () => void }) {
@@ -167,9 +168,7 @@ export function TestDesign({ requirementCode, systemKey, functionalCases, testCa
                     <td>{testCase.lastRun ? <Code code={testCase.lastRun.code} /> : <span className="muted">Sin RUN</span>}</td>
                     <td>
                       {testCase.lastRun ? (
-                        <span className="mono">
-                          {testCase.lastRun.buildVersion} · {testCase.lastRun.environmentName}
-                        </span>
+                        <RunTarget target={testCase.lastRun} />
                       ) : (
                         <span className="muted">—</span>
                       )}

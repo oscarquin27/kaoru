@@ -15,6 +15,10 @@ const RULE_LABELS: Record<string, string> = {
   min_coverage: 'Cobertura mínima de TC con RUN aprobado (%)',
   no_open_defect_with_severity: 'Sin defectos abiertos de esa severidad',
   defect_severity_is_not: 'El defecto no es de esa severidad',
+  package_has_content: 'El paquete tiene al menos un BUILD y un REQ',
+  regression_confirmed: 'La selección de regresión está confirmada',
+  regression_passed: 'Toda la regresión tiene su último RUN aprobado sobre un BUILD del paquete',
+  deployed_to_production: 'Hay un despliegue exitoso del paquete en producción',
 }
 
 function WorkflowRules({ title, workflow, editable }: { title: string; workflow: Workflow; editable: boolean }) {
@@ -88,6 +92,7 @@ export default function BlockingRulesPage() {
   const requirement = useWorkflow('requirement')
   const defect = useWorkflow('defect')
   const change = useWorkflow('change')
+  const bundle = useWorkflow('package')
   return (
     <>
       <Crumbs items={[{ label: 'Administración', to: '/administracion' }, { label: 'Reglas de bloqueo' }]} />
@@ -95,6 +100,7 @@ export default function BlockingRulesPage() {
       <Async query={requirement}>{(data) => <WorkflowRules title="Requerimientos" workflow={data} editable={editable} />}</Async>
       <Async query={defect}>{(data) => <WorkflowRules title="Defectos" workflow={data} editable={editable} />}</Async>
       <Async query={change}>{(data) => <WorkflowRules title="Cambios" workflow={data} editable={editable} />}</Async>
+      <Async query={bundle}>{(data) => <WorkflowRules title="Paquetes" workflow={data} editable={editable} />}</Async>
     </>
   )
 }

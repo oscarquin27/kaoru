@@ -2,17 +2,17 @@
 import type { Document } from '../../shared/api/types.ts'
 import { DOCUMENT_KIND_LABELS, options } from '../../shared/lib/labels.ts'
 import { Form, SelectField, TextField } from '../../shared/ui/Form.tsx'
-import { useCreateDocument, useCreateDocumentVersion } from './api.ts'
+import { type DocumentOwner, useCreateDocument, useCreateDocumentVersion } from './api.ts'
 
-/** Con `document` sube una versión; sin él, adjunta un documento nuevo al requerimiento. */
-export function UploadForm({ document, requirementCode, onClose }: { document?: Document; requirementCode?: string; onClose: () => void }) {
+/** Con `document` sube una versión; sin él, adjunta un documento nuevo a la entidad. */
+export function UploadForm({ document, entityType = 'requirement', entityCode, onClose }: { document?: Document; entityType?: DocumentOwner; entityCode?: string; onClose: () => void }) {
   const create = useCreateDocument()
   const addVersion = useCreateDocumentVersion(document?.code ?? '')
 
   function submit(data: FormData) {
     if (document) return addVersion.mutateAsync(data)
-    data.set('entityType', 'requirement')
-    data.set('entityCode', requirementCode ?? '')
+    data.set('entityType', entityType)
+    data.set('entityCode', entityCode ?? '')
     return create.mutateAsync(data)
   }
 

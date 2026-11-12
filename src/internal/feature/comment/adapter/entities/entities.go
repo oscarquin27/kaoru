@@ -6,6 +6,7 @@ import (
 	"context"
 
 	"kaoru/internal/core/pkg/axis"
+	bundleuc "kaoru/internal/feature/bundle/application/usecase"
 	changeuc "kaoru/internal/feature/change/application/usecase"
 	"kaoru/internal/feature/comment/application/port"
 	"kaoru/internal/feature/comment/domain"
@@ -18,6 +19,7 @@ type Sources struct {
 	Requirement *requirementuc.UseCases
 	Change      *changeuc.UseCases
 	Defect      *defectuc.UseCases
+	Bundle      *bundleuc.UseCases
 }
 
 // Entities resuelve la entidad que se comenta.
@@ -44,6 +46,9 @@ func (e *Entities) Resolve(ctx context.Context, entityType, code string) (domain
 	case "defect":
 		out, e2 := e.s.Defect.GetDefect.Execute(ctx, defectuc.GetDefectInput{Code: code})
 		id, err = out.Defect.Id, e2
+	case "package":
+		out, e2 := e.s.Bundle.FindPackage.Execute(ctx, bundleuc.FindPackageInput{Code: code})
+		id, err = out.Id, e2
 	default:
 		return domain.EntityRef{}, axis.New(axis.NotFoundResource, "Ese tipo de entidad no admite comentarios.")
 	}

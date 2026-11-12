@@ -57,6 +57,17 @@ export function FilterInput({ name, label, type = 'text', placeholder }: FilterP
   )
 }
 
+/** Casilla que agrega `name=true` a la URL (por ejemplo, «incluir retirados»). */
+export function FilterCheck({ name, label }: FilterProps) {
+  const { params, setFilter } = useUrlFilters()
+  return (
+    <label className="check">
+      <input type="checkbox" checked={params.get(name) === 'true'} onChange={(event) => setFilter(name, event.target.checked ? 'true' : '')} />
+      {label}
+    </label>
+  )
+}
+
 /** Pie de una lista paginada. */
 export function Pager({ page, size, total, noun }: { page: number; size: number; total: number; noun: string }) {
   const { setFilter } = useUrlFilters()

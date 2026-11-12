@@ -10,7 +10,7 @@ import { describeEntry } from '../features/audit/describe.ts'
 import { useComments } from '../features/comments/api.ts'
 import { CommentForm } from '../features/comments/CommentForm.tsx'
 
-export function Activity({ entityType, entityCode }: { entityType: 'requirement' | 'defect'; entityCode: string }) {
+export function Activity({ entityType, entityCode }: { entityType: 'requirement' | 'defect' | 'package'; entityCode: string }) {
   const can = useCan()
   const audit = useAudit({ entityCode })
   const comments = useComments(entityType as EntityType, entityCode)
