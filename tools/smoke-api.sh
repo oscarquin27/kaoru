@@ -36,10 +36,9 @@ case "$body" in
 esac
 
 metrics="$(curl -s http://127.0.0.1:59091/metrics)"
-case "$metrics" in
-    *'http_server_requests_total{method="GET",route="/api/me",status="401"}'*'db_pool_max_connections'*) ;;
-    *) fail "/metrics no trae las métricas HTTP con la plantilla de ruta ni las del pool" ;;
-esac
+printf '%s' "$metrics" | grep -q 'http_server_requests_total{method="GET",route="/api/me",status="401"}' \
+    || fail "/metrics no trae las peticiones con la plantilla de ruta"
+printf '%s' "$metrics" | grep -q '^db_pool_max_connections ' || fail "/metrics no trae las métricas del pool"
 [ "$(status http://127.0.0.1:58081/metrics)" = 404 ] || fail "el puerto público no debe servir /metrics"
 
 docker exec "$name" /kaoru-api healthcheck || fail "el healthcheck del contenedor falló"

@@ -5,9 +5,9 @@ IMAGE ?= kaoru-api:dev
 GOLANGCI_VERSION ?= v2.15.0
 
 .PHONY: check generate image offline-bundle check-go check-generated check-openapi check-migrations \
-	check-integration check-image check-e2e check-offline
+	check-integration check-image check-web check-e2e check-front check-offline
 
-check: check-go check-generated check-openapi check-migrations check-integration check-image check-e2e
+check: check-go check-generated check-openapi check-migrations check-integration check-image check-web check-e2e check-front
 	@echo "make check: OK"
 
 # Imagen de kaoru-api.
@@ -48,6 +48,14 @@ check-integration:
 check-image:
 	docker build -q -f infra/api/Dockerfile -t $(IMAGE) .
 	KAORU_API_IMAGE=$(IMAGE) ./tools/with-postgres.sh ./tools/smoke-api.sh
+
+# El front: lint, tipos, pruebas y build. Requiere `npm --prefix web ci` una vez.
+check-web:
+	npm --prefix web run check
+
+# El front compilado detrás del perímetro real: solo con sesión, rutas directas y política de seguridad.
+check-front:
+	./tools/e2e-front.sh
 
 # El despliegue completo con sesión real: Keycloak, oauth2-proxy, Nginx y la API.
 check-e2e:

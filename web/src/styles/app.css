@@ -1,0 +1,97 @@
+/* Componentes del boceto, con sus mismas clases, y lo que el boceto no llegó a dibujar
+   (formularios, diálogos, esqueletos, menú de usuario). Los colores salen solo de los tokens. */
+@import "./tokens.css";
+@import "../../../tools/boceto/css/boceto.css";
+
+textarea { font: inherit; color: inherit; }
+
+/* ---------- Formularios ---------- */
+.form { display: flex; flex-direction: column; gap: var(--s-4); }
+.form__row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--s-3); }
+.form__actions { display: flex; justify-content: flex-end; gap: var(--s-2); }
+.textarea {
+  min-height: 84px; padding: var(--s-2) var(--s-3); resize: vertical;
+  background: var(--surface-solid); color: var(--text);
+  border: 1px solid var(--line); border-radius: var(--r-m);
+  font-size: var(--text-s); line-height: 1.5;
+}
+.textarea:hover { border-color: var(--accent-text); }
+.input[aria-invalid="true"], .select[aria-invalid="true"], .textarea[aria-invalid="true"] { border-color: var(--bloq); }
+.field__error { display: flex; align-items: center; gap: var(--s-1); color: var(--bloq); }
+.field__error .icon { width: 13px; height: 13px; }
+.field__hint { color: var(--text-3); }
+.check { display: flex; align-items: center; gap: var(--s-2); font-size: var(--text-s); color: var(--text); }
+.check input { width: 16px; height: 16px; accent-color: var(--accent); }
+.checks { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); border: 0; padding: 0; margin: 0; }
+.checks legend { padding: 0; margin-bottom: var(--s-1); font-size: var(--text-xs); color: var(--text-2); }
+.btn:disabled, .btn[aria-disabled="true"] { opacity: 0.55; cursor: default; }
+.btn:disabled:hover { border-color: var(--glass-border); }
+
+/* Aviso de error: misma caja que .notice, con el color de bloqueo */
+.notice--error {
+  border-color: color-mix(in srgb, var(--bloq) 34%, var(--surface-solid));
+  background: color-mix(in srgb, var(--bloq) 10%, var(--surface-solid));
+}
+.notice--error .icon { color: var(--bloq); }
+.notice--ok {
+  border-color: color-mix(in srgb, var(--ok) 34%, var(--surface-solid));
+  background: color-mix(in srgb, var(--ok) 10%, var(--surface-solid));
+}
+.notice--ok .icon { color: var(--ok); }
+.notice__main { flex: 1; min-width: 0; }
+
+/* ---------- Diálogo centrado ---------- */
+.dialog {
+  width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 64px);
+  box-shadow: var(--shadow-2);
+  background: color-mix(in srgb, var(--surface-solid) 92%, transparent);
+}
+.dialog[open] { display: flex; flex-direction: column; }
+.dialog__body { padding: var(--s-5); overflow: auto; }
+
+/* ---------- Menú de usuario ---------- */
+.menu {
+  position: fixed; inset: auto var(--s-6) auto auto; top: 56px; margin: 0;
+  min-width: 240px; padding: var(--s-3); color: var(--text);
+  background: color-mix(in srgb, var(--surface-solid) 92%, transparent);
+  box-shadow: var(--shadow-2);
+}
+.menu:popover-open { display: flex; flex-direction: column; gap: var(--s-2); }
+.menu__item { justify-content: flex-start; }
+
+/* ---------- Navegación secundaria: enlaces con la forma de las pestañas ---------- */
+a.tab:hover { text-decoration: none; }
+.tab[aria-current="page"] { color: var(--text); border-bottom-color: var(--accent-text); }
+.nav__item[aria-disabled="true"] { color: var(--text-3); }
+.nav__item[aria-disabled="true"]:hover { background: none; color: var(--text-3); }
+
+/* ---------- Esqueleto mientras carga ---------- */
+.skeleton {
+  display: block; min-height: 16px; border-radius: var(--r-m);
+  background: var(--surface-2);
+  animation: skeleton-pulse 1.2s var(--ease) infinite alternate;
+}
+.skeleton--title { height: 32px; width: 320px; max-width: 100%; }
+.skeleton--block { height: 220px; }
+.skeleton--row { height: 48px; }
+@keyframes skeleton-pulse { to { opacity: 0.55; } }
+@media (prefers-reduced-motion: reduce) {
+  .skeleton, .drawer[open] { animation: none; }
+}
+
+/* ---------- Varios ---------- */
+.life-scroll { overflow-x: auto; }
+.pager { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); color: var(--text-3); font-size: var(--text-xs); }
+.viewer__object { width: 100%; height: 70vh; border: 0; }
+.viewer__image { max-width: 100%; height: auto; }
+.pre { margin: 0; font-family: var(--font-mono); font-size: var(--text-s); white-space: pre-wrap; overflow-wrap: anywhere; }
+.prose pre { margin: 0; padding: var(--s-3); border-radius: var(--r-m); background: var(--surface-2); overflow: auto; }
+.prose pre code { padding: 0; background: none; }
+.prose ol { list-style: decimal; padding-left: var(--s-5); }
+.prose h3 { font-size: var(--text-m); font-weight: var(--weight-strong); }
+.sheet-preview { width: 100%; height: 420px; border: 1px solid var(--line); border-radius: var(--r-m); background: var(--surface-solid); }
+.wrap { white-space: pre-wrap; overflow-wrap: anywhere; }
+.table td.wrap { min-width: 220px; }
+.table .check { justify-content: center; }
+.col-actions .cell-line { flex-wrap: nowrap; justify-content: flex-end; }
+.table td.num { white-space: nowrap; }

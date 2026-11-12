@@ -7,6 +7,8 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 work="$(mktemp -d)"
 export KAORU_PROJECT=kaoru-offline-e2e
 lab_password="Lab-$(openssl rand -hex 8)-9a"
+# El paquete trae el front compilado: así se reconoce su página.
+export LANDING_MARK='id="root"'
 
 bundle="$("$root/tools/offline-bundle.sh" | tail -1)"
 tar xzf "$bundle" -C "$work"

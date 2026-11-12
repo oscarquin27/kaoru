@@ -61,7 +61,7 @@ for asset in $assets; do
         *) fail "$asset respondió «$type»" ;;
     esac
 done
-for route in / /requerimientos /requerimientos/REQ-2026-0001 /pruebas/matriz /defectos /auditoria; do
+for route in / /requerimientos /requerimientos/REQ-2026-0001 /pruebas /defectos /administracion/auditoria; do
     curl -sk -b "$work/lab-qa.jar" -o "$work/page.html" -w '%{http_code}' "$base$route" >"$work/code"
     [ "$(code)" = 200 ] || fail "la ruta $route respondió $(code)"
     cmp -s "$dist/index.html" "$work/page.html" || fail "la ruta $route no entregó el front"

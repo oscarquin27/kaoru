@@ -14,8 +14,16 @@ api_image="kaoru-api:$version"
 docker build -q -f "$root/infra/api/Dockerfile" -t "$api_image" "$root" >/dev/null
 
 cp -R "$root/infra/docker-compose.yml" "$root/infra/.env.example" "$root/infra/nginx" "$root/infra/postgres" \
-    "$root/infra/keycloak" "$root/infra/web" "$root/infra/lib.sh" "$root/infra/install.sh" \
+    "$root/infra/keycloak" "$root/infra/lib.sh" "$root/infra/install.sh" \
     "$root/infra/backup.sh" "$root/infra/restore.sh" "$stage/"
+
+# El front: se compila aquí, donde hay internet, y viaja ya compilado.
+if [ -f "$root/web/package.json" ]; then
+    (cd "$root/web" && npm ci --no-audit --no-fund >/dev/null && npm run build >/dev/null)
+    cp -R "$root/web/dist" "$stage/web"
+else
+    cp -R "$root/infra/web" "$stage/web"
+fi
 mkdir -p "$stage/tls"
 cp "$root/docs/instalacion.md" "$stage/LEEME.md"
 # El paquete usa la imagen de esta versión, no la de desarrollo.

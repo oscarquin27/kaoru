@@ -283,3 +283,14 @@ Tomadas el 11 nov 2026 al construir el core y el primer corte vertical (`workflo
 - **Métricas Prometheus** en el puerto interno (`/metrics`): peticiones y duración por método, plantilla de ruta y código, y las estadísticas del pool de Postgres (reglas §A.14). Cierra parte de D35.
 - **Pruebas unitarias de casos de uso** agregadas en `risk` y `defect`. Siguen pendientes en `user`, `testdesign`, `execution`, `document`, `comment`, `traceability` y la administración de `workflow` (D41).
 - **Siguen sin correr:** `golangci-lint`, `sqlc vet` y el lint completo de OpenAPI (D35).
+
+### D44 — El front
+- **Fecha:** 11 nov 2026
+- **Estado:** `[SUPUESTO]` hasta que QA y dev lo revisen en Chrome con sesión real.
+- **Qué es.** SPA de React + TypeScript + Vite con TanStack Query y react-router, en `web/`. Sin librería de componentes ni Tailwind: reutiliza el CSS del boceto con sus mismas clases (`web/src/styles` lo importa de `tools/boceto/css`). Los tipos salen de `api/openapi.yaml` con `openapi-typescript`.
+- **TypeScript 5**, no 7: lo exige `openapi-typescript`.
+- **Markdown** con un renderizador propio pequeño que genera nodos React; no inserta HTML del documento.
+- **Rutas.** Los IDs legibles son las rutas (`/requerimientos/REQ-2026-0042`). La matriz vive en `/pruebas` y la auditoría en `/administracion/auditoria`, porque el boceto no les da sección propia.
+- **Lo que el contrato no permite todavía:** elegir a otro usuario como responsable o asignado (no hay endpoint de usuarios; solo «yo»), columnas y filtros de PKG y RPT en la matriz, alertas de atraso en Inicio, comparar versiones de un documento y editar los parámetros de una regla de bloqueo desde la pantalla.
+- **Cómo se verificó.** Lint, tipos, 52 pruebas y build; visto en el navegador contra respuestas reales de la API grabadas (`web/mocks/fixtures.json`); y `tools/e2e-front.sh` comprueba que el front compilado se sirve solo con sesión, que sus archivos cargan con la política de seguridad de Nginx y que las rutas abren directo.
+- **Lo que no se verificó:** el front escribiendo contra la API real en un navegador (alta, transición, subida de archivos, el 401 real), porque el navegador de la sesión de trabajo no confía en el certificado autofirmado de laboratorio. Los cuerpos que envía están tipados contra el contrato y las lecturas se probaron con respuestas reales, pero falta la prueba manual en Chrome.
