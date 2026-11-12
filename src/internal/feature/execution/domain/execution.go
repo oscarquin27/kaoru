@@ -3,7 +3,6 @@
 package domain
 
 import (
-	"regexp"
 	"strings"
 	"time"
 
@@ -24,20 +23,38 @@ const (
 // ErrTestCaseRetired es el error de registrar un RUN sobre un TC retirado.
 var ErrTestCaseRetired = axis.New(axis.InvalidAction, "El TC está retirado: no admite ejecuciones nuevas.")
 
-var checksumPattern = regexp.MustCompile(`^[0-9a-f]{64}$`)
-
 // UserRef es un usuario con el nombre que se muestra.
 type UserRef struct {
 	Id   shared.UserId
 	Name string
 }
 
-// TestCaseRef es el TC que ejecuta un RUN.
+// TestCaseRef es el TC que ejecuta un RUN. SystemKey solo viene al registrar, para validar el sistema.
 type TestCaseRef struct {
-	Id      string
-	Code    string
-	Title   string
-	Retired bool
+	Id        string
+	Code      string
+	Title     string
+	Retired   bool
+	SystemKey string
+}
+
+// BuildRef es el BUILD del catálogo sobre el que se ejecuta.
+type BuildRef struct {
+	Id        string
+	Code      string
+	SystemKey string
+	Version   string
+	Checksum  string
+}
+
+// EnvironmentRef es el ambiente del catálogo en el que se ejecuta.
+type EnvironmentRef struct {
+	Id         string
+	Code       string
+	Name       string
+	SystemKey  string
+	Production bool
+	Retired    bool
 }
 
 // RunSnapshot es el contenido de un RUN.
@@ -45,10 +62,16 @@ type RunSnapshot struct {
 	Id       string
 	Code     shared.Code
 	TestCase TestCaseRef
-	// BuildVersion y BuildChecksum identifican el BUILD exacto sobre el que se ejecutó.
+	// BuildVersion, BuildChecksum y EnvironmentName se copian del BUILD y del ENV al registrar:
+	// son la evidencia tal como era al ejecutar, aunque después el ambiente cambie de nombre.
 	BuildVersion    string
 	BuildChecksum   string
 	EnvironmentName string
+	// El BUILD y el ENV del catálogo; vacíos en los RUN anteriores al catálogo.
+	BuildId         string
+	BuildCode       string
+	EnvironmentId   string
+	EnvironmentCode string
 	Result          Result
 	Notes           string
 	ExecutedBy      UserRef
@@ -64,20 +87,20 @@ type Run struct {
 
 // NewRunParams son los datos para registrar un RUN.
 type NewRunParams struct {
-	Id              string
-	Code            shared.Code
-	TestCase        TestCaseRef
-	BuildVersion    string
-	BuildChecksum   string
-	EnvironmentName string
-	Result          string
-	Notes           string
-	ExecutedBy      UserRef
-	ExecutedAt      time.Time
-	Now             time.Time
+	Id          string
+	Code        shared.Code
+	TestCase    TestCaseRef
+	Build       BuildRef
+	Environment EnvironmentRef
+	Result      string
+	Notes       string
+	ExecutedBy  UserRef
+	ExecutedAt  time.Time
+	Now         time.Time
 }
 
-// NewRun valida y registra un RUN.
+// NewRun valida y registra un RUN sobre un BUILD y un ENV del mismo sistema que el TC.
+// Un ambiente de producción no admite RUN: QA no ejecuta en producción.
 func NewRun(p NewRunParams) (Run, error) {
 	if p.TestCase.Retired {
 		return Run{}, ErrTestCaseRetired
@@ -85,17 +108,14 @@ func NewRun(p NewRunParams) (Run, error) {
 	var errs axis.FieldErrors
 	s := RunSnapshot{
 		Id: p.Id, Code: p.Code, TestCase: p.TestCase,
-		BuildVersion:    validRequired("buildVersion", p.BuildVersion, "Indica la versión del BUILD.", &errs),
-		BuildChecksum:   strings.ToLower(strings.TrimSpace(p.BuildChecksum)),
-		EnvironmentName: validRequired("environmentName", p.EnvironmentName, "Indica el ambiente.", &errs),
-		Result:          Result(p.Result), Notes: strings.TrimSpace(p.Notes),
+		BuildVersion: p.Build.Version, BuildChecksum: p.Build.Checksum, EnvironmentName: p.Environment.Name,
+		BuildId: p.Build.Id, BuildCode: p.Build.Code, EnvironmentId: p.Environment.Id, EnvironmentCode: p.Environment.Code,
+		Result: Result(p.Result), Notes: strings.TrimSpace(p.Notes),
 		ExecutedBy: p.ExecutedBy, ExecutedAt: p.ExecutedAt.UTC(), CreatedAt: p.Now,
 	}
-	switch {
-	case s.BuildChecksum == "":
-		errs.Add(axis.Required("buildChecksum", "Pega el checksum SHA-256 del BUILD."))
-	case !checksumPattern.MatchString(s.BuildChecksum):
-		errs.Add(axis.InvalidField("buildChecksum", "El checksum debe ser un SHA-256: 64 caracteres hexadecimales."))
+	validCatalog(p.Build, p.Environment, p.TestCase.SystemKey, "el TC", &errs)
+	if p.Environment.Production {
+		errs.Add(axis.InvalidField("environment", "QA no ejecuta en producción: elige un ambiente de prueba."))
 	}
 	switch {
 	case p.Result == "":
@@ -116,10 +136,11 @@ func RehydrateRun(s RunSnapshot) Run { return Run{s: s} }
 // Snapshot devuelve el contenido del RUN.
 func (r Run) Snapshot() RunSnapshot { return r.s }
 
-// RequirementRef es el REQ que explora un EXP.
+// RequirementRef es el REQ que explora un EXP. SystemKey solo viene al registrar, para validar el sistema.
 type RequirementRef struct {
-	Id   string
-	Code string
+	Id        string
+	Code      string
+	SystemKey string
 }
 
 // ExplorationSnapshot es el contenido de un EXP.
@@ -129,6 +150,11 @@ type ExplorationSnapshot struct {
 	Requirement     RequirementRef
 	BuildVersion    string
 	EnvironmentName string
+	// El BUILD y el ENV del catálogo; vacíos en los EXP anteriores al catálogo.
+	BuildId         string
+	BuildCode       string
+	EnvironmentId   string
+	EnvironmentCode string
 	// ManualChanges son los cambios hechos a mano sobre el BUILD o el ambiente.
 	ManualChanges string
 	Findings      string
@@ -145,28 +171,29 @@ type Exploration struct {
 
 // NewExplorationParams son los datos para registrar un EXP.
 type NewExplorationParams struct {
-	Id              string
-	Code            shared.Code
-	Requirement     RequirementRef
-	BuildVersion    string
-	EnvironmentName string
-	ManualChanges   string
-	Findings        string
-	ExecutedBy      UserRef
-	ExecutedAt      time.Time
-	Now             time.Time
+	Id            string
+	Code          shared.Code
+	Requirement   RequirementRef
+	Build         BuildRef
+	Environment   EnvironmentRef
+	ManualChanges string
+	Findings      string
+	ExecutedBy    UserRef
+	ExecutedAt    time.Time
+	Now           time.Time
 }
 
-// NewExploration valida y registra un EXP.
+// NewExploration valida y registra un EXP sobre un BUILD y un ENV del sistema del REQ.
 func NewExploration(p NewExplorationParams) (Exploration, error) {
 	var errs axis.FieldErrors
 	s := ExplorationSnapshot{
 		Id: p.Id, Code: p.Code, Requirement: p.Requirement,
-		BuildVersion:    validRequired("buildVersion", p.BuildVersion, "Indica la versión del BUILD.", &errs),
-		EnvironmentName: validRequired("environmentName", p.EnvironmentName, "Indica el ambiente.", &errs),
-		ManualChanges:   strings.TrimSpace(p.ManualChanges), Findings: strings.TrimSpace(p.Findings),
+		BuildVersion: p.Build.Version, EnvironmentName: p.Environment.Name,
+		BuildId: p.Build.Id, BuildCode: p.Build.Code, EnvironmentId: p.Environment.Id, EnvironmentCode: p.Environment.Code,
+		ManualChanges: strings.TrimSpace(p.ManualChanges), Findings: strings.TrimSpace(p.Findings),
 		ExecutedBy: p.ExecutedBy, ExecutedAt: p.ExecutedAt.UTC(), CreatedAt: p.Now, UpdatedAt: p.Now,
 	}
+	validCatalog(p.Build, p.Environment, p.Requirement.SystemKey, "el REQ", &errs)
 	validExecutedAt(p.ExecutedAt, p.Now, &errs)
 	if err := errs.Err(); err != nil {
 		return Exploration{}, err
@@ -232,12 +259,18 @@ func Coverage(testCases []CoverageTestCase, latest map[string]Result) (required 
 	return required, pending
 }
 
-func validRequired(field, raw, message string, errs *axis.FieldErrors) string {
-	value := strings.TrimSpace(raw)
-	if value == "" {
-		errs.Add(axis.Required(field, message))
+// validCatalog comprueba que el BUILD y el ENV sean del sistema de lo que se ejecuta (owner: «el TC»
+// o «el REQ») y que el ambiente siga en uso.
+func validCatalog(build BuildRef, environment EnvironmentRef, systemKey, owner string, errs *axis.FieldErrors) {
+	if build.SystemKey != systemKey {
+		errs.Add(axis.InvalidField("build", "El BUILD es de otro sistema que "+owner+"."))
 	}
-	return value
+	switch {
+	case environment.SystemKey != systemKey:
+		errs.Add(axis.InvalidField("environment", "El ambiente es de otro sistema que "+owner+"."))
+	case environment.Retired:
+		errs.Add(axis.InvalidField("environment", "El ambiente está retirado: no admite ejecuciones."))
+	}
 }
 
 func validExecutedAt(executedAt, now time.Time, errs *axis.FieldErrors) {

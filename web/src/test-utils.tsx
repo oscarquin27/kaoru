@@ -31,11 +31,37 @@ export function stubApi(override?: (method: string, url: string) => Response | u
   return calls
 }
 
-/** Monta la aplicación completa en una ruta, con un usuario que tiene los permisos dados. */
-export function renderApp(path: string, permissions: string[] = fixtureMe.permissions) {
-  const calls = stubApi((method, url) =>
-    method === 'GET' && url === '/api/me' ? new Response(JSON.stringify({ ...fixtureMe, permissions }), { headers: { 'Content-Type': 'application/json' } }) : undefined,
-  )
+export function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
+}
+
+/** Una lista paginada con todo en la primera página. */
+export function pageOf<T>(items: T[]) {
+  return { items, page: 1, size: 25, total: items.length }
+}
+
+type Reply = unknown | ((url: string) => unknown)
+
+/**
+ * Respuestas en línea para `override`, por método y ruta sin filtros: `{ 'GET /api/builds': pageOf([...]) }`.
+ * Un valor que no es una `Response` se responde como JSON; una función recibe la URL completa.
+ */
+export function routes(table: Record<string, Reply>): (method: string, url: string) => Response | undefined {
+  return (method, url) => {
+    const key = `${method} ${url.split('?')[0]}`
+    if (!(key in table)) return undefined
+    const value = table[key]
+    const reply: unknown = typeof value === 'function' ? (value as (url: string) => unknown)(url) : value
+    return reply instanceof Response ? reply : jsonResponse(reply)
+  }
+}
+
+/**
+ * Monta la aplicación completa en una ruta, con un usuario que tiene los permisos dados.
+ * `override` responde lo que las grabaciones no tienen (las pantallas nuevas).
+ */
+export function renderApp(path: string, permissions: string[] = fixtureMe.permissions, override?: (method: string, url: string) => Response | undefined) {
+  const calls = stubApi((method, url) => (method === 'GET' && url === '/api/me' ? jsonResponse({ ...fixtureMe, permissions }) : override?.(method, url)))
   render(
     <MemoryRouter initialEntries={[path]}>
       <App queryClient={createQueryClient()} />

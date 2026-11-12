@@ -6,10 +6,12 @@ import (
 	"context"
 
 	"kaoru/internal/core/pkg/axis"
+	bundleuc "kaoru/internal/feature/bundle/application/usecase"
 	changeuc "kaoru/internal/feature/change/application/usecase"
 	defectuc "kaoru/internal/feature/defect/application/usecase"
 	"kaoru/internal/feature/document/application/port"
 	"kaoru/internal/feature/document/domain"
+	environmentuc "kaoru/internal/feature/environment/application/usecase"
 	executionuc "kaoru/internal/feature/execution/application/usecase"
 	requirementuc "kaoru/internal/feature/requirement/application/usecase"
 	testdesignuc "kaoru/internal/feature/testdesign/application/usecase"
@@ -22,6 +24,8 @@ type Sources struct {
 	TestDesign  *testdesignuc.UseCases
 	Execution   *executionuc.UseCases
 	Defect      *defectuc.UseCases
+	Bundle      *bundleuc.UseCases
+	Environment *environmentuc.UseCases
 }
 
 // Entities resuelve la entidad a la que se enlaza un documento.
@@ -60,6 +64,12 @@ func (e *Entities) Resolve(ctx context.Context, entityType, code string) (domain
 	case "defect":
 		out, e2 := e.s.Defect.GetDefect.Execute(ctx, defectuc.GetDefectInput{Code: code})
 		id, err = out.Defect.Id, e2
+	case "package":
+		out, e2 := e.s.Bundle.FindPackage.Execute(ctx, bundleuc.FindPackageInput{Code: code})
+		id, err = out.Id, e2
+	case "deployment":
+		out, e2 := e.s.Environment.GetDeployment.Execute(ctx, environmentuc.GetDeploymentInput{Code: code})
+		id, err = out.Id, e2
 	default:
 		return domain.EntityRef{}, axis.New(axis.NotFoundResource, "Ese tipo de entidad no admite documentos.")
 	}

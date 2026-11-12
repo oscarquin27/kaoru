@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Siembra datos de EJEMPLO (ficticios) en el Kaoru de desarrollo, usando la API con sesión real:
-# dos CHG, cuatro REQ en distintos estados, RISK, UC, TC, RUN, DEF, enlaces, un documento y comentarios.
+# dos CHG, cuatro REQ en distintos estados, RISK, UC, TC, un BUILD desplegado en un ambiente, RUN, DEF,
+# enlaces, un documento y comentarios.
 # Requiere tools/dev-up.sh. Cada corrida agrega otro juego de datos.
 set -euo pipefail
 
@@ -24,10 +25,11 @@ post() { # usuario ruta cuerpo → imprime la respuesta; falla si no es 2xx
 put() { api "$1" PUT "$2" "$3" >/dev/null; case "$(code)" in 2*) ;; *) fail "PUT $2 respondió $(code): $(cat "$work/body")" ;; esac; }
 patch() { api "$1" PATCH "$2" "$3" >/dev/null; case "$(code)" in 2*) ;; *) fail "PATCH $2 respondió $(code): $(cat "$work/body")" ;; esac; }
 move() { post "$1" "/api/$2/$3/transitions" "{\"to\":\"$4\",\"reason\":\"${5:-}\"}" >/dev/null; }
-checksum="$(printf 'build-de-ejemplo' | shasum -a 256 | cut -d' ' -f1)"
+# El checksum de un BUILD no se repite: cada corrida registra el suyo.
+checksum="$(printf 'build-de-ejemplo-%s' "$(date -u +%Y%m%dT%H%M%S)-$$" | shasum -a 256 | cut -d' ' -f1)"
 ago() { date -u -v-"$1"H +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d "$1 hours ago" +%Y-%m-%dT%H:%M:%SZ; }
-run() { # tc resultado horas-atrás → código del RUN
-    post lab-qa /api/runs "{\"testCase\":\"$1\",\"buildVersion\":\"2.14.0\",\"buildChecksum\":\"$checksum\",\"environmentName\":\"QA-1 (línea base)\",\"result\":\"$2\",\"executedAt\":\"$(ago "$3")\"}" | json_code RUN
+run() { # tc resultado horas-atrás → código del RUN, sobre el BUILD y el ambiente de SyPago
+    post lab-qa /api/runs "{\"testCase\":\"$1\",\"build\":\"$build\",\"environment\":\"$env\",\"result\":\"$2\",\"executedAt\":\"$(ago "$3")\"}" | json_code RUN
 }
 # to_testing req: lleva un REQ de «Registrado» a «En pruebas».
 to_testing() {
@@ -50,6 +52,12 @@ move lab-manager changes "$chg" in_progress
 req1="$(post lab-manager /api/requirements "{\"title\":\"Límite diario por ordenante\",\"description\":\"El acumulado del día no puede pasar el límite configurado.\",\"acceptanceCriteria\":\"- Rechaza el pago que supera el límite.\\n- Los pagos reversados no cuentan.\",\"system\":\"SYPAGO\",\"change\":\"$chg\",\"owner\":\"$(api lab-qa GET /api/me | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)\"}" | json_code REQ)"
 put lab-qa "/api/requirements/$req1/risk" '{"level":"medium","justification":"Toca el cálculo de acumulados, con alternativa operativa.","characteristics":["functional_suitability","reliability"]}'
 to_testing "$req1"
+# El catálogo sobre el que se ejecuta: el BUILD que trae el REQ y el ambiente de línea base de SyPago.
+# El nombre de un ambiente no se repite en su sistema: si ya existe de otra corrida, se reutiliza.
+build="$(post lab-dev /api/builds "{\"system\":\"SYPAGO\",\"version\":\"2.14.0\",\"checksum\":\"$checksum\",\"requirements\":[\"$req1\"],\"migrations\":\"0042_limite_diario.sql\",\"dependencies\":\"libpagos 3.1.0\",\"notes\":\"Datos de ejemplo.\"}" | json_code BUILD)"
+env="$(api lab-qa GET '/api/environments?system=SYPAGO&kind=baseline' | json_code ENV || true)"
+[ -n "$env" ] || env="$(post lab-qa /api/environments '{"system":"SYPAGO","name":"QA-1 (línea base)","kind":"baseline","os":"linux","notes":"Datos de ejemplo."}' | json_code ENV)"
+post lab-qa /api/deployments "{\"environment\":\"$env\",\"build\":\"$build\",\"result\":\"success\",\"notes\":\"Datos de ejemplo.\",\"executedAt\":\"$(ago 36)\"}" >/dev/null
 uc1="$(post lab-qa "/api/requirements/$req1/functional-cases" '{"title":"Pago que supera el límite diario","description":"El ordenante ya acumuló parte del límite."}' | json_code UC)"
 uc2="$(post lab-qa "/api/requirements/$req1/functional-cases" '{"title":"Pago reversado no cuenta para el acumulado"}' | json_code UC)"
 tc() { post lab-qa /api/test-cases "{\"title\":\"$1\",\"system\":\"SYPAGO\",\"preconditions\":\"Ordenante con límite de 1.000.\",\"steps\":\"1. Acumular 900.\\n2. Pagar 200.\",\"expectedResult\":\"$2\",\"isCritical\":$3,\"functionalCases\":[\"$4\"]}" | json_code TC; }
@@ -75,7 +83,7 @@ doc="$(json_code DOC <"$work/body")"
 curl -sk -b "$work/lab-qa.jar" -H "Origin: $base" -o /dev/null -F "file=@$work/especificacion.md" "$base/api/documents/$doc/versions"
 post lab-dev /api/comments "{\"entityType\":\"defect\",\"entityCode\":\"$def\",\"body\":\"Reproducido en QA-1. El reverso no pasa por el cálculo del acumulado.\"}" >/dev/null
 post lab-qa /api/comments "{\"entityType\":\"requirement\",\"entityCode\":\"$req1\",\"body\":\"Queda en espera de la corrección de $def.\"}" >/dev/null
-post lab-qa /api/explorations "{\"requirement\":\"$req1\",\"buildVersion\":\"2.14.0\",\"environmentName\":\"QA-1 (línea base)\",\"manualChanges\":\"Reloj del servidor adelantado un día.\",\"findings\":\"El límite no se reinicia a medianoche.\",\"executedAt\":\"$(ago 20)\"}" >/dev/null
+post lab-qa /api/explorations "{\"requirement\":\"$req1\",\"build\":\"$build\",\"environment\":\"$env\",\"manualChanges\":\"Reloj del servidor adelantado un día.\",\"findings\":\"El límite no se reinicia a medianoche.\",\"executedAt\":\"$(ago 20)\"}" >/dev/null
 
 # REQ 2: aprobado por QA.
 req2="$(post lab-manager /api/requirements "{\"title\":\"Aviso al acercarse al límite\",\"acceptanceCriteria\":\"Avisa al 80 % del límite.\",\"system\":\"SYPAGO\",\"change\":\"$chg\"}" | json_code REQ)"
@@ -86,6 +94,26 @@ tc4="$(tc 'Muestra el aviso al 80 %' 'Aviso visible.' false "$uc3")"
 run "$tc4" passed 10 >/dev/null
 move lab-qa requirements "$req2" approved_qa
 
+# --- Fase 3: componentes, impacto, paquete y regresión propuesta ---
+comp() { # nombre clase → código del COMP de SyPago; lo reutiliza si ya existe
+    found="$(api lab-qa GET "/api/components?system=SYPAGO&q=$1" | json_code COMP || true)"
+    [ -n "$found" ] || found="$(post lab-qa /api/components "{\"system\":\"SYPAGO\",\"kind\":\"$2\",\"name\":\"$1\",\"description\":\"Datos de ejemplo.\"}" | json_code COMP)"
+    printf '%s' "$found"
+}
+c_limits="$(comp motor-de-limites microservice)"
+c_notify="$(comp notificaciones microservice)"
+c_schema="$(comp esquema-pagos db_schema)"
+put lab-manager "/api/requirements/$req1/components" "{\"components\":[\"$c_limits\",\"$c_schema\"]}"
+put lab-manager "/api/requirements/$req2/components" "{\"components\":[\"$c_notify\"]}"
+put lab-qa "/api/test-cases/$tc1/components" "{\"components\":[\"$c_limits\"]}"
+put lab-qa "/api/test-cases/$tc2/components" "{\"components\":[\"$c_limits\"]}"
+put lab-qa "/api/test-cases/$tc3/components" "{\"components\":[\"$c_limits\",\"$c_schema\"]}"
+put lab-qa "/api/test-cases/$tc4/components" "{\"components\":[\"$c_notify\"]}"
+pkg="$(post lab-dev /api/packages '{"title":"SyPago 2.14","description":"Datos de ejemplo.","system":"SYPAGO"}' | json_code PKG)"
+put lab-dev "/api/packages/$pkg/builds/$build" ''
+put lab-dev "/api/packages/$pkg/requirements/$req2" ''
+post lab-qa "/api/packages/$pkg/regression/proposal" '' >/dev/null
+
 # REQ 3: recién registrado, sin CHG.
 post lab-manager /api/requirements '{"title":"Límite configurable por tipo de cuenta","system":"SYPAGO"}' >/dev/null
 
@@ -95,4 +123,4 @@ req4="$(post lab-manager /api/requirements "{\"title\":\"Validación de firma en
 put lab-qa "/api/requirements/$req4/risk" '{"level":"high","justification":"Alcance nacional; afecta la seguridad de los mensajes.","characteristics":["security","reliability","compatibility"]}'
 move lab-qa requirements "$req4" risk_assessed
 
-echo "Datos de ejemplo: $chg ($req1 bloqueado por $def, $req2 aprobado), $chg2 ($req4), documento $doc"
+echo "Datos de ejemplo: $chg ($req1 bloqueado por $def, $req2 aprobado), $chg2 ($req4), $build en $env, $pkg con su regresión propuesta, documento $doc"

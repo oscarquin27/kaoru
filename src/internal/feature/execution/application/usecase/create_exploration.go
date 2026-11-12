@@ -10,7 +10,7 @@ import (
 	shared "kaoru/internal/shared/domain"
 )
 
-// CreateExploration registra un EXP: una ejecución exploratoria sobre un REQ.
+// CreateExploration registra un EXP: una ejecución exploratoria de un REQ sobre un BUILD y un ENV del catálogo.
 type CreateExploration struct {
 	d Deps
 }
@@ -19,8 +19,8 @@ type CreateExploration struct {
 type CreateExplorationInput struct {
 	Actor           shared.Actor
 	RequirementCode string
-	BuildVersion    string
-	EnvironmentName string
+	BuildCode       string
+	EnvironmentCode string
 	ManualChanges   string
 	Findings        string
 	ExecutedAt      time.Time
@@ -31,15 +31,21 @@ func (uc *CreateExploration) Execute(ctx context.Context, in CreateExplorationIn
 	if err := uc.d.Permissions.Require(ctx, in.Actor.Roles, PermissionCreateExploration); err != nil {
 		return domain.ExplorationSnapshot{}, err
 	}
+	var missing axis.FieldErrors
 	requirement, err := uc.d.Repository.FindRequirement(ctx, in.RequirementCode)
-	if axis.IsCode(err, axis.NotFoundResource) {
-		field := axis.InvalidField("requirement", "El REQ no existe.")
-		if in.RequirementCode == "" {
-			field = axis.Required("requirement", "Indica el REQ que se exploró.")
-		}
-		return domain.ExplorationSnapshot{}, axis.Invalid(field)
+	switch {
+	case in.RequirementCode == "":
+		missing.Add(axis.Required("requirement", "Indica el REQ que se exploró."))
+	case axis.IsCode(err, axis.NotFoundResource):
+		missing.Add(axis.InvalidField("requirement", "El REQ no existe."))
+	case err != nil:
+		return domain.ExplorationSnapshot{}, err
 	}
+	build, environment, err := findCatalog(ctx, uc.d, in.BuildCode, in.EnvironmentCode, &missing)
 	if err != nil {
+		return domain.ExplorationSnapshot{}, err
+	}
+	if err := missing.Err(); err != nil {
 		return domain.ExplorationSnapshot{}, err
 	}
 	executor, err := uc.d.Repository.FindUser(ctx, in.Actor.Id)
@@ -58,8 +64,8 @@ func (uc *CreateExploration) Execute(ctx context.Context, in CreateExplorationIn
 			return err
 		}
 		exploration, err := domain.NewExploration(domain.NewExplorationParams{
-			Id: id, Code: code, Requirement: requirement, BuildVersion: in.BuildVersion,
-			EnvironmentName: in.EnvironmentName, ManualChanges: in.ManualChanges, Findings: in.Findings,
+			Id: id, Code: code, Requirement: requirement, Build: build, Environment: environment,
+			ManualChanges: in.ManualChanges, Findings: in.Findings,
 			ExecutedBy: executor, ExecutedAt: in.ExecutedAt, Now: now,
 		})
 		if err != nil {

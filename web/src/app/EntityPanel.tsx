@@ -2,23 +2,30 @@
 // así que el enlace se puede compartir. Junta lecturas de varios features, por eso vive en app/.
 import type { ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router'
+import { testCaseImpactPath, useImpact } from '../shared/api/catalog.ts'
 import { useApiQuery } from '../shared/api/query.ts'
 import type { Change, Defect, Document, Exploration, FunctionalCase, RequirementOverview, Run, TestCase } from '../shared/api/types.ts'
 import { prefixOf, routeOf } from '../shared/lib/codes.ts'
 import { formatDate, formatDateTime, formatDaysLong, shortChecksum } from '../shared/lib/format.ts'
 import { DOCUMENT_KIND_LABELS, ROUTE_LABELS } from '../shared/lib/labels.ts'
 import { PANEL_PARAM } from '../shared/lib/urlFilters.ts'
-import { ResultChip, RiskChip, SeverityChip, StateChip } from '../shared/ui/chips.tsx'
+import { ComponentChips, ResultChip, RiskChip, SeverityChip, StateChip } from '../shared/ui/chips.tsx'
 import { Code, TextWithCodes } from '../shared/ui/Code.tsx'
 import { Async } from '../shared/ui/feedback.tsx'
 import { MetaItem } from '../shared/ui/layout.tsx'
 import { Drawer } from '../shared/ui/Modal.tsx'
+import { BuildLink, EnvironmentLink } from '../shared/ui/RunTarget.tsx'
 
 type Fields = [label: string, value: ReactNode][]
 
 function Codes({ codes }: { codes: string[] }) {
   if (codes.length === 0) return <span className="muted">Ninguno</span>
   return codes.map((code) => <Code key={code} code={code} />)
+}
+
+function TestCaseComponents({ code }: { code: string }) {
+  const impact = useImpact(testCaseImpactPath(code))
+  return <Async query={impact}>{(data) => <ComponentChips components={data.items} empty="Sin componentes declarados" />}</Async>
 }
 
 /** Lee la entidad y la convierte en pares etiqueta-valor. */
@@ -67,8 +74,8 @@ function requirementFields({ requirement, missing }: RequirementOverview): Field
 const runFields = (run: Run): Fields => [
   ['Tipo', 'Ejecución oficial'],
   ['TC', <><Code code={run.testCase.code} /> {run.testCase.title}</>],
-  ['BUILD', <>{run.buildVersion} <span className="mono muted" title={run.buildChecksum}>{shortChecksum(run.buildChecksum)}</span></>],
-  ['Ambiente', run.environmentName],
+  ['BUILD', <><BuildLink target={run} /> <span className="mono muted" title={run.buildChecksum}>{shortChecksum(run.buildChecksum)}</span></>],
+  ['Ambiente', <EnvironmentLink target={run} />],
   ['Resultado', <ResultChip result={run.result} />],
   ['Ejecutó', `${run.executedBy.displayName} · ${formatDateTime(run.executedAt)}`],
   ['Notas', run.notes || <span className="muted">Sin notas</span>],
@@ -91,6 +98,7 @@ const testCaseFields = (testCase: TestCase): Fields => [
   ['Pasos', <span className="wrap">{testCase.steps}</span>],
   ['Resultado esperado', <span className="wrap">{testCase.expectedResult}</span>],
   ['Casos de uso', <Codes codes={testCase.functionalCases} />],
+  ['Componentes que ejercita', <TestCaseComponents code={testCase.code} />],
 ]
 
 const functionalCaseFields = (useCase: FunctionalCase): Fields => [
@@ -103,8 +111,8 @@ const functionalCaseFields = (useCase: FunctionalCase): Fields => [
 const explorationFields = (exploration: Exploration): Fields => [
   ['Tipo', 'Sesión exploratoria'],
   ['Requerimiento', <Code code={exploration.requirement} />],
-  ['BUILD', exploration.buildVersion],
-  ['Ambiente', exploration.environmentName],
+  ['BUILD', <BuildLink target={exploration} />],
+  ['Ambiente', <EnvironmentLink target={exploration} />],
   ['Cambios manuales', <span className="wrap">{exploration.manualChanges || 'Ninguno'}</span>],
   ['Hallazgos', <span className="wrap">{exploration.findings || 'Ninguno'}</span>],
   ['Ejecutó', `${exploration.executedBy.displayName} · ${formatDateTime(exploration.executedAt)}`],

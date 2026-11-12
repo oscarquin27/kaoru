@@ -169,3 +169,22 @@ func toEntryItemDTO(item domain.EntryItem) entryItemDTO {
 		CheckedBy: toUserRef(item.CheckedBy), CheckedAt: item.CheckedAt,
 	}
 }
+
+type componentRefDTO struct {
+	Code string `json:"code"`
+	Name string `json:"name"`
+	Kind string `json:"kind"`
+}
+
+// componentsDTO es el cuerpo que declara los componentes de un REQ; sin `components` no vale.
+type componentsDTO struct {
+	Components []string `json:"components"`
+}
+
+func toComponentDTOs(refs []domain.ComponentRef) []componentRefDTO {
+	items := make([]componentRefDTO, len(refs))
+	for i, r := range refs {
+		items[i] = componentRefDTO{Code: r.Code, Name: r.Name, Kind: r.Kind}
+	}
+	return items
+}

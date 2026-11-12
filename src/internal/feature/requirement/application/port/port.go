@@ -49,6 +49,18 @@ type Repository interface {
 	CheckEntryItem(ctx context.Context, requirementId, itemKey, note string, by shared.UserId, at time.Time) error
 	// UncheckEntryItem devuelve NOT_FOUND_RESOURCE si el ítem no estaba marcado.
 	UncheckEntryItem(ctx context.Context, requirementId, itemKey string) error
+
+	// ListComponents devuelve los componentes que toca el REQ, por nombre.
+	ListComponents(ctx context.Context, requirementId string) ([]domain.ComponentRef, error)
+	// ReplaceComponents deja como componentes del REQ exactamente los dados.
+	ReplaceComponents(ctx context.Context, requirementId string, componentIds []string) error
+}
+
+// Components valida componentes en el feature component.
+type Components interface {
+	// Resolve devuelve una referencia por código. Si un componente no existe, es de otro sistema
+	// o está retirado, devuelve un INVALID_REQUEST en el campo `components`.
+	Resolve(ctx context.Context, systemKey string, codes []string) ([]domain.ComponentRef, error)
 }
 
 // Transition es una transición del flujo del REQ con sus reglas activas.

@@ -59,6 +59,33 @@ export type SearchHit = Schemas['SearchHit']
 export type Matrix = Schemas['Matrix']
 export type MatrixRow = Matrix['items'][number]
 export type AuditEntry = Schemas['AuditEntry']
+
+// Fase 3: componentes, BUILD, ambientes, despliegues, paquetes y regresión.
+export type Missing = Schemas['Missing']
+export type ComponentKind = Schemas['ComponentKind']
+export type ComponentRef = Schemas['ComponentRef']
+export type Component = Schemas['Component']
+export type ComponentInput = Schemas['ComponentInput']
+export type ComponentPatch = Schemas['ComponentPatch']
+export type Build = Schemas['Build']
+export type BuildRef = Schemas['BuildRef']
+export type BuildInput = Schemas['BuildInput']
+export type EnvironmentKind = Schemas['EnvironmentKind']
+export type OperatingSystem = Schemas['OperatingSystem']
+export type Environment = Schemas['Environment']
+export type EnvironmentInput = Schemas['EnvironmentInput']
+export type EnvironmentPatch = Schemas['EnvironmentPatch']
+export type DeploymentResult = Schemas['DeploymentResult']
+export type Deployment = Schemas['Deployment']
+export type DeploymentInput = Schemas['DeploymentInput']
+export type Package = Schemas['Package']
+export type PackageInput = Schemas['PackageInput']
+export type PackagePatch = Schemas['PackagePatch']
+export type Regression = Schemas['Regression']
+export type RegressionItem = Regression['items'][number]
+export type RegressionOrigin = Schemas['RegressionOrigin']
+/** Los flujos configurables. */
+export type WorkflowEntityType = 'requirement' | 'change' | 'defect' | 'package'
 export type PageInfo = Schemas['PageInfo']
 
 export type Page<T> = PageInfo & { items: T[] }

@@ -5,6 +5,7 @@ import { ResultChip } from '../../shared/ui/chips.tsx'
 import { Code } from '../../shared/ui/Code.tsx'
 import { Empty } from '../../shared/ui/feedback.tsx'
 import { Icon } from '../../shared/ui/Icon.tsx'
+import { BuildLink, EnvironmentLink } from '../../shared/ui/RunTarget.tsx'
 
 interface TraceTabProps {
   overview: RequirementOverview
@@ -81,8 +82,8 @@ export function TraceTab({ overview, functionalCases, defects }: TraceTabProps) 
                         <span className="muted">Sin RUN</span>
                       )}
                     </td>
-                    <td>{run ? <span className="mono">{run.buildVersion}</span> : <span className="muted">—</span>}</td>
-                    <td>{run ? run.environmentName : <span className="muted">—</span>}</td>
+                    <td>{run ? <BuildLink target={run} /> : <span className="muted">—</span>}</td>
+                    <td>{run ? <EnvironmentLink target={run} /> : <span className="muted">—</span>}</td>
                     <td>
                       <span className="cell-line">
                         {found.length === 0 ? <span className="muted">Ninguno</span> : found.map((defect) => <Code key={defect.code} code={defect.code} />)}

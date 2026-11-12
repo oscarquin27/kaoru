@@ -30,11 +30,18 @@ const HIT_ICONS: Record<SearchHit['type'], IconName> = {
   exploratory_session: 'flask',
   defect: 'bug',
   document: 'file',
+  component: 'layers',
+  build: 'box',
+  package: 'box',
+  environment: 'server',
+  deployment: 'server',
 }
 
 const ACTIONS: (Entry & { permission?: string })[] = [
   { group: 'Acciones', label: 'Nuevo DEF', note: 'Abrir un defecto', icon: 'plus', to: '/defectos?nuevo=1', permission: 'def.create' },
   { group: 'Acciones', label: 'Ir a matriz', note: 'Matriz de trazabilidad', icon: 'grid', to: '/pruebas' },
+  { group: 'Acciones', label: 'Ir a paquetes', note: 'Paquetes y regresión', icon: 'box', to: '/paquetes' },
+  { group: 'Acciones', label: 'Ir a ambientes', note: 'Ambientes y despliegues', icon: 'server', to: '/ambientes' },
   { group: 'Acciones', label: 'Ir a inicio', note: 'Tablero', icon: 'house', to: '/' },
 ]
 

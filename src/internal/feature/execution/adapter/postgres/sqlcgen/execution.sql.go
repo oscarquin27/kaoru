@@ -49,10 +49,12 @@ func (q *Queries) CountRuns(ctx context.Context, arg CountRunsParams) (int64, er
 const getExplorationByCode = `-- name: GetExplorationByCode :one
 SELECT e.id, e.code, e.requirement_id, r.code AS requirement_code, e.build_version, e.environment_name,
        e.manual_changes, e.findings, e.executed_by, u.display_name AS executed_by_name, e.executed_at,
-       e.created_at, e.updated_at
+       e.created_at, e.updated_at, e.build_id, b.code AS build_code, e.environment_id, env.code AS environment_code
 FROM exploratory_session e
          JOIN requirement r ON r.id = e.requirement_id
          JOIN app_user u ON u.id = e.executed_by
+         LEFT JOIN build b ON b.id = e.build_id
+         LEFT JOIN environment env ON env.id = e.environment_id
 WHERE e.code = $1
 `
 
@@ -70,6 +72,10 @@ type GetExplorationByCodeRow struct {
 	ExecutedAt      time.Time
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+	BuildID         uuid.NullUUID
+	BuildCode       *string
+	EnvironmentID   uuid.NullUUID
+	EnvironmentCode *string
 }
 
 func (q *Queries) GetExplorationByCode(ctx context.Context, code string) (GetExplorationByCodeRow, error) {
@@ -89,35 +95,43 @@ func (q *Queries) GetExplorationByCode(ctx context.Context, code string) (GetExp
 		&i.ExecutedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.BuildID,
+		&i.BuildCode,
+		&i.EnvironmentID,
+		&i.EnvironmentCode,
 	)
 	return i, err
 }
 
 const getRequirementRef = `-- name: GetRequirementRef :one
-SELECT id, code
-FROM requirement
-WHERE code = $1
+SELECT r.id, r.code, s.key AS system_key
+FROM requirement r
+         JOIN system_under_test s ON s.id = r.system_id
+WHERE r.code = $1
 `
 
 type GetRequirementRefRow struct {
-	ID   uuid.UUID
-	Code string
+	ID        uuid.UUID
+	Code      string
+	SystemKey string
 }
 
 func (q *Queries) GetRequirementRef(ctx context.Context, code string) (GetRequirementRefRow, error) {
 	row := q.db.QueryRow(ctx, getRequirementRef, code)
 	var i GetRequirementRefRow
-	err := row.Scan(&i.ID, &i.Code)
+	err := row.Scan(&i.ID, &i.Code, &i.SystemKey)
 	return i, err
 }
 
 const getRunByCode = `-- name: GetRunByCode :one
 SELECT r.id, r.code, r.test_case_id, t.code AS test_case_code, t.title AS test_case_title, r.build_version,
        r.build_checksum, r.environment_name, r.result, r.notes, r.executed_by, u.display_name AS executed_by_name,
-       r.executed_at, r.created_at
+       r.executed_at, r.created_at, r.build_id, b.code AS build_code, r.environment_id, e.code AS environment_code
 FROM test_run r
          JOIN test_case t ON t.id = r.test_case_id
          JOIN app_user u ON u.id = r.executed_by
+         LEFT JOIN build b ON b.id = r.build_id
+         LEFT JOIN environment e ON e.id = r.environment_id
 WHERE r.code = $1
 `
 
@@ -136,6 +150,10 @@ type GetRunByCodeRow struct {
 	ExecutedByName  string
 	ExecutedAt      time.Time
 	CreatedAt       time.Time
+	BuildID         uuid.NullUUID
+	BuildCode       *string
+	EnvironmentID   uuid.NullUUID
+	EnvironmentCode *string
 }
 
 func (q *Queries) GetRunByCode(ctx context.Context, code string) (GetRunByCodeRow, error) {
@@ -156,14 +174,19 @@ func (q *Queries) GetRunByCode(ctx context.Context, code string) (GetRunByCodeRo
 		&i.ExecutedByName,
 		&i.ExecutedAt,
 		&i.CreatedAt,
+		&i.BuildID,
+		&i.BuildCode,
+		&i.EnvironmentID,
+		&i.EnvironmentCode,
 	)
 	return i, err
 }
 
 const getTestCaseRef = `-- name: GetTestCaseRef :one
-SELECT id, code, title, retired_at
-FROM test_case
-WHERE code = $1
+SELECT t.id, t.code, t.title, t.retired_at, s.key AS system_key
+FROM test_case t
+         JOIN system_under_test s ON s.id = t.system_id
+WHERE t.code = $1
 `
 
 type GetTestCaseRefRow struct {
@@ -171,6 +194,7 @@ type GetTestCaseRefRow struct {
 	Code      string
 	Title     string
 	RetiredAt *time.Time
+	SystemKey string
 }
 
 func (q *Queries) GetTestCaseRef(ctx context.Context, code string) (GetTestCaseRefRow, error) {
@@ -181,6 +205,7 @@ func (q *Queries) GetTestCaseRef(ctx context.Context, code string) (GetTestCaseR
 		&i.Code,
 		&i.Title,
 		&i.RetiredAt,
+		&i.SystemKey,
 	)
 	return i, err
 }
@@ -200,8 +225,8 @@ func (q *Queries) GetUserName(ctx context.Context, id string) (string, error) {
 
 const insertExploration = `-- name: InsertExploration :exec
 INSERT INTO exploratory_session (id, code, requirement_id, build_version, environment_name, manual_changes,
-                                 findings, executed_by, executed_at, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                                 findings, executed_by, executed_at, created_at, updated_at, build_id, environment_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 `
 
 type InsertExplorationParams struct {
@@ -216,6 +241,8 @@ type InsertExplorationParams struct {
 	ExecutedAt      time.Time
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+	BuildID         uuid.NullUUID
+	EnvironmentID   uuid.NullUUID
 }
 
 func (q *Queries) InsertExploration(ctx context.Context, arg InsertExplorationParams) error {
@@ -231,14 +258,16 @@ func (q *Queries) InsertExploration(ctx context.Context, arg InsertExplorationPa
 		arg.ExecutedAt,
 		arg.CreatedAt,
 		arg.UpdatedAt,
+		arg.BuildID,
+		arg.EnvironmentID,
 	)
 	return err
 }
 
 const insertRun = `-- name: InsertRun :exec
 INSERT INTO test_run (id, code, test_case_id, build_version, build_checksum, environment_name, result, notes,
-                      executed_by, executed_at, created_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                      executed_by, executed_at, created_at, build_id, environment_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 `
 
 type InsertRunParams struct {
@@ -253,6 +282,8 @@ type InsertRunParams struct {
 	ExecutedBy      string
 	ExecutedAt      time.Time
 	CreatedAt       time.Time
+	BuildID         uuid.NullUUID
+	EnvironmentID   uuid.NullUUID
 }
 
 func (q *Queries) InsertRun(ctx context.Context, arg InsertRunParams) error {
@@ -268,6 +299,8 @@ func (q *Queries) InsertRun(ctx context.Context, arg InsertRunParams) error {
 		arg.ExecutedBy,
 		arg.ExecutedAt,
 		arg.CreatedAt,
+		arg.BuildID,
+		arg.EnvironmentID,
 	)
 	return err
 }
@@ -308,10 +341,12 @@ func (q *Queries) LatestResults(ctx context.Context, testCaseIds []uuid.UUID) ([
 const listExplorations = `-- name: ListExplorations :many
 SELECT e.id, e.code, e.requirement_id, r.code AS requirement_code, e.build_version, e.environment_name,
        e.manual_changes, e.findings, e.executed_by, u.display_name AS executed_by_name, e.executed_at,
-       e.created_at, e.updated_at
+       e.created_at, e.updated_at, e.build_id, b.code AS build_code, e.environment_id, env.code AS environment_code
 FROM exploratory_session e
          JOIN requirement r ON r.id = e.requirement_id
          JOIN app_user u ON u.id = e.executed_by
+         LEFT JOIN build b ON b.id = e.build_id
+         LEFT JOIN environment env ON env.id = e.environment_id
 WHERE ($1::text IS NULL OR r.code = $1)
 ORDER BY e.executed_at DESC, e.code DESC
 LIMIT $3 OFFSET $2
@@ -337,6 +372,10 @@ type ListExplorationsRow struct {
 	ExecutedAt      time.Time
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+	BuildID         uuid.NullUUID
+	BuildCode       *string
+	EnvironmentID   uuid.NullUUID
+	EnvironmentCode *string
 }
 
 func (q *Queries) ListExplorations(ctx context.Context, arg ListExplorationsParams) ([]ListExplorationsRow, error) {
@@ -362,6 +401,10 @@ func (q *Queries) ListExplorations(ctx context.Context, arg ListExplorationsPara
 			&i.ExecutedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.BuildID,
+			&i.BuildCode,
+			&i.EnvironmentID,
+			&i.EnvironmentCode,
 		); err != nil {
 			return nil, err
 		}
@@ -376,10 +419,12 @@ func (q *Queries) ListExplorations(ctx context.Context, arg ListExplorationsPara
 const listRuns = `-- name: ListRuns :many
 SELECT r.id, r.code, r.test_case_id, t.code AS test_case_code, t.title AS test_case_title, r.build_version,
        r.build_checksum, r.environment_name, r.result, r.notes, r.executed_by, u.display_name AS executed_by_name,
-       r.executed_at, r.created_at
+       r.executed_at, r.created_at, r.build_id, b.code AS build_code, r.environment_id, e.code AS environment_code
 FROM test_run r
          JOIN test_case t ON t.id = r.test_case_id
          JOIN app_user u ON u.id = r.executed_by
+         LEFT JOIN build b ON b.id = r.build_id
+         LEFT JOIN environment e ON e.id = r.environment_id
 WHERE (NOT $1::boolean OR r.test_case_id = ANY ($2::uuid[]))
   AND ($3::text IS NULL OR r.build_version = $3)
 ORDER BY r.executed_at DESC, r.code DESC
@@ -409,6 +454,10 @@ type ListRunsRow struct {
 	ExecutedByName  string
 	ExecutedAt      time.Time
 	CreatedAt       time.Time
+	BuildID         uuid.NullUUID
+	BuildCode       *string
+	EnvironmentID   uuid.NullUUID
+	EnvironmentCode *string
 }
 
 func (q *Queries) ListRuns(ctx context.Context, arg ListRunsParams) ([]ListRunsRow, error) {
@@ -441,6 +490,10 @@ func (q *Queries) ListRuns(ctx context.Context, arg ListRunsParams) ([]ListRunsR
 			&i.ExecutedByName,
 			&i.ExecutedAt,
 			&i.CreatedAt,
+			&i.BuildID,
+			&i.BuildCode,
+			&i.EnvironmentID,
+			&i.EnvironmentCode,
 		); err != nil {
 			return nil, err
 		}

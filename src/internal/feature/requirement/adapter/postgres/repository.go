@@ -275,3 +275,44 @@ func (r *Repository) Lock(ctx context.Context, code shared.Code) error {
 	_, err := r.queries(ctx).LockRequirement(ctx, code.String())
 	return corepg.TranslateError(err)
 }
+
+// ListComponents devuelve los componentes que toca el REQ, por nombre.
+func (r *Repository) ListComponents(ctx context.Context, requirementId string) ([]domain.ComponentRef, error) {
+	requirementID, err := parseID(requirementId, "REQ")
+	if err != nil {
+		return nil, err
+	}
+	rows, err := r.queries(ctx).ListRequirementComponents(ctx, requirementID)
+	if err != nil {
+		return nil, corepg.TranslateError(err)
+	}
+	refs := make([]domain.ComponentRef, len(rows))
+	for i, row := range rows {
+		refs[i] = domain.ComponentRef{Id: row.ID.String(), Code: row.Code, Name: row.Name, Kind: row.Kind}
+	}
+	return refs, nil
+}
+
+// ReplaceComponents deja como componentes del REQ exactamente los dados.
+func (r *Repository) ReplaceComponents(ctx context.Context, requirementId string, componentIds []string) error {
+	requirementID, err := parseID(requirementId, "REQ")
+	if err != nil {
+		return err
+	}
+	q := r.queries(ctx)
+	if err := q.DeleteRequirementComponents(ctx, requirementID); err != nil {
+		return corepg.TranslateError(err)
+	}
+	for _, raw := range componentIds {
+		componentID, err := parseID(raw, "componente")
+		if err != nil {
+			return err
+		}
+		if err := q.InsertRequirementComponent(ctx, sqlcgen.InsertRequirementComponentParams{
+			RequirementID: requirementID, ComponentID: componentID,
+		}); err != nil {
+			return corepg.TranslateError(err)
+		}
+	}
+	return nil
+}

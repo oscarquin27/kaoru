@@ -281,3 +281,11 @@ func boolText(b bool) string {
 	}
 	return "false"
 }
+
+// ComponentRef es un componente del catálogo visto desde el TC que lo ejercita.
+type ComponentRef struct {
+	Id   string
+	Code string
+	Name string
+	Kind string
+}

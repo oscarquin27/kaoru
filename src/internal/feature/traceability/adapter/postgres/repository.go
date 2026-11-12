@@ -158,6 +158,7 @@ func (r *Repository) Matrix(ctx context.Context, f domain.MatrixFilter, page, si
 	rows, err := r.queries(ctx).ListMatrix(ctx, sqlcgen.ListMatrixParams{
 		ChangeCode: nullable(f.ChangeCode), SystemKey: nullable(f.SystemKey), StateKey: nullable(f.StateKey),
 		RiskLevel: nullable(f.RiskLevel), OwnerID: nullable(f.OwnerId), CreatedFrom: f.CreatedFrom, CreatedTo: f.CreatedTo,
+		PackageCode: nullable(f.PackageCode), ComponentCode: nullable(f.ComponentCode),
 		PageSize: int32(size), PageOffset: int32((page - 1) * size), //nolint:gosec // acotados por el caso de uso
 	})
 	if err != nil {
@@ -182,6 +183,7 @@ func (r *Repository) Matrix(ctx context.Context, f domain.MatrixFilter, page, si
 			RequirementCode: row.RequirementCode, RequirementTitle: row.RequirementTitle, SystemKey: row.SystemKey,
 			State:      domain.StateRef{Key: row.StateKey, Name: row.StateName},
 			ChangeCode: row.ChangeCode, RiskCode: row.RiskCode, RiskLevel: row.RiskLevel, OwnerName: row.OwnerName,
+			Packages:        row.Packages,
 			FunctionalCases: row.FunctionalCases,
 			TestCase: domain.TestCaseSummary{
 				Code: row.TestCaseCode, Title: row.TestCaseTitle, IsCritical: row.TestCaseCritical,
@@ -202,6 +204,7 @@ func (r *Repository) MatrixIndicators(ctx context.Context, f domain.MatrixFilter
 	row, err := q.GetMatrixIndicators(ctx, sqlcgen.GetMatrixIndicatorsParams{
 		ChangeCode: nullable(f.ChangeCode), SystemKey: nullable(f.SystemKey), StateKey: nullable(f.StateKey),
 		RiskLevel: nullable(f.RiskLevel), OwnerID: nullable(f.OwnerId), CreatedFrom: f.CreatedFrom, CreatedTo: f.CreatedTo,
+		PackageCode: nullable(f.PackageCode), ComponentCode: nullable(f.ComponentCode),
 	})
 	if err != nil {
 		return domain.Indicators{}, 0, corepg.TranslateError(err)
@@ -209,6 +212,7 @@ func (r *Repository) MatrixIndicators(ctx context.Context, f domain.MatrixFilter
 	severities, err := q.CountOpenDefectsBySeverity(ctx, sqlcgen.CountOpenDefectsBySeverityParams{
 		ChangeCode: nullable(f.ChangeCode), SystemKey: nullable(f.SystemKey), StateKey: nullable(f.StateKey),
 		RiskLevel: nullable(f.RiskLevel), OwnerID: nullable(f.OwnerId), CreatedFrom: f.CreatedFrom, CreatedTo: f.CreatedTo,
+		PackageCode: nullable(f.PackageCode), ComponentCode: nullable(f.ComponentCode),
 	})
 	if err != nil {
 		return domain.Indicators{}, 0, corepg.TranslateError(err)

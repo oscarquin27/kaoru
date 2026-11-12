@@ -282,14 +282,19 @@ func TestQueriesOnlyWriteTheirOwnTables(t *testing.T) {
 		"user":     {"app_user"},
 		// code_sequence es compartida: cada feature reserva ahí sus IDs legibles.
 		"change":      {"change", "code_sequence"},
-		"requirement": {"requirement", "requirement_link", "requirement_entry_check", "code_sequence"},
+		"requirement": {"requirement", "requirement_link", "requirement_entry_check", "requirement_component", "code_sequence"},
 		"risk":        {"risk_assessment", "risk_quality_characteristic", "code_sequence"},
-		"testdesign":  {"functional_case", "test_case", "test_case_functional_case", "code_sequence"},
+		"testdesign":  {"functional_case", "test_case", "test_case_functional_case", "test_case_component", "code_sequence"},
 		"execution":   {"test_run", "exploratory_session", "code_sequence"},
 		"defect":      {"defect", "code_sequence"},
 		"document":    {"document", "document_version", "document_link", "code_sequence"},
 		"comment":     {"comment"},
 		"savedview":   {"saved_view"},
+		"component":   {"component", "code_sequence"},
+		"build":       {"build", "build_requirement", "code_sequence"},
+		"environment": {"environment", "deployment", "code_sequence"},
+		"bundle":      {"package", "package_build", "package_requirement", "code_sequence"},
+		"regression":  {"regression_selection", "regression_item"},
 		// traceability es de solo lectura: no puede escribir en ninguna tabla.
 		"traceability": {},
 	}

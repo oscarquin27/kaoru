@@ -1,6 +1,6 @@
 // Lo que varias pantallas necesitan de la API sin ser de un feature: sesión, sistemas y flujos.
 import { useApiQuery } from './query.ts'
-import type { Items, Me, System, User, Workflow } from './types.ts'
+import type { Items, Me, System, User, Workflow, WorkflowEntityType } from './types.ts'
 
 export function useMe() {
   return useApiQuery<Me>('/api/me')
@@ -16,7 +16,7 @@ export function useSystems() {
   return useApiQuery<Items<System>>('/api/systems')
 }
 
-export function useWorkflow(entityType: 'requirement' | 'change' | 'defect') {
+export function useWorkflow(entityType: WorkflowEntityType) {
   return useApiQuery<Workflow>(`/api/workflows/${entityType}`)
 }
 

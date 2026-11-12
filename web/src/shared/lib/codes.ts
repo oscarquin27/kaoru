@@ -7,6 +7,11 @@ const ROUTES: Record<string, string> = {
   CHG: '/cambios',
   DEF: '/defectos',
   DOC: '/documentos',
+  PKG: '/paquetes',
+  BUILD: '/paquetes/builds',
+  ENV: '/ambientes',
+  DEP: '/ambientes/despliegues',
+  COMP: '/pruebas/componentes',
 }
 
 export function prefixOf(code: string): string {

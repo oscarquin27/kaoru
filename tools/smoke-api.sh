@@ -45,10 +45,13 @@ docker exec "$name" /kaoru-api healthcheck || fail "el healthcheck del contenedo
 docker exec "$name" /kaoru-api prune-documents | grep -q '0 archivos revisados, 0 sin registro' \
     || fail "la limpieza de archivos sin registro no corrió"
 migrations="$(ls "$(dirname "$0")/../src/migrations"/*.sql | wc -l | tr -d ' ')"
-docker logs "$name" 2>&1 | grep -q "\"msg\":\"migraciones al día\",\"applied\":$migrations" || fail "no aplicó las $migrations migraciones al arrancar"
+# Los logs se leen enteros antes de buscar: con `grep -q` en la tubería, docker recibe SIGPIPE y falla.
+logs="$(docker logs "$name" 2>&1)"
+printf '%s' "$logs" | grep -q "\"msg\":\"migraciones al día\",\"applied\":$migrations" || fail "no aplicó las $migrations migraciones al arrancar"
 
 docker stop -t 25 "$name" >/dev/null
 [ "$(docker inspect -f '{{.State.ExitCode}}' "$name")" = 0 ] || fail "no se apagó con código 0"
-docker logs "$name" 2>&1 | grep -q 'kaoru-api detenido' || fail "no registró el apagado"
+logs="$(docker logs "$name" 2>&1)"
+printf '%s' "$logs" | grep -q 'kaoru-api detenido' || fail "no registró el apagado"
 
 echo "Imagen kaoru-api: OK (arranca, migra, exige sesión y se apaga en orden)"

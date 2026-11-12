@@ -785,6 +785,432 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/components": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Catálogo de componentes */
+        get: operations["listComponents"];
+        put?: never;
+        /**
+         * Agrega un componente al catálogo
+         * @description Exige `comp.manage`. El nombre no se repite dentro de un sistema.
+         */
+        post: operations["createComponent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/components/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        /** Ficha de un componente */
+        get: operations["getComponent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Edita o retira un componente
+         * @description Exige `comp.manage`. El sistema no cambia.
+         */
+        patch: operations["updateComponent"];
+        trace?: never;
+    };
+    "/api/requirements/{code}/components": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        /** Componentes que toca un REQ */
+        get: operations["listRequirementComponents"];
+        /**
+         * Declara los componentes que toca un REQ
+         * @description Exige `req.edit`. Reemplaza la lista. Los componentes deben ser del sistema del REQ y no estar retirados.
+         */
+        put: operations["setRequirementComponents"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/test-cases/{code}/components": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        /** Componentes que ejercita un TC */
+        get: operations["listTestCaseComponents"];
+        /**
+         * Declara los componentes que ejercita un TC
+         * @description Exige `testdesign.manage`. Reemplaza la lista. Los componentes deben ser del sistema del TC y no estar retirados.
+         */
+        put: operations["setTestCaseComponents"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/builds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista de BUILD, del más reciente al más antiguo */
+        get: operations["listBuilds"];
+        put?: never;
+        /**
+         * Registra un BUILD
+         * @description Exige `build.register`. Un BUILD no se edita ni se borra; el mismo checksum no se registra dos veces.
+         */
+        post: operations["registerBuild"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/builds/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        /** Ficha de un BUILD con su manifiesto */
+        get: operations["getBuild"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/environments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ambientes */
+        get: operations["listEnvironments"];
+        put?: never;
+        /**
+         * Registra un ambiente
+         * @description Exige `env.manage`. El nombre no se repite dentro de un sistema.
+         */
+        post: operations["createEnvironment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/environments/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        /** Ficha de un ambiente con lo que tiene instalado */
+        get: operations["getEnvironment"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Edita o retira un ambiente
+         * @description Exige `env.manage`. El sistema no cambia.
+         */
+        patch: operations["updateEnvironment"];
+        trace?: never;
+    };
+    "/api/deployments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Despliegues, del más reciente al más antiguo */
+        get: operations["listDeployments"];
+        put?: never;
+        /**
+         * Registra un despliegue de un BUILD o de un PKG en un ambiente
+         * @description En un ambiente de prueba exige `dep.create`; en uno de producción, `dep.create_production` (regla de negocio 6). Un despliegue no se edita ni se borra.
+         */
+        post: operations["registerDeployment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/deployments/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        /** Ficha de un despliegue */
+        get: operations["getDeployment"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/packages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista de PKG */
+        get: operations["listPackages"];
+        put?: never;
+        /**
+         * Crea un PKG en armado
+         * @description Exige `pkg.build`.
+         */
+        post: operations["createPackage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/packages/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        /** Ficha de un PKG con sus BUILD, sus REQ y qué falta para avanzar */
+        get: operations["getPackage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Edita el título o la descripción de un PKG
+         * @description Exige `pkg.build`.
+         */
+        patch: operations["updatePackage"];
+        trace?: never;
+    };
+    "/api/packages/{code}/transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cambia el estado de un PKG
+         * @description Responde `INVALID_ACTION` con lo que falta si una regla de bloqueo lo impide.
+         */
+        post: operations["transitionPackage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/packages/{code}/builds/{build}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+                /** @description Código del BUILD */
+                build: components["schemas"]["Code"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Agrega un BUILD al PKG
+         * @description Exige `pkg.build` y que el PKG esté en armado. El BUILD debe ser del sistema del PKG.
+         */
+        put: operations["addPackageBuild"];
+        post?: never;
+        /**
+         * Quita un BUILD del PKG
+         * @description Exige `pkg.build` y que el PKG esté en armado.
+         */
+        delete: operations["removePackageBuild"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/packages/{code}/requirements/{requirement}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+                /** @description Código del REQ */
+                requirement: components["schemas"]["Code"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Agrega un REQ al PKG
+         * @description Exige `pkg.build` y que el PKG esté en armado. El REQ debe ser del sistema del PKG y estar «Aprobado QA» o «En paquete». Si está «Aprobado QA», pasa a «En paquete» con la misma acción, lo que además exige el permiso de esa transición.
+         */
+        put: operations["addPackageRequirement"];
+        post?: never;
+        /**
+         * Quita un REQ del PKG
+         * @description Exige `pkg.build` y que el PKG esté en armado. El estado del REQ no cambia.
+         */
+        delete: operations["removePackageRequirement"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/packages/{code}/regression": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Selección de regresión de un PKG, propuesta contra final, con su avance
+         * @description Responde `NOT_FOUND_RESOURCE` si todavía no se propuso.
+         */
+        get: operations["getRegression"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/packages/{code}/regression/proposal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Propone (o vuelve a proponer) la regresión del PKG
+         * @description Exige `regression.manage`. Propone los TC activos que ejercitan algún componente tocado por los REQ del PKG, más los TC críticos del sistema. Al volver a proponer se conservan los ajustes de QA. No se puede después de confirmar.
+         */
+        post: operations["proposeRegression"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/packages/{code}/regression/items/{testCase}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+                /** @description Código del TC */
+                testCase: components["schemas"]["Code"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Incluye o excluye un TC de la regresión, con su criterio
+         * @description Exige `regression.manage`. `reason` es obligatorio cuando la decisión difiere de lo propuesto (quitar un TC propuesto o agregar uno que no lo estaba). No se puede después de confirmar.
+         */
+        put: operations["adjustRegressionItem"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/packages/{code}/regression/confirmation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirma la selección de regresión; desde entonces no cambia
+         * @description Exige `regression.manage`.
+         */
+        post: operations["confirmRegression"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/saved-views": {
         parameters: {
             query?: never;
@@ -972,7 +1398,7 @@ export interface components {
          */
         QualityCharacteristic: "functional_suitability" | "performance_efficiency" | "compatibility" | "usability" | "reliability" | "security" | "maintainability" | "portability";
         /** @enum {string} */
-        EntityType: "requirement" | "change" | "functional_case" | "test_case" | "test_run" | "exploratory_session" | "defect";
+        EntityType: "requirement" | "change" | "functional_case" | "test_case" | "test_run" | "exploratory_session" | "defect" | "package" | "deployment";
         /** @enum {string} */
         DocumentKind: "specification" | "manual" | "evidence" | "minutes" | "snapshot" | "other";
         /** @enum {string} */
@@ -1011,6 +1437,234 @@ export interface components {
             id: string;
             username: string;
             displayName: string;
+        };
+        /** @description Lo que falta para una transición. */
+        Missing: {
+            to: components["schemas"]["StateRef"];
+            conditions: {
+                ruleKey: string;
+                /** @example Faltan 2 TC sin RUN aprobado: TC-2026-0112, TC-2026-0113. */
+                message: string;
+                /** @description Con `false`, la condición solo avisa. */
+                blocks: boolean;
+                related: components["schemas"]["Code"][];
+            }[];
+        };
+        /** @enum {string} */
+        ComponentKind: "microservice" | "library" | "script" | "kafka_topic" | "db_schema" | "other";
+        ComponentRef: {
+            code: components["schemas"]["Code"];
+            name: string;
+            kind: components["schemas"]["ComponentKind"];
+        };
+        ComponentInput: {
+            /** @description Clave del sistema */
+            system: string;
+            kind: components["schemas"]["ComponentKind"];
+            name: string;
+            description?: string;
+        };
+        ComponentPatch: {
+            kind?: components["schemas"]["ComponentKind"];
+            name?: string;
+            description?: string;
+            /** @description Un componente retirado ya no se ofrece para declarar impacto. */
+            retired?: boolean;
+        };
+        Component: {
+            code: components["schemas"]["Code"];
+            system: components["schemas"]["System"];
+            kind: components["schemas"]["ComponentKind"];
+            name: string;
+            description: string;
+            retired: boolean;
+            createdBy: components["schemas"]["UserRef"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        BuildInput: {
+            /** @description Clave del sistema */
+            system: string;
+            version: string;
+            checksum: components["schemas"]["Checksum"];
+            /** @description REQ incluidos en el BUILD. Deben ser del mismo sistema. */
+            requirements?: components["schemas"]["Code"][];
+            /** @description Migraciones que trae, una por línea. */
+            migrations?: string;
+            /** @description Dependencias y sus versiones, una por línea. */
+            dependencies?: string;
+            notes?: string;
+        };
+        BuildRef: {
+            code: components["schemas"]["Code"];
+            version: string;
+            checksum: components["schemas"]["Checksum"];
+        };
+        Build: {
+            code: components["schemas"]["Code"];
+            system: components["schemas"]["System"];
+            version: string;
+            checksum: components["schemas"]["Checksum"];
+            requirements: components["schemas"]["CodeTitle"][];
+            migrations: string;
+            dependencies: string;
+            notes: string;
+            builtBy: components["schemas"]["UserRef"];
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /** @enum {string} */
+        EnvironmentKind: "clean" | "baseline" | "offline" | "production";
+        /** @enum {string} */
+        OperatingSystem: "windows" | "linux";
+        /** @enum {string} */
+        DeploymentResult: "success" | "failed" | "rolled_back";
+        EnvironmentInput: {
+            /** @description Clave del sistema */
+            system: string;
+            name: string;
+            kind: components["schemas"]["EnvironmentKind"];
+            os: components["schemas"]["OperatingSystem"];
+            notes?: string;
+        };
+        EnvironmentPatch: {
+            name?: string;
+            kind?: components["schemas"]["EnvironmentKind"];
+            os?: components["schemas"]["OperatingSystem"];
+            notes?: string;
+            retired?: boolean;
+        };
+        EnvironmentRef: {
+            code: components["schemas"]["Code"];
+            name: string;
+            kind: components["schemas"]["EnvironmentKind"];
+        };
+        Environment: {
+            code: components["schemas"]["Code"];
+            system: components["schemas"]["System"];
+            name: string;
+            kind: components["schemas"]["EnvironmentKind"];
+            os: components["schemas"]["OperatingSystem"];
+            notes: string;
+            retired: boolean;
+            /** @description Lo que dejó el último despliegue exitoso. Ausente si nunca hubo uno. */
+            installed?: {
+                deployment: components["schemas"]["Code"];
+                build?: components["schemas"]["BuildRef"];
+                package?: components["schemas"]["CodeTitle"];
+                /** Format: date-time */
+                deployedAt: string;
+            };
+            createdBy: components["schemas"]["UserRef"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        /** @description Lleva `build` o `package`, uno de los dos. */
+        DeploymentInput: {
+            environment: components["schemas"]["Code"];
+            build?: components["schemas"]["Code"];
+            package?: components["schemas"]["Code"];
+            result: components["schemas"]["DeploymentResult"];
+            notes?: string;
+            /**
+             * Format: date-time
+             * @description Cuándo se desplegó. No puede ser futura.
+             */
+            executedAt: string;
+        };
+        Deployment: {
+            code: components["schemas"]["Code"];
+            environment: components["schemas"]["EnvironmentRef"];
+            build?: components["schemas"]["BuildRef"];
+            package?: components["schemas"]["CodeTitle"];
+            result: components["schemas"]["DeploymentResult"];
+            notes: string;
+            executedBy: components["schemas"]["UserRef"];
+            /** Format: date-time */
+            executedAt: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        PackageInput: {
+            title: string;
+            description?: string;
+            /** @description Clave del sistema */
+            system: string;
+        };
+        PackagePatch: {
+            title?: string;
+            description?: string;
+        };
+        Package: {
+            code: components["schemas"]["Code"];
+            title: string;
+            description: string;
+            system: components["schemas"]["System"];
+            state: components["schemas"]["StateRef"];
+            builds: components["schemas"]["BuildRef"][];
+            requirements: {
+                code: components["schemas"]["Code"];
+                title: string;
+                state: components["schemas"]["StateRef"];
+            }[];
+            /** @description Qué falta para avanzar, por cada transición posible desde el estado actual. En las listas viene vacío: se calcula solo en la ficha. */
+            missing: components["schemas"]["Missing"][];
+            createdBy: components["schemas"]["UserRef"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        /**
+         * @description Por qué está el TC. `impact` cruza con un componente tocado; `critical` es crítico del sistema; `manual` lo agregó QA.
+         * @enum {string}
+         */
+        RegressionOrigin: "impact" | "critical" | "manual";
+        Regression: {
+            package: components["schemas"]["Code"];
+            proposedBy: components["schemas"]["UserRef"];
+            /** Format: date-time */
+            proposedAt: string;
+            confirmedBy?: components["schemas"]["UserRef"];
+            /** Format: date-time */
+            confirmedAt?: string;
+            summary: {
+                /** @description TC que propuso el sistema */
+                proposed: number;
+                /** @description TC de la selección final */
+                included: number;
+                /** @description TC que agregó QA */
+                added: number;
+                /** @description TC propuestos que QA quitó */
+                removed: number;
+                /** @description De la selección final, con su último RUN sobre un BUILD del PKG aprobado */
+                passed: number;
+                /** @description De la selección final, con su último RUN sobre un BUILD del PKG fallido o bloqueado */
+                failed: number;
+                /** @description De la selección final, sin RUN sobre un BUILD del PKG */
+                pending: number;
+            };
+            /** @description Todos los TC propuestos o agregados, incluidos los que QA quitó. */
+            items: {
+                testCase: components["schemas"]["CodeTitle"];
+                isCritical: boolean;
+                origin: components["schemas"]["RegressionOrigin"];
+                proposed: boolean;
+                included: boolean;
+                /** @description Criterio del ajuste de QA; vacío si la decisión coincide con lo propuesto. */
+                reason: string;
+                decidedBy?: components["schemas"]["UserRef"];
+                /** Format: date-time */
+                decidedAt?: string;
+                /** @description Componentes del TC que tocan los REQ del PKG. */
+                components: components["schemas"]["ComponentRef"][];
+                /** @description Último RUN del TC sobre un BUILD del PKG. */
+                lastRun?: components["schemas"]["RunSummary"];
+            }[];
         };
         /** @enum {string} */
         SavedViewScreen: "requirements" | "changes" | "defects" | "matrix" | "test-cases" | "audit";
@@ -1271,11 +1925,11 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        /** @description El RUN se registra sobre un BUILD y un ENV del catálogo, del mismo sistema que el TC. Un ambiente de producción no admite RUN: QA no ejecuta en producción. */
         RunInput: {
             testCase: components["schemas"]["Code"];
-            buildVersion: string;
-            buildChecksum: components["schemas"]["Checksum"];
-            environmentName: string;
+            build: components["schemas"]["Code"];
+            environment: components["schemas"]["Code"];
             result: components["schemas"]["RunResult"];
             notes?: string;
             /**
@@ -1289,6 +1943,10 @@ export interface components {
             result: components["schemas"]["RunResult"];
             buildVersion: string;
             environmentName: string;
+            /** @description Ausente en los RUN anteriores al catálogo de BUILD. */
+            build?: components["schemas"]["Code"];
+            /** @description Ausente en los RUN anteriores al catálogo de ambientes. */
+            environment?: components["schemas"]["Code"];
             /** Format: date-time */
             executedAt: string;
         };
@@ -1300,10 +1958,11 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        /** @description La exploración se registra sobre un BUILD y un ENV del catálogo, del sistema del REQ. */
         ExplorationInput: {
             requirement: components["schemas"]["Code"];
-            buildVersion: string;
-            environmentName: string;
+            build: components["schemas"]["Code"];
+            environment: components["schemas"]["Code"];
             manualChanges?: string;
             findings?: string;
             /** Format: date-time */
@@ -1314,6 +1973,10 @@ export interface components {
             requirement: components["schemas"]["Code"];
             buildVersion: string;
             environmentName: string;
+            /** @description Ausente en las exploraciones anteriores al catálogo de BUILD. */
+            build?: components["schemas"]["Code"];
+            /** @description Ausente en las exploraciones anteriores al catálogo de ambientes. */
+            environment?: components["schemas"]["Code"];
             manualChanges: string;
             findings: string;
             executedBy: components["schemas"]["UserRef"];
@@ -1392,7 +2055,7 @@ export interface components {
         };
         SearchHit: {
             /** @enum {string} */
-            type: "requirement" | "change" | "risk_assessment" | "functional_case" | "test_case" | "test_run" | "exploratory_session" | "defect" | "document";
+            type: "requirement" | "change" | "risk_assessment" | "functional_case" | "test_case" | "test_run" | "exploratory_session" | "defect" | "document" | "component" | "build" | "package" | "environment" | "deployment";
             code: components["schemas"]["Code"];
             title: string;
             state?: components["schemas"]["StateRef"];
@@ -1434,17 +2097,7 @@ export interface components {
                 days: number;
             }[];
             /** @description Qué falta para avanzar, por cada transición posible desde el estado actual. */
-            missing: {
-                to: components["schemas"]["StateRef"];
-                conditions: {
-                    ruleKey: string;
-                    /** @example Faltan 2 TC sin RUN aprobado: TC-2026-0112, TC-2026-0113. */
-                    message: string;
-                    /** @description Con `false`, la condición solo avisa. */
-                    blocks: boolean;
-                    related: components["schemas"]["Code"][];
-                }[];
-            }[];
+            missing: components["schemas"]["Missing"][];
             coverage: {
                 /** @description TC activos que validan algún UC del REQ */
                 required: number;
@@ -1495,6 +2148,8 @@ export interface components {
                 risk?: components["schemas"]["Code"];
                 riskLevel?: components["schemas"]["RiskLevel"];
                 owner?: string;
+                /** @description Los PKG que incluyen el REQ. */
+                packages: components["schemas"]["Code"][];
                 functionalCases: components["schemas"]["Code"][];
                 testCase?: components["schemas"]["TestCaseSummary"];
                 /** @description Los DEF reproducidos en un RUN de ese TC. */
@@ -1541,13 +2196,17 @@ export interface components {
         SystemKey: string;
         /** @description Clave del estado en su flujo */
         StateKey: string;
-        WorkflowEntityType: "requirement" | "change" | "defect";
+        WorkflowEntityType: "requirement" | "change" | "defect" | "package";
         EntityType: components["schemas"]["EntityType"];
         EntityCode: components["schemas"]["Code"];
         /** @description Código del CHG */
         MatrixChange: components["schemas"]["Code"];
         MatrixRisk: components["schemas"]["RiskLevel"];
         MatrixOwner: string;
+        /** @description Código de un PKG que incluye el REQ */
+        MatrixPackage: components["schemas"]["Code"];
+        /** @description Código de un COMP que toca el REQ */
+        MatrixComponent: components["schemas"]["Code"];
         /** @description REQ creados desde esta fecha */
         MatrixFrom: string;
         /** @description REQ creados hasta esta fecha */
@@ -3150,6 +3809,825 @@ export interface operations {
             default: components["responses"]["Problem"];
         };
     };
+    listComponents: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                size?: components["parameters"]["Size"];
+                /** @description Clave del sistema (`SIMF`, `SGLPAR`, `SYPAGO`) */
+                system?: components["parameters"]["SystemKey"];
+                /** @description Clase de componente */
+                kind?: components["schemas"]["ComponentKind"];
+                /** @description Texto a buscar en el título */
+                q?: components["parameters"]["Query"];
+                /** @description Con `true`, incluye los retirados. */
+                includeRetired?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Página de COMP */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageInfo"] & {
+                        items: components["schemas"]["Component"][];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    createComponent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComponentInput"];
+            };
+        };
+        responses: {
+            /** @description COMP creado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Component"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getComponent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description COMP */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Component"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    updateComponent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComponentPatch"];
+            };
+        };
+        responses: {
+            /** @description COMP actualizado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Component"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listRequirementComponents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Componentes, por nombre */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["ComponentRef"][];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    setRequirementComponents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    components: components["schemas"]["Code"][];
+                };
+            };
+        };
+        responses: {
+            /** @description Componentes, por nombre */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["ComponentRef"][];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listTestCaseComponents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Componentes, por nombre */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["ComponentRef"][];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    setTestCaseComponents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    components: components["schemas"]["Code"][];
+                };
+            };
+        };
+        responses: {
+            /** @description Componentes, por nombre */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["ComponentRef"][];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listBuilds: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                size?: components["parameters"]["Size"];
+                /** @description Clave del sistema (`SIMF`, `SGLPAR`, `SYPAGO`) */
+                system?: components["parameters"]["SystemKey"];
+                /** @description Código de un REQ incluido en el manifiesto */
+                requirement?: components["schemas"]["Code"];
+                /** @description Texto contenido en la versión */
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Página de BUILD */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageInfo"] & {
+                        items: components["schemas"]["Build"][];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    registerBuild: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BuildInput"];
+            };
+        };
+        responses: {
+            /** @description BUILD registrado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Build"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getBuild: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description BUILD */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Build"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listEnvironments: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                size?: components["parameters"]["Size"];
+                /** @description Clave del sistema (`SIMF`, `SGLPAR`, `SYPAGO`) */
+                system?: components["parameters"]["SystemKey"];
+                /** @description Tipo de ambiente */
+                kind?: components["schemas"]["EnvironmentKind"];
+                /** @description Con `true`, incluye los retirados. */
+                includeRetired?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Página de ENV */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageInfo"] & {
+                        items: components["schemas"]["Environment"][];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    createEnvironment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnvironmentInput"];
+            };
+        };
+        responses: {
+            /** @description ENV creado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Environment"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getEnvironment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ENV */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Environment"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    updateEnvironment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnvironmentPatch"];
+            };
+        };
+        responses: {
+            /** @description ENV actualizado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Environment"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listDeployments: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                size?: components["parameters"]["Size"];
+                /** @description Código del ENV */
+                environment?: components["schemas"]["Code"];
+                /** @description Código del BUILD */
+                build?: components["schemas"]["Code"];
+                /** @description Código del PKG */
+                package?: components["schemas"]["Code"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Página de DEP */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageInfo"] & {
+                        items: components["schemas"]["Deployment"][];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    registerDeployment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeploymentInput"];
+            };
+        };
+        responses: {
+            /** @description DEP registrado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Deployment"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getDeployment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description DEP */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Deployment"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listPackages: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                size?: components["parameters"]["Size"];
+                /** @description Clave del sistema (`SIMF`, `SGLPAR`, `SYPAGO`) */
+                system?: components["parameters"]["SystemKey"];
+                /** @description Clave del estado en su flujo */
+                state?: components["parameters"]["StateKey"];
+                /** @description Texto a buscar en el título */
+                q?: components["parameters"]["Query"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Página de PKG */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageInfo"] & {
+                        items: components["schemas"]["Package"][];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    createPackage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PackageInput"];
+            };
+        };
+        responses: {
+            /** @description PKG creado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Package"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getPackage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PKG */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Package"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    updatePackage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PackagePatch"];
+            };
+        };
+        responses: {
+            /** @description PKG actualizado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Package"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    transitionPackage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody: components["requestBodies"]["Transition"];
+        responses: {
+            /** @description PKG en su nuevo estado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Package"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    addPackageBuild: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+                /** @description Código del BUILD */
+                build: components["schemas"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PKG con el BUILD */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Package"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    removePackageBuild: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+                /** @description Código del BUILD */
+                build: components["schemas"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PKG sin el BUILD */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Package"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    addPackageRequirement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+                /** @description Código del REQ */
+                requirement: components["schemas"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PKG con el REQ */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Package"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    removePackageRequirement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+                /** @description Código del REQ */
+                requirement: components["schemas"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PKG sin el REQ */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Package"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getRegression: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Selección de regresión */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Regression"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    proposeRegression: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Selección de regresión */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Regression"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    adjustRegressionItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+                /** @description Código del TC */
+                testCase: components["schemas"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    included: boolean;
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Selección de regresión */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Regression"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    confirmRegression: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Selección de regresión */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Regression"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
     listSavedViews: {
         parameters: {
             query: {
@@ -3287,6 +4765,10 @@ export interface operations {
                 state?: components["parameters"]["StateKey"];
                 risk?: components["parameters"]["MatrixRisk"];
                 owner?: components["parameters"]["MatrixOwner"];
+                /** @description Código de un PKG que incluye el REQ */
+                package?: components["parameters"]["MatrixPackage"];
+                /** @description Código de un COMP que toca el REQ */
+                component?: components["parameters"]["MatrixComponent"];
                 /** @description REQ creados desde esta fecha */
                 from?: components["parameters"]["MatrixFrom"];
                 /** @description REQ creados hasta esta fecha */
@@ -3322,6 +4804,10 @@ export interface operations {
                 state?: components["parameters"]["StateKey"];
                 risk?: components["parameters"]["MatrixRisk"];
                 owner?: components["parameters"]["MatrixOwner"];
+                /** @description Código de un PKG que incluye el REQ */
+                package?: components["parameters"]["MatrixPackage"];
+                /** @description Código de un COMP que toca el REQ */
+                component?: components["parameters"]["MatrixComponent"];
                 /** @description REQ creados desde esta fecha */
                 from?: components["parameters"]["MatrixFrom"];
                 /** @description REQ creados hasta esta fecha */

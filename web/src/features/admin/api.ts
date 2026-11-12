@@ -1,6 +1,6 @@
 import { api } from '../../shared/api/client.ts'
 import { useApiMutation, useApiQuery } from '../../shared/api/query.ts'
-import type { BlockingRule, Role, RolePermissions, Workflow } from '../../shared/api/types.ts'
+import type { BlockingRule, Role, RolePermissions, Workflow, WorkflowEntityType } from '../../shared/api/types.ts'
 
 export const useRolePermissions = (enabled = true) => useApiQuery<RolePermissions>('/api/admin/role-permissions', undefined, enabled)
 export const useSetRolePermissions = () =>
@@ -12,7 +12,7 @@ export const useUpdateBlockingRule = () =>
     api.patch<BlockingRule>(`/api/admin/blocking-rules/${id}`, patch),
   )
 
-export type FlowType = 'requirement' | 'change' | 'defect'
+export type FlowType = WorkflowEntityType
 const flow = (entityType: FlowType) => `/api/admin/workflows/${entityType}`
 
 export const useAddState = (entityType: FlowType) =>

@@ -46,6 +46,18 @@ type TestDesign interface {
 	RequirementTestCases(ctx context.Context, requirementCode string) ([]domain.CoverageTestCase, error)
 }
 
+// Builds busca en el feature build el BUILD sobre el que se ejecuta.
+type Builds interface {
+	// Find devuelve NOT_FOUND_RESOURCE si el BUILD no existe.
+	Find(ctx context.Context, code string) (domain.BuildRef, error)
+}
+
+// Environments busca en el feature environment el ambiente en el que se ejecuta.
+type Environments interface {
+	// Find devuelve NOT_FOUND_RESOURCE si el ambiente no existe.
+	Find(ctx context.Context, code string) (domain.EnvironmentRef, error)
+}
+
 // Permissions comprueba los permisos de los roles de un actor.
 type Permissions interface {
 	Require(ctx context.Context, roles []string, permission string) error

@@ -45,9 +45,19 @@ Entregas a QA con el contrato de entrada completo y corriges defectos.
 4. **Corrige defectos**: los que tienes asignados salen en *Inicio*. Al terminar, déjalos *Listos para reprueba*.
 5. **Incluye el REQ en un paquete** cuando QA lo aprobó.
 
+## Paquetes y regresión (fase 3)
+
+Además de lo anterior, cada rol participa en el paquete (PKG):
+
+- **Desarrollo** mantiene el catálogo de componentes (*Pruebas → Componentes*), registra cada **BUILD** con su checksum y su manifiesto (*Paquetes → BUILD*; un BUILD no se edita) y **arma el PKG**: lo crea y le agrega sus BUILD y sus REQ aprobados por QA. El contenido solo cambia mientras el PKG está «En armado».
+- **Desarrollo y QA declaran el impacto**: en la ficha del REQ, los componentes que toca; en cada TC, los que ejercita. De ese cruce sale la regresión.
+- **QA** mantiene los **ambientes** (*Ambientes*) y registra cada **despliegue** en los de prueba. Cada RUN se registra sobre un BUILD y un ambiente del catálogo.
+- **QA define la regresión** en la pestaña *Regresión* del PKG: *Proponer* trae los TC que cruzan con los componentes tocados más los críticos del sistema; puedes quitar o agregar TC, y cuando te apartas de lo propuesto escribes el criterio; *Confirmar* la congela. Sin regresión confirmada el PKG no pasa a pruebas, y no queda «Listo para liberar» mientras un TC de la regresión no tenga un RUN aprobado sobre un BUILD del paquete o haya un defecto de severidad alta abierto.
+- **Change manager** aprueba el PKG para producción, registra el despliegue en producción y lo marca desplegado. QA lo verifica después.
+
 ## Operaciones
 
-Consultas el estado de lo que vas a desplegar, comentas y adjuntas documentos (por ejemplo, la evidencia de un despliegue). Las pantallas de paquetes, ambientes y producción llegan en fases posteriores.
+Consultas el estado de lo que vas a desplegar, comentas y adjuntas documentos (por ejemplo, la evidencia de un despliegue). Ves los paquetes, sus BUILD, los ambientes y sus despliegues; la pantalla de producción llega en la fase 4.
 
 ## Auditoría
 
@@ -64,4 +74,4 @@ Además de lo de QA, configuras el sistema en *Administración*. Cada cambio val
 
 ## Lo que este manual no cubre todavía
 
-La importación de la hoja actual, paquetes, ambientes, producción, informes y calendario: no están en el MVP.
+La importación de la hoja actual, el checklist de producción, los diagnósticos y pruebas de humo, los informes y el calendario: todavía no existen.

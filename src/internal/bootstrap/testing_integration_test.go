@@ -33,7 +33,7 @@ type totalBody struct {
 func TestRequirementApprovalNeedsCoverageAndNoHighDefects(t *testing.T) {
 	a := newAPI(t)
 	var p problemBody
-	checksum := strings.Repeat("ab12", 16)
+	build, environment := a.catalog("SYPAGO")
 	executedAt := time.Now().Add(-time.Hour).UTC().Format(time.RFC3339)
 
 	// Un REQ de SyPago (ruta ligera) llevado hasta «En pruebas».
@@ -111,14 +111,13 @@ func TestRequirementApprovalNeedsCoverageAndNoHighDefects(t *testing.T) {
 		t.Errorf("sin RUN: %+v", p)
 	}
 
-	// RUN: solo QA, sobre un BUILD con checksum, y nunca con fecha futura ni sobre un TC retirado.
+	// RUN: solo QA, sobre un BUILD y un ENV del catálogo, y nunca con fecha futura ni sobre un TC retirado.
 	run := func(tc, result string) map[string]any {
-		return map[string]any{"testCase": tc, "buildVersion": "2.14.0", "buildChecksum": checksum,
-			"environmentName": "QA-1", "result": result, "executedAt": executedAt}
+		return map[string]any{"testCase": tc, "build": build, "environment": environment, "result": result, "executedAt": executedAt}
 	}
 	a.call("dev", "POST", "/api/runs", run(tc1.Code, "passed"), 403, nil)
 	bad := run(tc1.Code, "passed")
-	bad["buildChecksum"], bad["executedAt"] = "abc", time.Now().Add(time.Hour).UTC().Format(time.RFC3339)
+	bad["result"], bad["executedAt"] = "aprobado", time.Now().Add(time.Hour).UTC().Format(time.RFC3339)
 	a.call("qa", "POST", "/api/runs", bad, 422, &p)
 	if len(p.Errors) != 2 {
 		t.Errorf("RUN inválido: %+v", p.Errors)
@@ -239,7 +238,7 @@ func TestRequirementApprovalNeedsCoverageAndNoHighDefects(t *testing.T) {
 	// EXP: se registra, pero no cuenta como evidencia.
 	var exp codeBody
 	a.call("qa", "POST", "/api/explorations", map[string]any{
-		"requirement": req.Code, "buildVersion": "2.14.0", "environmentName": "QA-1", "manualChanges": "Reloj adelantado", "executedAt": executedAt,
+		"requirement": req.Code, "build": build, "environment": environment, "manualChanges": "Reloj adelantado", "executedAt": executedAt,
 	}, 201, &exp)
 	a.call("qa", "PATCH", "/api/explorations/"+exp.Code, map[string]any{"findings": "El corte de día falla"}, 200, nil)
 	a.call("dev", "PATCH", "/api/explorations/"+exp.Code, map[string]any{"findings": "x"}, 403, nil)

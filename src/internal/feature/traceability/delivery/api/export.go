@@ -13,7 +13,7 @@ import (
 )
 
 var matrixHeader = []string{
-	"REQ", "Título", "Sistema", "Estado", "CHG", "RISK", "Riesgo", "Responsable", "UC",
+	"REQ", "Título", "Sistema", "Estado", "CHG", "RISK", "Riesgo", "Responsable", "PKG", "UC",
 	"TC", "Título del TC", "Crítico", "Último RUN", "Resultado", "BUILD", "Ambiente", "Ejecutado", "DEF",
 }
 
@@ -41,7 +41,7 @@ func matrixCells(r domain.MatrixRow) []string {
 	}
 	cells := []string{
 		r.RequirementCode, r.RequirementTitle, r.SystemKey, r.State.Name, r.ChangeCode, r.RiskCode,
-		riskLabels[r.RiskLevel], r.OwnerName, strings.Join(r.FunctionalCases, ", "),
+		riskLabels[r.RiskLevel], r.OwnerName, strings.Join(r.Packages, ", "), strings.Join(r.FunctionalCases, ", "),
 		r.TestCase.Code, r.TestCase.Title, critical, r.TestCase.LastRun.Code, resultLabels[r.TestCase.LastRun.Result],
 		r.TestCase.LastRun.BuildVersion, r.TestCase.LastRun.EnvironmentName, executed, strings.Join(defects, "; "),
 	}

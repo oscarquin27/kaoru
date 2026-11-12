@@ -35,6 +35,8 @@ func (h *Handler) Register(r gin.IRouter) {
 	r.GET("/api/requirements/:code/entry-contract", h.getEntryContract)
 	r.PUT("/api/requirements/:code/entry-contract/:itemKey", h.checkEntryItem)
 	r.DELETE("/api/requirements/:code/entry-contract/:itemKey", h.uncheckEntryItem)
+	r.GET("/api/requirements/:code/components", h.listComponents)
+	r.PUT("/api/requirements/:code/components", h.setComponents)
 }
 
 func actorOf(c *gin.Context) shared.Actor {
@@ -220,4 +222,29 @@ func (h *Handler) uncheckEntryItem(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusNoContent)
+}
+
+func (h *Handler) listComponents(c *gin.Context) {
+	refs, err := h.uc.ListRequirementComponents.Execute(c.Request.Context(), usecase.ListRequirementComponentsInput{Code: c.Param("code")})
+	if err != nil {
+		problem.Write(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": toComponentDTOs(refs)})
+}
+
+func (h *Handler) setComponents(c *gin.Context) {
+	var body componentsDTO
+	if err := httpserver.DecodeJSON(c, &body); err != nil {
+		problem.Write(c, err)
+		return
+	}
+	refs, err := h.uc.SetRequirementComponents.Execute(c.Request.Context(), usecase.SetRequirementComponentsInput{
+		Actor: actorOf(c), Code: c.Param("code"), Components: body.Components,
+	})
+	if err != nil {
+		problem.Write(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": toComponentDTOs(refs)})
 }

@@ -1,6 +1,7 @@
 // Matriz de trazabilidad (boceto: matriz.html). Una fila por REQ y TC; las celdas del REQ se
 // agrupan. Clic en un ID abre su ficha en el panel lateral sin perder la posición.
 import { useState } from 'react'
+import { useComponentOptions, usePackageOptions } from '../../shared/api/catalog.ts'
 import { useUserOptions, useSystems, useWorkflow } from '../../shared/api/session.ts'
 import type { Matrix, MatrixRow } from '../../shared/api/types.ts'
 import { RISK_LABELS, options } from '../../shared/lib/labels.ts'
@@ -11,9 +12,10 @@ import { Async, Empty } from '../../shared/ui/feedback.tsx'
 import { FilterBar, FilterInput, FilterSelect, Pager } from '../../shared/ui/Filters.tsx'
 import { Icon } from '../../shared/ui/Icon.tsx'
 import { Crumbs, PageHead } from '../../shared/ui/layout.tsx'
+import { RunTarget } from '../../shared/ui/RunTarget.tsx'
 import { matrixExportUrl, useChangeOptions, useMatrix } from './api.ts'
 
-const FILTERS = ['change', 'system', 'state', 'risk', 'owner', 'from', 'to']
+const FILTERS = ['change', 'system', 'state', 'risk', 'owner', 'package', 'component', 'from', 'to']
 
 function Indicators({ indicators }: { indicators: Matrix['indicators'] }) {
   const { high, medium, low } = indicators.openDefects
@@ -67,6 +69,7 @@ function MatrixTable({ rows, systemNames }: { rows: MatrixRow[]; systemNames: Re
             <th>TC</th>
             <th>RUN · BUILD · ENV</th>
             <th>DEF</th>
+            <th>PKG</th>
           </tr>
         </thead>
         <tbody>
@@ -111,9 +114,7 @@ function MatrixTable({ rows, systemNames }: { rows: MatrixRow[]; systemNames: Re
                         <Code code={run.code} />
                         <ResultChip result={run.result} />
                       </span>
-                      <span className="muted mono">
-                        {run.buildVersion} · {run.environmentName}
-                      </span>
+                      <RunTarget target={run} />
                     </div>
                   ) : (
                     <span className="muted">Sin RUN</span>
@@ -133,6 +134,20 @@ function MatrixTable({ rows, systemNames }: { rows: MatrixRow[]; systemNames: Re
                     </div>
                   )}
                 </td>
+                {span > 0 && (
+                  <td rowSpan={span}>
+                    {/* `packages` falta en las respuestas grabadas antes de la fase 3. */}
+                    {(row.packages ?? []).length === 0 ? (
+                      <span className="muted">Sin paquete</span>
+                    ) : (
+                      <div className="cell-stack">
+                        {row.packages.map((code) => (
+                          <Code key={code} code={code} />
+                        ))}
+                      </div>
+                    )}
+                  </td>
+                )}
               </tr>
             )
           })}
@@ -150,6 +165,8 @@ export default function MatrixPage() {
   const states = useWorkflow('requirement').data?.states ?? []
   const changes = useChangeOptions().data?.items ?? []
   const filters = pick(FILTERS)
+  const packages = usePackageOptions(filters.system).data?.items ?? []
+  const components = useComponentOptions(filters.system).data?.items ?? []
   const page = Number(params.get('page')) || 1
   const matrix = useMatrix({ ...filters, page: page > 1 ? page : undefined })
 
@@ -167,7 +184,7 @@ export default function MatrixPage() {
       <Crumbs items={[{ label: 'Pruebas' }, { label: 'Matriz de trazabilidad' }]} />
       <PageHead
         title="Matriz de trazabilidad"
-        subtitle="REQ → RISK → UC → TC → RUN → DEF"
+        subtitle="REQ → RISK → UC → TC → RUN → DEF → PKG"
         actions={
           <>
             <a className="btn" href={matrixExportUrl('csv', filters)} download>
@@ -196,6 +213,8 @@ export default function MatrixPage() {
         <FilterSelect name="state" label="Estado" options={states.map((state) => ({ value: state.key, label: state.name }))} />
         <FilterSelect name="risk" label="Riesgo" options={options(RISK_LABELS)} />
         <FilterSelect name="owner" label="Responsable" options={users} />
+        <FilterSelect name="package" label="PKG" options={packages.map((item) => ({ value: item.code, label: `${item.code} · ${item.title}` }))} />
+        <FilterSelect name="component" label="Componente" options={components.map((item) => ({ value: item.code, label: item.name }))} />
         <FilterInput name="from" label="Desde" type="date" />
         <FilterInput name="to" label="Hasta" type="date" />
       </FilterBar>

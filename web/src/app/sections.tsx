@@ -46,6 +46,8 @@ export const SECTIONS: Section[] = [
     screens: [
       { path: '/pruebas', label: 'Matriz de trazabilidad', page: lazy(() => import('../features/traceability/MatrixPage.tsx')) },
       { path: '/pruebas/casos', label: 'Casos de prueba', page: lazy(() => import('../features/testdesign/TestCasesPage.tsx')) },
+      { path: '/pruebas/componentes', label: 'Componentes', page: lazy(() => import('../features/components/ComponentsPage.tsx')) },
+      { path: '/pruebas/componentes/:code', page: lazy(() => import('../features/components/ComponentPage.tsx')) },
     ],
   },
   {
@@ -57,8 +59,28 @@ export const SECTIONS: Section[] = [
       { path: '/defectos/:code', page: lazy(() => import('./DefectPage.tsx')) },
     ],
   },
-  { id: 'paquetes', label: 'Paquetes', icon: 'box', screens: [] },
-  { id: 'ambientes', label: 'Ambientes', icon: 'server', screens: [] },
+  {
+    id: 'paquetes',
+    label: 'Paquetes',
+    icon: 'box',
+    screens: [
+      { path: '/paquetes', label: 'Paquetes', page: lazy(() => import('../features/bundle/PackagesPage.tsx')) },
+      { path: '/paquetes/builds', label: 'BUILD', page: lazy(() => import('../features/builds/BuildsPage.tsx')) },
+      { path: '/paquetes/builds/:code', page: lazy(() => import('../features/builds/BuildPage.tsx')) },
+      { path: '/paquetes/:code', page: lazy(() => import('./PackagePage.tsx')) },
+    ],
+  },
+  {
+    id: 'ambientes',
+    label: 'Ambientes',
+    icon: 'server',
+    screens: [
+      { path: '/ambientes', label: 'Ambientes', page: lazy(() => import('../features/environments/EnvironmentsPage.tsx')) },
+      { path: '/ambientes/despliegues', label: 'Despliegues', page: lazy(() => import('../features/environments/DeploymentsPage.tsx')) },
+      { path: '/ambientes/despliegues/:code', page: lazy(() => import('../features/environments/DeploymentPage.tsx')) },
+      { path: '/ambientes/:code', page: lazy(() => import('../features/environments/EnvironmentPage.tsx')) },
+    ],
+  },
   { id: 'produccion', label: 'Producción', icon: 'flag', screens: [] },
   { id: 'informes', label: 'Informes', icon: 'chart', screens: [] },
   { id: 'calendario', label: 'Calendario', icon: 'calendar', screens: [] },

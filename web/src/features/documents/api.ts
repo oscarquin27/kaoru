@@ -4,8 +4,10 @@ import type { ApiError } from '../../shared/api/errors.ts'
 import type { Document, Items } from '../../shared/api/types.ts'
 import { useQuery } from '@tanstack/react-query'
 
-export const useRequirementDocuments = (requirementCode: string) =>
-  useApiQuery<Items<Document>>('/api/documents', { entityType: 'requirement', entityCode: requirementCode })
+/** Entidades a las que se adjuntan documentos desde su ficha. */
+export type DocumentOwner = 'requirement' | 'package'
+export const useEntityDocuments = (entityType: DocumentOwner, entityCode: string) => useApiQuery<Items<Document>>('/api/documents', { entityType, entityCode })
+export const useRequirementDocuments = (requirementCode: string) => useEntityDocuments('requirement', requirementCode)
 export const useDocument = (code: string) => useApiQuery<Document>(`/api/documents/${code}`)
 
 export const useCreateDocument = () => useApiMutation((form: FormData) => api.upload<Document>('/api/documents', form))

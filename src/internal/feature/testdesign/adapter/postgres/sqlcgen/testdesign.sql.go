@@ -45,6 +45,17 @@ func (q *Queries) CountTestCases(ctx context.Context, arg CountTestCasesParams) 
 	return count, err
 }
 
+const deleteTestCaseComponents = `-- name: DeleteTestCaseComponents :exec
+DELETE
+FROM test_case_component
+WHERE test_case_id = $1
+`
+
+func (q *Queries) DeleteTestCaseComponents(ctx context.Context, testCaseID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteTestCaseComponents, testCaseID)
+	return err
+}
+
 const deleteTestCaseLinks = `-- name: DeleteTestCaseLinks :exec
 DELETE
 FROM test_case_functional_case
@@ -229,6 +240,21 @@ func (q *Queries) InsertTestCase(ctx context.Context, arg InsertTestCaseParams) 
 	return err
 }
 
+const insertTestCaseComponent = `-- name: InsertTestCaseComponent :exec
+INSERT INTO test_case_component (test_case_id, component_id)
+VALUES ($1, $2)
+`
+
+type InsertTestCaseComponentParams struct {
+	TestCaseID  uuid.UUID
+	ComponentID uuid.UUID
+}
+
+func (q *Queries) InsertTestCaseComponent(ctx context.Context, arg InsertTestCaseComponentParams) error {
+	_, err := q.db.Exec(ctx, insertTestCaseComponent, arg.TestCaseID, arg.ComponentID)
+	return err
+}
+
 const insertTestCaseLink = `-- name: InsertTestCaseLink :exec
 INSERT INTO test_case_functional_case (test_case_id, functional_case_id)
 VALUES ($1, $2)
@@ -408,6 +434,47 @@ func (q *Queries) ListTestCaseCodesByFunctionalCases(ctx context.Context, functi
 	return items, nil
 }
 
+const listTestCaseComponents = `-- name: ListTestCaseComponents :many
+SELECT c.id, c.code, c.name, c.kind
+FROM test_case_component tc
+         JOIN component c ON c.id = tc.component_id
+WHERE tc.test_case_id = $1
+ORDER BY c.name, c.code
+`
+
+type ListTestCaseComponentsRow struct {
+	ID   uuid.UUID
+	Code string
+	Name string
+	Kind string
+}
+
+// Los componentes que ejercita el TC, por nombre. Lee `component` en el sentido de la llave.
+func (q *Queries) ListTestCaseComponents(ctx context.Context, testCaseID uuid.UUID) ([]ListTestCaseComponentsRow, error) {
+	rows, err := q.db.Query(ctx, listTestCaseComponents, testCaseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListTestCaseComponentsRow
+	for rows.Next() {
+		var i ListTestCaseComponentsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Code,
+			&i.Name,
+			&i.Kind,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listTestCases = `-- name: ListTestCases :many
 SELECT t.id, t.code, s.key AS system_key, s.name AS system_name, t.title, t.preconditions, t.steps,
        t.expected_result, t.is_critical, t.retired_at, t.created_by, t.created_at, t.updated_at
@@ -489,6 +556,21 @@ func (q *Queries) ListTestCases(ctx context.Context, arg ListTestCasesParams) ([
 		return nil, err
 	}
 	return items, nil
+}
+
+const lockTestCase = `-- name: LockTestCase :one
+SELECT id
+FROM test_case
+WHERE code = $1
+    FOR UPDATE
+`
+
+// Bloquea la fila hasta el fin de la transacción: dos escrituras sobre la misma entidad van una tras otra.
+func (q *Queries) LockTestCase(ctx context.Context, code string) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, lockTestCase, code)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
 }
 
 const nextCode = `-- name: NextCode :one

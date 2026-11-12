@@ -40,6 +40,16 @@ tags:
     description: Documentos versionados (DOC)
   - name: comment
     description: Comentarios
+  - name: component
+    description: Catálogo de componentes (COMP) e impacto
+  - name: build
+    description: Artefactos inmutables (BUILD)
+  - name: environment
+    description: Ambientes (ENV) y despliegues (DEP)
+  - name: bundle
+    description: Paquetes (PKG)
+  - name: regression
+    description: Selección de regresión por impacto
   - name: savedview
     description: Vistas guardadas (filtros de una lista con nombre, personales)
   - name: traceability
@@ -1236,6 +1246,652 @@ paths:
               schema: { $ref: '#/components/schemas/Comment' }
         default: { $ref: '#/components/responses/Problem' }
 
+  /api/components:
+    get:
+      tags: [component]
+      operationId: listComponents
+      summary: Catálogo de componentes
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/SystemKey'
+        - name: kind
+          in: query
+          description: Clase de componente
+          schema: { $ref: '#/components/schemas/ComponentKind' }
+        - $ref: '#/components/parameters/Query'
+        - name: includeRetired
+          in: query
+          description: Con `true`, incluye los retirados.
+          schema: { type: boolean, default: false }
+      responses:
+        '200':
+          description: Página de COMP
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageInfo'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/Component' }
+        default: { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [component]
+      operationId: createComponent
+      summary: Agrega un componente al catálogo
+      description: Exige `comp.manage`. El nombre no se repite dentro de un sistema.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ComponentInput' }
+      responses:
+        '201':
+          description: COMP creado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Component' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/components/{code}:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    get:
+      tags: [component]
+      operationId: getComponent
+      summary: Ficha de un componente
+      responses:
+        '200':
+          description: COMP
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Component' }
+        default: { $ref: '#/components/responses/Problem' }
+    patch:
+      tags: [component]
+      operationId: updateComponent
+      summary: Edita o retira un componente
+      description: Exige `comp.manage`. El sistema no cambia.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ComponentPatch' }
+      responses:
+        '200':
+          description: COMP actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Component' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/requirements/{code}/components:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    get:
+      tags: [requirement]
+      operationId: listRequirementComponents
+      summary: Componentes que toca un REQ
+      responses:
+        '200':
+          description: Componentes, por nombre
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/ComponentRef' }
+        default: { $ref: '#/components/responses/Problem' }
+    put:
+      tags: [requirement]
+      operationId: setRequirementComponents
+      summary: Declara los componentes que toca un REQ
+      description: Exige `req.edit`. Reemplaza la lista. Los componentes deben ser del sistema del REQ y no estar retirados.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [components]
+              properties:
+                components:
+                  type: array
+                  items: { $ref: '#/components/schemas/Code' }
+      responses:
+        '200':
+          description: Componentes, por nombre
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/ComponentRef' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/test-cases/{code}/components:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    get:
+      tags: [testdesign]
+      operationId: listTestCaseComponents
+      summary: Componentes que ejercita un TC
+      responses:
+        '200':
+          description: Componentes, por nombre
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/ComponentRef' }
+        default: { $ref: '#/components/responses/Problem' }
+    put:
+      tags: [testdesign]
+      operationId: setTestCaseComponents
+      summary: Declara los componentes que ejercita un TC
+      description: Exige `testdesign.manage`. Reemplaza la lista. Los componentes deben ser del sistema del TC y no estar retirados.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [components]
+              properties:
+                components:
+                  type: array
+                  items: { $ref: '#/components/schemas/Code' }
+      responses:
+        '200':
+          description: Componentes, por nombre
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/ComponentRef' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/builds:
+    get:
+      tags: [build]
+      operationId: listBuilds
+      summary: Lista de BUILD, del más reciente al más antiguo
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/SystemKey'
+        - name: requirement
+          in: query
+          description: Código de un REQ incluido en el manifiesto
+          schema: { $ref: '#/components/schemas/Code' }
+        - name: q
+          in: query
+          description: Texto contenido en la versión
+          schema: { type: string }
+      responses:
+        '200':
+          description: Página de BUILD
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageInfo'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/Build' }
+        default: { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [build]
+      operationId: registerBuild
+      summary: Registra un BUILD
+      description: Exige `build.register`. Un BUILD no se edita ni se borra; el mismo checksum no se registra dos veces.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BuildInput' }
+      responses:
+        '201':
+          description: BUILD registrado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Build' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/builds/{code}:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    get:
+      tags: [build]
+      operationId: getBuild
+      summary: Ficha de un BUILD con su manifiesto
+      responses:
+        '200':
+          description: BUILD
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Build' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/environments:
+    get:
+      tags: [environment]
+      operationId: listEnvironments
+      summary: Ambientes
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/SystemKey'
+        - name: kind
+          in: query
+          description: Tipo de ambiente
+          schema: { $ref: '#/components/schemas/EnvironmentKind' }
+        - name: includeRetired
+          in: query
+          description: Con `true`, incluye los retirados.
+          schema: { type: boolean, default: false }
+      responses:
+        '200':
+          description: Página de ENV
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageInfo'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/Environment' }
+        default: { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [environment]
+      operationId: createEnvironment
+      summary: Registra un ambiente
+      description: Exige `env.manage`. El nombre no se repite dentro de un sistema.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EnvironmentInput' }
+      responses:
+        '201':
+          description: ENV creado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Environment' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/environments/{code}:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    get:
+      tags: [environment]
+      operationId: getEnvironment
+      summary: Ficha de un ambiente con lo que tiene instalado
+      responses:
+        '200':
+          description: ENV
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Environment' }
+        default: { $ref: '#/components/responses/Problem' }
+    patch:
+      tags: [environment]
+      operationId: updateEnvironment
+      summary: Edita o retira un ambiente
+      description: Exige `env.manage`. El sistema no cambia.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EnvironmentPatch' }
+      responses:
+        '200':
+          description: ENV actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Environment' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/deployments:
+    get:
+      tags: [environment]
+      operationId: listDeployments
+      summary: Despliegues, del más reciente al más antiguo
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - name: environment
+          in: query
+          description: Código del ENV
+          schema: { $ref: '#/components/schemas/Code' }
+        - name: build
+          in: query
+          description: Código del BUILD
+          schema: { $ref: '#/components/schemas/Code' }
+        - name: package
+          in: query
+          description: Código del PKG
+          schema: { $ref: '#/components/schemas/Code' }
+      responses:
+        '200':
+          description: Página de DEP
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageInfo'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/Deployment' }
+        default: { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [environment]
+      operationId: registerDeployment
+      summary: Registra un despliegue de un BUILD o de un PKG en un ambiente
+      description: >-
+        En un ambiente de prueba exige `dep.create`; en uno de producción, `dep.create_production`
+        (regla de negocio 6). Un despliegue no se edita ni se borra.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DeploymentInput' }
+      responses:
+        '201':
+          description: DEP registrado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Deployment' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/deployments/{code}:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    get:
+      tags: [environment]
+      operationId: getDeployment
+      summary: Ficha de un despliegue
+      responses:
+        '200':
+          description: DEP
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Deployment' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/packages:
+    get:
+      tags: [bundle]
+      operationId: listPackages
+      summary: Lista de PKG
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/SystemKey'
+        - $ref: '#/components/parameters/StateKey'
+        - $ref: '#/components/parameters/Query'
+      responses:
+        '200':
+          description: Página de PKG
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageInfo'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/Package' }
+        default: { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [bundle]
+      operationId: createPackage
+      summary: Crea un PKG en armado
+      description: Exige `pkg.build`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PackageInput' }
+      responses:
+        '201':
+          description: PKG creado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Package' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/packages/{code}:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    get:
+      tags: [bundle]
+      operationId: getPackage
+      summary: Ficha de un PKG con sus BUILD, sus REQ y qué falta para avanzar
+      responses:
+        '200':
+          description: PKG
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Package' }
+        default: { $ref: '#/components/responses/Problem' }
+    patch:
+      tags: [bundle]
+      operationId: updatePackage
+      summary: Edita el título o la descripción de un PKG
+      description: Exige `pkg.build`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PackagePatch' }
+      responses:
+        '200':
+          description: PKG actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Package' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/packages/{code}/transitions:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    post:
+      tags: [bundle]
+      operationId: transitionPackage
+      summary: Cambia el estado de un PKG
+      description: Responde `INVALID_ACTION` con lo que falta si una regla de bloqueo lo impide.
+      requestBody: { $ref: '#/components/requestBodies/Transition' }
+      responses:
+        '200':
+          description: PKG en su nuevo estado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Package' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/packages/{code}/builds/{build}:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+      - name: build
+        in: path
+        required: true
+        description: Código del BUILD
+        schema: { $ref: '#/components/schemas/Code' }
+    put:
+      tags: [bundle]
+      operationId: addPackageBuild
+      summary: Agrega un BUILD al PKG
+      description: Exige `pkg.build` y que el PKG esté en armado. El BUILD debe ser del sistema del PKG.
+      responses:
+        '200':
+          description: PKG con el BUILD
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Package' }
+        default: { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [bundle]
+      operationId: removePackageBuild
+      summary: Quita un BUILD del PKG
+      description: Exige `pkg.build` y que el PKG esté en armado.
+      responses:
+        '200':
+          description: PKG sin el BUILD
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Package' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/packages/{code}/requirements/{requirement}:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+      - name: requirement
+        in: path
+        required: true
+        description: Código del REQ
+        schema: { $ref: '#/components/schemas/Code' }
+    put:
+      tags: [bundle]
+      operationId: addPackageRequirement
+      summary: Agrega un REQ al PKG
+      description: >-
+        Exige `pkg.build` y que el PKG esté en armado. El REQ debe ser del sistema del PKG y estar
+        «Aprobado QA» o «En paquete». Si está «Aprobado QA», pasa a «En paquete» con la misma acción,
+        lo que además exige el permiso de esa transición.
+      responses:
+        '200':
+          description: PKG con el REQ
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Package' }
+        default: { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [bundle]
+      operationId: removePackageRequirement
+      summary: Quita un REQ del PKG
+      description: Exige `pkg.build` y que el PKG esté en armado. El estado del REQ no cambia.
+      responses:
+        '200':
+          description: PKG sin el REQ
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Package' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/packages/{code}/regression:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    get:
+      tags: [regression]
+      operationId: getRegression
+      summary: Selección de regresión de un PKG, propuesta contra final, con su avance
+      description: Responde `NOT_FOUND_RESOURCE` si todavía no se propuso.
+      responses:
+        '200':
+          description: Selección de regresión
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Regression' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/packages/{code}/regression/proposal:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    post:
+      tags: [regression]
+      operationId: proposeRegression
+      summary: Propone (o vuelve a proponer) la regresión del PKG
+      description: >-
+        Exige `regression.manage`. Propone los TC activos que ejercitan algún componente tocado por
+        los REQ del PKG, más los TC críticos del sistema. Al volver a proponer se conservan los
+        ajustes de QA. No se puede después de confirmar.
+      responses:
+        '200':
+          description: Selección de regresión
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Regression' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/packages/{code}/regression/items/{testCase}:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+      - name: testCase
+        in: path
+        required: true
+        description: Código del TC
+        schema: { $ref: '#/components/schemas/Code' }
+    put:
+      tags: [regression]
+      operationId: adjustRegressionItem
+      summary: Incluye o excluye un TC de la regresión, con su criterio
+      description: >-
+        Exige `regression.manage`. `reason` es obligatorio cuando la decisión difiere de lo propuesto
+        (quitar un TC propuesto o agregar uno que no lo estaba). No se puede después de confirmar.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [included]
+              properties:
+                included: { type: boolean }
+                reason: { type: string }
+      responses:
+        '200':
+          description: Selección de regresión
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Regression' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/packages/{code}/regression/confirmation:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    post:
+      tags: [regression]
+      operationId: confirmRegression
+      summary: Confirma la selección de regresión; desde entonces no cambia
+      description: Exige `regression.manage`.
+      responses:
+        '200':
+          description: Selección de regresión
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Regression' }
+        default: { $ref: '#/components/responses/Problem' }
+
   /api/saved-views:
     get:
       tags: [savedview]
@@ -1354,6 +2010,8 @@ paths:
         - $ref: '#/components/parameters/StateKey'
         - $ref: '#/components/parameters/MatrixRisk'
         - $ref: '#/components/parameters/MatrixOwner'
+        - $ref: '#/components/parameters/MatrixPackage'
+        - $ref: '#/components/parameters/MatrixComponent'
         - $ref: '#/components/parameters/MatrixFrom'
         - $ref: '#/components/parameters/MatrixTo'
       responses:
@@ -1379,6 +2037,8 @@ paths:
         - $ref: '#/components/parameters/StateKey'
         - $ref: '#/components/parameters/MatrixRisk'
         - $ref: '#/components/parameters/MatrixOwner'
+        - $ref: '#/components/parameters/MatrixPackage'
+        - $ref: '#/components/parameters/MatrixComponent'
         - $ref: '#/components/parameters/MatrixFrom'
         - $ref: '#/components/parameters/MatrixTo'
       responses:
@@ -1515,7 +2175,7 @@ components:
       name: entityType
       in: path
       required: true
-      schema: { type: string, enum: [requirement, change, defect] }
+      schema: { type: string, enum: [requirement, change, defect, package] }
     EntityType:
       name: entityType
       in: query
@@ -1539,6 +2199,16 @@ components:
       name: owner
       in: query
       schema: { type: string }
+    MatrixPackage:
+      name: package
+      in: query
+      description: Código de un PKG que incluye el REQ
+      schema: { $ref: '#/components/schemas/Code' }
+    MatrixComponent:
+      name: component
+      in: query
+      description: Código de un COMP que toca el REQ
+      schema: { $ref: '#/components/schemas/Code' }
     MatrixFrom:
       name: from
       in: query
@@ -1605,7 +2275,7 @@ components:
         - portability
     EntityType:
       type: string
-      enum: [requirement, change, functional_case, test_case, test_run, exploratory_session, defect]
+      enum: [requirement, change, functional_case, test_case, test_run, exploratory_session, defect, package, deployment]
     DocumentKind:
       type: string
       enum: [specification, manual, evidence, minutes, snapshot, other]
@@ -1663,6 +2333,311 @@ components:
         id: { type: string }
         username: { type: string }
         displayName: { type: string }
+
+    Missing:
+      type: object
+      description: Lo que falta para una transición.
+      required: [to, conditions]
+      properties:
+        to: { $ref: '#/components/schemas/StateRef' }
+        conditions:
+          type: array
+          items:
+            type: object
+            required: [ruleKey, message, blocks, related]
+            properties:
+              ruleKey: { type: string }
+              message:
+                type: string
+                example: 'Faltan 2 TC sin RUN aprobado: TC-2026-0112, TC-2026-0113.'
+              blocks:
+                type: boolean
+                description: Con `false`, la condición solo avisa.
+              related:
+                type: array
+                items: { $ref: '#/components/schemas/Code' }
+
+    ComponentKind:
+      type: string
+      enum: [microservice, library, script, kafka_topic, db_schema, other]
+    ComponentRef:
+      type: object
+      required: [code, name, kind]
+      properties:
+        code: { $ref: '#/components/schemas/Code' }
+        name: { type: string }
+        kind: { $ref: '#/components/schemas/ComponentKind' }
+    ComponentInput:
+      type: object
+      required: [system, kind, name]
+      properties:
+        system:
+          type: string
+          description: Clave del sistema
+        kind: { $ref: '#/components/schemas/ComponentKind' }
+        name: { type: string, minLength: 1, maxLength: 120 }
+        description: { type: string }
+    ComponentPatch:
+      type: object
+      properties:
+        kind: { $ref: '#/components/schemas/ComponentKind' }
+        name: { type: string, minLength: 1, maxLength: 120 }
+        description: { type: string }
+        retired:
+          type: boolean
+          description: Un componente retirado ya no se ofrece para declarar impacto.
+    Component:
+      type: object
+      required: [code, system, kind, name, description, retired, createdBy, createdAt, updatedAt]
+      properties:
+        code: { $ref: '#/components/schemas/Code' }
+        system: { $ref: '#/components/schemas/System' }
+        kind: { $ref: '#/components/schemas/ComponentKind' }
+        name: { type: string }
+        description: { type: string }
+        retired: { type: boolean }
+        createdBy: { $ref: '#/components/schemas/UserRef' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    BuildInput:
+      type: object
+      required: [system, version, checksum]
+      properties:
+        system:
+          type: string
+          description: Clave del sistema
+        version: { type: string, minLength: 1, maxLength: 80 }
+        checksum: { $ref: '#/components/schemas/Checksum' }
+        requirements:
+          type: array
+          description: REQ incluidos en el BUILD. Deben ser del mismo sistema.
+          items: { $ref: '#/components/schemas/Code' }
+        migrations:
+          type: string
+          description: Migraciones que trae, una por línea.
+        dependencies:
+          type: string
+          description: Dependencias y sus versiones, una por línea.
+        notes: { type: string }
+    BuildRef:
+      type: object
+      required: [code, version, checksum]
+      properties:
+        code: { $ref: '#/components/schemas/Code' }
+        version: { type: string }
+        checksum: { $ref: '#/components/schemas/Checksum' }
+    Build:
+      type: object
+      required: [code, system, version, checksum, requirements, migrations, dependencies, notes, builtBy, createdAt]
+      properties:
+        code: { $ref: '#/components/schemas/Code' }
+        system: { $ref: '#/components/schemas/System' }
+        version: { type: string }
+        checksum: { $ref: '#/components/schemas/Checksum' }
+        requirements:
+          type: array
+          items: { $ref: '#/components/schemas/CodeTitle' }
+        migrations: { type: string }
+        dependencies: { type: string }
+        notes: { type: string }
+        builtBy: { $ref: '#/components/schemas/UserRef' }
+        createdAt: { type: string, format: date-time }
+
+    EnvironmentKind:
+      type: string
+      enum: [clean, baseline, offline, production]
+    OperatingSystem:
+      type: string
+      enum: [windows, linux]
+    DeploymentResult:
+      type: string
+      enum: [success, failed, rolled_back]
+    EnvironmentInput:
+      type: object
+      required: [system, name, kind, os]
+      properties:
+        system:
+          type: string
+          description: Clave del sistema
+        name: { type: string, minLength: 1, maxLength: 80 }
+        kind: { $ref: '#/components/schemas/EnvironmentKind' }
+        os: { $ref: '#/components/schemas/OperatingSystem' }
+        notes: { type: string }
+    EnvironmentPatch:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        kind: { $ref: '#/components/schemas/EnvironmentKind' }
+        os: { $ref: '#/components/schemas/OperatingSystem' }
+        notes: { type: string }
+        retired: { type: boolean }
+    EnvironmentRef:
+      type: object
+      required: [code, name, kind]
+      properties:
+        code: { $ref: '#/components/schemas/Code' }
+        name: { type: string }
+        kind: { $ref: '#/components/schemas/EnvironmentKind' }
+    Environment:
+      type: object
+      required: [code, system, name, kind, os, notes, retired, createdBy, createdAt, updatedAt]
+      properties:
+        code: { $ref: '#/components/schemas/Code' }
+        system: { $ref: '#/components/schemas/System' }
+        name: { type: string }
+        kind: { $ref: '#/components/schemas/EnvironmentKind' }
+        os: { $ref: '#/components/schemas/OperatingSystem' }
+        notes: { type: string }
+        retired: { type: boolean }
+        installed:
+          type: object
+          description: Lo que dejó el último despliegue exitoso. Ausente si nunca hubo uno.
+          required: [deployment, deployedAt]
+          properties:
+            deployment: { $ref: '#/components/schemas/Code' }
+            build: { $ref: '#/components/schemas/BuildRef' }
+            package: { $ref: '#/components/schemas/CodeTitle' }
+            deployedAt: { type: string, format: date-time }
+        createdBy: { $ref: '#/components/schemas/UserRef' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    DeploymentInput:
+      type: object
+      description: Lleva `build` o `package`, uno de los dos.
+      required: [environment, result, executedAt]
+      properties:
+        environment: { $ref: '#/components/schemas/Code' }
+        build: { $ref: '#/components/schemas/Code' }
+        package: { $ref: '#/components/schemas/Code' }
+        result: { $ref: '#/components/schemas/DeploymentResult' }
+        notes: { type: string }
+        executedAt:
+          type: string
+          format: date-time
+          description: Cuándo se desplegó. No puede ser futura.
+    Deployment:
+      type: object
+      required: [code, environment, result, notes, executedBy, executedAt, createdAt]
+      properties:
+        code: { $ref: '#/components/schemas/Code' }
+        environment: { $ref: '#/components/schemas/EnvironmentRef' }
+        build: { $ref: '#/components/schemas/BuildRef' }
+        package: { $ref: '#/components/schemas/CodeTitle' }
+        result: { $ref: '#/components/schemas/DeploymentResult' }
+        notes: { type: string }
+        executedBy: { $ref: '#/components/schemas/UserRef' }
+        executedAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+
+    PackageInput:
+      type: object
+      required: [title, system]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        description: { type: string }
+        system:
+          type: string
+          description: Clave del sistema
+    PackagePatch:
+      type: object
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        description: { type: string }
+    Package:
+      type: object
+      required: [code, title, description, system, state, builds, requirements, missing, createdBy, createdAt, updatedAt]
+      properties:
+        code: { $ref: '#/components/schemas/Code' }
+        title: { type: string }
+        description: { type: string }
+        system: { $ref: '#/components/schemas/System' }
+        state: { $ref: '#/components/schemas/StateRef' }
+        builds:
+          type: array
+          items: { $ref: '#/components/schemas/BuildRef' }
+        requirements:
+          type: array
+          items:
+            type: object
+            required: [code, title, state]
+            properties:
+              code: { $ref: '#/components/schemas/Code' }
+              title: { type: string }
+              state: { $ref: '#/components/schemas/StateRef' }
+        missing:
+          type: array
+          description: >-
+            Qué falta para avanzar, por cada transición posible desde el estado actual.
+            En las listas viene vacío: se calcula solo en la ficha.
+          items: { $ref: '#/components/schemas/Missing' }
+        createdBy: { $ref: '#/components/schemas/UserRef' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    RegressionOrigin:
+      type: string
+      description: Por qué está el TC. `impact` cruza con un componente tocado; `critical` es crítico del sistema; `manual` lo agregó QA.
+      enum: [impact, critical, manual]
+    Regression:
+      type: object
+      required: [package, proposedBy, proposedAt, summary, items]
+      properties:
+        package: { $ref: '#/components/schemas/Code' }
+        proposedBy: { $ref: '#/components/schemas/UserRef' }
+        proposedAt: { type: string, format: date-time }
+        confirmedBy: { $ref: '#/components/schemas/UserRef' }
+        confirmedAt: { type: string, format: date-time }
+        summary:
+          type: object
+          required: [proposed, included, added, removed, passed, failed, pending]
+          properties:
+            proposed:
+              type: integer
+              description: TC que propuso el sistema
+            included:
+              type: integer
+              description: TC de la selección final
+            added:
+              type: integer
+              description: TC que agregó QA
+            removed:
+              type: integer
+              description: TC propuestos que QA quitó
+            passed:
+              type: integer
+              description: De la selección final, con su último RUN sobre un BUILD del PKG aprobado
+            failed:
+              type: integer
+              description: De la selección final, con su último RUN sobre un BUILD del PKG fallido o bloqueado
+            pending:
+              type: integer
+              description: De la selección final, sin RUN sobre un BUILD del PKG
+        items:
+          type: array
+          description: Todos los TC propuestos o agregados, incluidos los que QA quitó.
+          items:
+            type: object
+            required: [testCase, isCritical, origin, proposed, included, reason, components]
+            properties:
+              testCase: { $ref: '#/components/schemas/CodeTitle' }
+              isCritical: { type: boolean }
+              origin: { $ref: '#/components/schemas/RegressionOrigin' }
+              proposed: { type: boolean }
+              included: { type: boolean }
+              reason:
+                type: string
+                description: Criterio del ajuste de QA; vacío si la decisión coincide con lo propuesto.
+              decidedBy: { $ref: '#/components/schemas/UserRef' }
+              decidedAt: { type: string, format: date-time }
+              components:
+                type: array
+                description: Componentes del TC que tocan los REQ del PKG.
+                items: { $ref: '#/components/schemas/ComponentRef' }
+              lastRun:
+                allOf:
+                  - $ref: '#/components/schemas/RunSummary'
+                description: Último RUN del TC sobre un BUILD del PKG.
 
     SavedViewScreen:
       type: string
@@ -2024,12 +2999,14 @@ components:
 
     RunInput:
       type: object
-      required: [testCase, buildVersion, buildChecksum, environmentName, result, executedAt]
+      description: >-
+        El RUN se registra sobre un BUILD y un ENV del catálogo, del mismo sistema que el TC.
+        Un ambiente de producción no admite RUN: QA no ejecuta en producción.
+      required: [testCase, build, environment, result, executedAt]
       properties:
         testCase: { $ref: '#/components/schemas/Code' }
-        buildVersion: { type: string, minLength: 1 }
-        buildChecksum: { $ref: '#/components/schemas/Checksum' }
-        environmentName: { type: string, minLength: 1 }
+        build: { $ref: '#/components/schemas/Code' }
+        environment: { $ref: '#/components/schemas/Code' }
         result: { $ref: '#/components/schemas/RunResult' }
         notes: { type: string }
         executedAt:
@@ -2044,6 +3021,14 @@ components:
         result: { $ref: '#/components/schemas/RunResult' }
         buildVersion: { type: string }
         environmentName: { type: string }
+        build:
+          allOf:
+            - $ref: '#/components/schemas/Code'
+          description: Ausente en los RUN anteriores al catálogo de BUILD.
+        environment:
+          allOf:
+            - $ref: '#/components/schemas/Code'
+          description: Ausente en los RUN anteriores al catálogo de ambientes.
         executedAt: { type: string, format: date-time }
     Run:
       allOf:
@@ -2059,11 +3044,12 @@ components:
 
     ExplorationInput:
       type: object
-      required: [requirement, buildVersion, environmentName, executedAt]
+      description: La exploración se registra sobre un BUILD y un ENV del catálogo, del sistema del REQ.
+      required: [requirement, build, environment, executedAt]
       properties:
         requirement: { $ref: '#/components/schemas/Code' }
-        buildVersion: { type: string, minLength: 1 }
-        environmentName: { type: string, minLength: 1 }
+        build: { $ref: '#/components/schemas/Code' }
+        environment: { $ref: '#/components/schemas/Code' }
         manualChanges: { type: string }
         findings: { type: string }
         executedAt: { type: string, format: date-time }
@@ -2075,6 +3061,14 @@ components:
         requirement: { $ref: '#/components/schemas/Code' }
         buildVersion: { type: string }
         environmentName: { type: string }
+        build:
+          allOf:
+            - $ref: '#/components/schemas/Code'
+          description: Ausente en las exploraciones anteriores al catálogo de BUILD.
+        environment:
+          allOf:
+            - $ref: '#/components/schemas/Code'
+          description: Ausente en las exploraciones anteriores al catálogo de ambientes.
         manualChanges: { type: string }
         findings: { type: string }
         executedBy: { $ref: '#/components/schemas/UserRef' }
@@ -2173,7 +3167,7 @@ components:
       properties:
         type:
           type: string
-          enum: [requirement, change, risk_assessment, functional_case, test_case, test_run, exploratory_session, defect, document]
+          enum: [requirement, change, risk_assessment, functional_case, test_case, test_run, exploratory_session, defect, document, component, build, package, environment, deployment]
         code: { $ref: '#/components/schemas/Code' }
         title: { type: string }
         state: { $ref: '#/components/schemas/StateRef' }
@@ -2229,27 +3223,7 @@ components:
         missing:
           type: array
           description: Qué falta para avanzar, por cada transición posible desde el estado actual.
-          items:
-            type: object
-            required: [to, conditions]
-            properties:
-              to: { $ref: '#/components/schemas/StateRef' }
-              conditions:
-                type: array
-                items:
-                  type: object
-                  required: [ruleKey, message, blocks, related]
-                  properties:
-                    ruleKey: { type: string }
-                    message:
-                      type: string
-                      example: 'Faltan 2 TC sin RUN aprobado: TC-2026-0112, TC-2026-0113.'
-                    blocks:
-                      type: boolean
-                      description: Con `false`, la condición solo avisa.
-                    related:
-                      type: array
-                      items: { $ref: '#/components/schemas/Code' }
+          items: { $ref: '#/components/schemas/Missing' }
         coverage:
           type: object
           required: [required, passed]
@@ -2325,7 +3299,7 @@ components:
               description: Una fila por REQ y TC. Un REQ sin TC aparece en una fila sin `testCase`.
               items:
                 type: object
-                required: [requirement, system, state, functionalCases, defects]
+                required: [requirement, system, state, packages, functionalCases, defects]
                 properties:
                   requirement: { $ref: '#/components/schemas/CodeTitle' }
                   system: { type: string }
@@ -2334,6 +3308,10 @@ components:
                   risk: { $ref: '#/components/schemas/Code' }
                   riskLevel: { $ref: '#/components/schemas/RiskLevel' }
                   owner: { type: string }
+                  packages:
+                    type: array
+                    description: Los PKG que incluyen el REQ.
+                    items: { $ref: '#/components/schemas/Code' }
                   functionalCases:
                     type: array
                     items: { $ref: '#/components/schemas/Code' }

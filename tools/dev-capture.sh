@@ -24,10 +24,20 @@ doc="$(get "/api/documents?entityType=requirement&entityCode=$req" | json_code D
 tc="$(get "/api/test-cases?requirement=$req" | json_code TC)"
 uc="$(get "/api/requirements/$req/functional-cases" | json_code UC)"
 run="$(get "/api/runs?requirement=$req" | json_code RUN)"
+pkg="$(first /api/packages PKG)"
+build="$(first /api/builds BUILD)"
+env="$(first /api/environments ENV)"
+dep="$(first /api/deployments DEP)"
+comp="$(first /api/components COMP)"
 
 paths=(
     /api/me /api/users /api/systems
-    /api/workflows/requirement /api/workflows/change /api/workflows/defect
+    /api/workflows/requirement /api/workflows/change /api/workflows/defect /api/workflows/package
+    /api/components "/api/components/$comp" "/api/requirements/$req/components" "/api/test-cases/$tc/components"
+    /api/builds "/api/builds/$build" /api/environments "/api/environments/$env"
+    /api/deployments "/api/deployments/$dep" "/api/deployments?environment=$env"
+    /api/packages "/api/packages/$pkg" "/api/packages/$pkg/regression"
+    "/api/documents?entityType=package&entityCode=$pkg" "/api/comments?entityType=package&entityCode=$pkg" "/api/audit?entityCode=$pkg"
     /api/changes "/api/changes/$chg" "/api/requirements?change=$chg"
     /api/requirements "/api/requirements/$req" "/api/requirements/$req/overview"
     "/api/requirements/$req/links" "/api/requirements/$req/entry-contract" "/api/requirements/$req/risk"
@@ -45,7 +55,7 @@ paths=(
 )
 {
     printf '{\n  "_nota": "Respuestas reales de la API con datos de EJEMPLO. Se regeneran con tools/dev-capture.sh.",\n'
-    printf '  "_ids": {"change": "%s", "requirement": "%s", "defect": "%s", "document": "%s", "testCase": "%s", "run": "%s"},\n' "$chg" "$req" "$def" "$doc" "$tc" "$run"
+    printf '  "_ids": {"change": "%s", "requirement": "%s", "defect": "%s", "document": "%s", "testCase": "%s", "run": "%s", "package": "%s", "build": "%s", "environment": "%s", "deployment": "%s", "component": "%s"},\n' "$chg" "$req" "$def" "$doc" "$tc" "$run" "$pkg" "$build" "$env" "$dep" "$comp"
     sep=''
     for path in "${paths[@]}"; do
         body="$(get "$path")"

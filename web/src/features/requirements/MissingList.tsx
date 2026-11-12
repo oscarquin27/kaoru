@@ -1,12 +1,14 @@
 // «Qué falta para avanzar»: las condiciones que calcula el servidor, separando lo que bloquea
 // de lo que solo avisa.
 import { Link } from 'react-router'
-import type { RequirementOverview } from '../../shared/api/types.ts'
+import type { Missing } from '../../shared/api/types.ts'
 import { TextWithCodes } from '../../shared/ui/Code.tsx'
 import { Icon } from '../../shared/ui/Icon.tsx'
 
-// A qué pestaña de la ficha lleva cada regla.
-const RULE_TABS: Record<string, { tab: string; label: string }> = {
+export type RuleTabs = Record<string, { tab: string; label: string }>
+
+// A qué pestaña de la ficha del REQ lleva cada regla.
+const RULE_TABS: RuleTabs = {
   min_coverage: { tab: 'pruebas', label: 'Ver pruebas' },
   no_open_defect_with_severity: { tab: 'defectos', label: 'Ver defectos' },
   links_have_snapshot: { tab: 'enlaces', label: 'Ver enlaces' },
@@ -19,7 +21,8 @@ function plural(count: number, one: string, many: string): string {
   return `${count} ${count === 1 ? one : many}`
 }
 
-export function MissingList({ missing }: { missing: RequirementOverview['missing'] }) {
+/** `ruleTabs` cambia a qué pestaña lleva cada regla (la ficha del PKG tiene otras). */
+export function MissingList({ missing, ruleTabs = RULE_TABS }: { missing: Missing[]; ruleTabs?: RuleTabs }) {
   const steps = missing.filter((step) => step.conditions.length > 0)
   if (steps.length === 0) {
     return (
@@ -51,7 +54,7 @@ export function MissingList({ missing }: { missing: RequirementOverview['missing
             </div>
             <ul className="list">
               {step.conditions.map((condition) => {
-                const target = RULE_TABS[condition.ruleKey]
+                const target = ruleTabs[condition.ruleKey]
                 return (
                   <li key={condition.ruleKey} data-blocks={condition.blocks}>
                     <span className={`list__icon list__icon--${condition.blocks ? 'bloq' : 'aviso'}`}>

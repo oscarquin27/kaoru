@@ -6,9 +6,11 @@ import { Async, Empty } from '../../shared/ui/feedback.tsx'
 import { Form, TextAreaField, TextField, text } from '../../shared/ui/Form.tsx'
 import { Icon } from '../../shared/ui/Icon.tsx'
 import { Dialog } from '../../shared/ui/Modal.tsx'
+import { RunTarget } from '../../shared/ui/RunTarget.tsx'
 import { useCreateExploration, useRequirementExplorations } from './api.ts'
+import { TargetFields } from './Target.tsx'
 
-function ExplorationForm({ requirementCode, onClose }: { requirementCode: string; onClose: () => void }) {
+function ExplorationForm({ requirementCode, systemKey, onClose }: { requirementCode: string; systemKey: string; onClose: () => void }) {
   const create = useCreateExploration()
   return (
     <Form
@@ -17,8 +19,8 @@ function ExplorationForm({ requirementCode, onClose }: { requirementCode: string
       onSubmit={(data) =>
         create.mutateAsync({
           requirement: requirementCode,
-          buildVersion: text(data, 'buildVersion'),
-          environmentName: text(data, 'environmentName'),
+          build: text(data, 'build'),
+          environment: text(data, 'environment'),
           manualChanges: text(data, 'manualChanges'),
           findings: text(data, 'findings'),
           executedAt: fromLocalInput(text(data, 'executedAt')) ?? '',
@@ -27,18 +29,16 @@ function ExplorationForm({ requirementCode, onClose }: { requirementCode: string
       onDone={onClose}
       onCancel={onClose}
     >
-      <div className="form__row">
-        <TextField name="buildVersion" label="Versión del BUILD" required />
-        <TextField name="environmentName" label="Ambiente" required />
-        <TextField name="executedAt" label="Fecha de la sesión" type="datetime-local" required defaultValue={toLocalInput(new Date())} />
-      </div>
+      <TargetFields systemKey={systemKey} />
+      <TextField name="executedAt" label="Fecha de la sesión" type="datetime-local" required defaultValue={toLocalInput(new Date())} />
       <TextAreaField name="manualChanges" label="Cambios manuales en el ambiente" hint="Lo que se tocó a mano y lo aparta de la línea base." />
       <TextAreaField name="findings" label="Hallazgos" />
     </Form>
   )
 }
 
-export function Explorations({ requirementCode, canCreate }: { requirementCode: string; canCreate: boolean }) {
+/** `systemKey` es el sistema del REQ: de ahí salen los BUILD y los ambientes que se ofrecen. */
+export function Explorations({ requirementCode, systemKey, canCreate }: { requirementCode: string; systemKey: string; canCreate: boolean }) {
   const explorations = useRequirementExplorations(requirementCode)
   const [creating, setCreating] = useState(false)
   return (
@@ -80,9 +80,7 @@ export function Explorations({ requirementCode, canCreate }: { requirementCode: 
                         <Code code={exploration.code} />
                       </td>
                       <td>
-                        <span className="mono">
-                          {exploration.buildVersion} · {exploration.environmentName}
-                        </span>
+                        <RunTarget target={exploration} />
                       </td>
                       <td className="wrap">{exploration.manualChanges || <span className="muted">Ninguno</span>}</td>
                       <td className="wrap">{exploration.findings || <span className="muted">Ninguno</span>}</td>
@@ -99,7 +97,7 @@ export function Explorations({ requirementCode, canCreate }: { requirementCode: 
       </Async>
       {creating && (
         <Dialog title="Registrar exploración" onClose={() => setCreating(false)}>
-          <ExplorationForm requirementCode={requirementCode} onClose={() => setCreating(false)} />
+          <ExplorationForm requirementCode={requirementCode} systemKey={systemKey} onClose={() => setCreating(false)} />
         </Dialog>
       )}
     </section>

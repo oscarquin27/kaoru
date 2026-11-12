@@ -77,6 +77,11 @@ SELECT r.code AS requirement_code, r.title AS requirement_title, s.key AS system
        coalesce(lr.code, '') AS run_code, coalesce(lr.result, '') AS run_result,
        coalesce(lr.build_version, '') AS run_build_version, coalesce(lr.environment_name, '') AS run_environment_name,
        coalesce(to_char(lr.executed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'), '')::text AS run_executed_at,
+       ARRAY(SELECT p.code
+             FROM package p
+                      JOIN package_requirement pr ON pr.package_id = p.id
+             WHERE pr.requirement_id = r.id
+             ORDER BY p.code)::text[] AS packages,
        ARRAY(SELECT f.code
              FROM functional_case f
                       JOIN test_case_functional_case l ON l.functional_case_id = f.id
@@ -110,6 +115,16 @@ WHERE (sqlc.narg(change_code)::text IS NULL OR c.code = sqlc.narg(change_code))
   AND (sqlc.narg(state_key)::text IS NULL OR st.key = sqlc.narg(state_key))
   AND (sqlc.narg(risk_level)::text IS NULL OR ra.level = sqlc.narg(risk_level))
   AND (sqlc.narg(owner_id)::text IS NULL OR r.owner_id = sqlc.narg(owner_id))
+  AND (sqlc.narg(package_code)::text IS NULL OR EXISTS (SELECT 1
+                                                        FROM package_requirement pr
+                                                                 JOIN package p ON p.id = pr.package_id
+                                                        WHERE pr.requirement_id = r.id
+                                                          AND p.code = sqlc.narg(package_code)))
+  AND (sqlc.narg(component_code)::text IS NULL OR EXISTS (SELECT 1
+                                                          FROM requirement_component rc
+                                                                   JOIN component k ON k.id = rc.component_id
+                                                          WHERE rc.requirement_id = r.id
+                                                            AND k.code = sqlc.narg(component_code)))
   AND (sqlc.narg(created_from)::timestamptz IS NULL OR r.created_at >= sqlc.narg(created_from))
   AND (sqlc.narg(created_to)::timestamptz IS NULL OR r.created_at < sqlc.narg(created_to))
 ORDER BY r.created_at DESC, r.code DESC, t.code
@@ -146,6 +161,16 @@ WHERE (sqlc.narg(change_code)::text IS NULL OR c.code = sqlc.narg(change_code))
   AND (sqlc.narg(state_key)::text IS NULL OR st.key = sqlc.narg(state_key))
   AND (sqlc.narg(risk_level)::text IS NULL OR ra.level = sqlc.narg(risk_level))
   AND (sqlc.narg(owner_id)::text IS NULL OR r.owner_id = sqlc.narg(owner_id))
+  AND (sqlc.narg(package_code)::text IS NULL OR EXISTS (SELECT 1
+                                                        FROM package_requirement pr
+                                                                 JOIN package p ON p.id = pr.package_id
+                                                        WHERE pr.requirement_id = r.id
+                                                          AND p.code = sqlc.narg(package_code)))
+  AND (sqlc.narg(component_code)::text IS NULL OR EXISTS (SELECT 1
+                                                          FROM requirement_component rc
+                                                                   JOIN component k ON k.id = rc.component_id
+                                                          WHERE rc.requirement_id = r.id
+                                                            AND k.code = sqlc.narg(component_code)))
   AND (sqlc.narg(created_from)::timestamptz IS NULL OR r.created_at >= sqlc.narg(created_from))
   AND (sqlc.narg(created_to)::timestamptz IS NULL OR r.created_at < sqlc.narg(created_to));
 
@@ -164,6 +189,16 @@ WHERE NOT ds.is_final
   AND (sqlc.narg(state_key)::text IS NULL OR st.key = sqlc.narg(state_key))
   AND (sqlc.narg(risk_level)::text IS NULL OR ra.level = sqlc.narg(risk_level))
   AND (sqlc.narg(owner_id)::text IS NULL OR r.owner_id = sqlc.narg(owner_id))
+  AND (sqlc.narg(package_code)::text IS NULL OR EXISTS (SELECT 1
+                                                        FROM package_requirement pr
+                                                                 JOIN package p ON p.id = pr.package_id
+                                                        WHERE pr.requirement_id = r.id
+                                                          AND p.code = sqlc.narg(package_code)))
+  AND (sqlc.narg(component_code)::text IS NULL OR EXISTS (SELECT 1
+                                                          FROM requirement_component rc
+                                                                   JOIN component k ON k.id = rc.component_id
+                                                          WHERE rc.requirement_id = r.id
+                                                            AND k.code = sqlc.narg(component_code)))
   AND (sqlc.narg(created_from)::timestamptz IS NULL OR r.created_at >= sqlc.narg(created_from))
   AND (sqlc.narg(created_to)::timestamptz IS NULL OR r.created_at < sqlc.narg(created_to))
 GROUP BY d.severity;
@@ -202,7 +237,24 @@ FROM (SELECT 'requirement' AS kind, r.code, r.title, st.key AS state_key, st.nam
                JOIN requirement r ON r.id = ra.requirement_id
       UNION ALL
       SELECT 'document', code, title, '', ''
-      FROM document) x
+      FROM document
+      UNION ALL
+      SELECT 'component', code, name, '', ''
+      FROM component
+      UNION ALL
+      SELECT 'build', code, version, '', ''
+      FROM build
+      UNION ALL
+      SELECT 'package', p.code, p.title, st.key, st.name
+      FROM package p
+               JOIN workflow_state st ON st.id = p.state_id
+      UNION ALL
+      SELECT 'environment', code, name, '', ''
+      FROM environment
+      UNION ALL
+      SELECT 'deployment', d.code, e.name, '', ''
+      FROM deployment d
+               JOIN environment e ON e.id = d.environment_id) x
 WHERE x.code = upper(sqlc.arg(query)::text)
    OR x.code ILIKE sqlc.arg(pattern)::text || '%'
    OR x.title ILIKE '%' || sqlc.arg(pattern)::text || '%'

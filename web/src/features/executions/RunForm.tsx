@@ -5,19 +5,17 @@ import { fromLocalInput, toLocalInput } from '../../shared/lib/format.ts'
 import { RESULT_LABELS, options } from '../../shared/lib/labels.ts'
 import { Form, SelectField, TextAreaField, TextField, text } from '../../shared/ui/Form.tsx'
 import { useCreateRun } from './api.ts'
+import { TargetFields } from './Target.tsx'
 
 function validateRun(data: FormData): FieldError[] {
-  const errors: FieldError[] = []
-  if (!/^[0-9a-f]{64}$/.test(text(data, 'buildChecksum').toLowerCase())) {
-    errors.push({ field: 'buildChecksum', code: 'invalid', message: 'Pega el SHA-256 del BUILD: 64 caracteres hexadecimales.' })
-  }
   if (new Date(text(data, 'executedAt')).getTime() > Date.now()) {
-    errors.push({ field: 'executedAt', code: 'invalid', message: 'La fecha de ejecución no puede ser futura.' })
+    return [{ field: 'executedAt', code: 'invalid', message: 'La fecha de ejecución no puede ser futura.' }]
   }
-  return errors
+  return []
 }
 
-export function RunForm({ testCase, onClose }: { testCase: string; onClose: () => void }) {
+/** `systemKey` es el sistema del TC: de ahí salen los BUILD y los ambientes que se ofrecen. */
+export function RunForm({ testCase, systemKey, onClose }: { testCase: string; systemKey: string; onClose: () => void }) {
   const create = useCreateRun()
   return (
     <Form
@@ -27,9 +25,8 @@ export function RunForm({ testCase, onClose }: { testCase: string; onClose: () =
       onSubmit={(data) =>
         create.mutateAsync({
           testCase,
-          buildVersion: text(data, 'buildVersion'),
-          buildChecksum: text(data, 'buildChecksum').toLowerCase(),
-          environmentName: text(data, 'environmentName'),
+          build: text(data, 'build'),
+          environment: text(data, 'environment'),
           result: text(data, 'result') as RunResult,
           notes: text(data, 'notes'),
           executedAt: fromLocalInput(text(data, 'executedAt')) ?? '',
@@ -39,11 +36,7 @@ export function RunForm({ testCase, onClose }: { testCase: string; onClose: () =
       onCancel={onClose}
     >
       <p className="soft">Un RUN queda como evidencia y no se puede editar después de registrarlo.</p>
-      <div className="form__row">
-        <TextField name="buildVersion" label="Versión del BUILD" required placeholder="2.14.0" />
-        <TextField name="environmentName" label="Ambiente" required placeholder="QA-1 (línea base)" />
-      </div>
-      <TextField name="buildChecksum" label="SHA-256 del BUILD" required spellCheck={false} autoComplete="off" />
+      <TargetFields systemKey={systemKey} official />
       <div className="form__row">
         <SelectField name="result" label="Resultado" required defaultValue="">
           <option value="">Elige el resultado</option>

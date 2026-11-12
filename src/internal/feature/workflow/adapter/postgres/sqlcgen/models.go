@@ -48,6 +48,24 @@ type BlockingRule struct {
 	UpdatedAt    time.Time
 }
 
+type Build struct {
+	ID           uuid.UUID
+	Code         string
+	SystemID     uuid.UUID
+	Version      string
+	Checksum     string
+	Migrations   string
+	Dependencies string
+	Notes        string
+	BuiltBy      string
+	CreatedAt    time.Time
+}
+
+type BuildRequirement struct {
+	BuildID       uuid.UUID
+	RequirementID uuid.UUID
+}
+
 type Change struct {
 	ID          uuid.UUID
 	Code        string
@@ -78,6 +96,19 @@ type Comment struct {
 	CreatedAt  time.Time
 }
 
+type Component struct {
+	ID          uuid.UUID
+	Code        string
+	SystemID    uuid.UUID
+	Kind        string
+	Name        string
+	Description string
+	RetiredAt   *time.Time
+	CreatedBy   string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
 type Defect struct {
 	ID            uuid.UUID
 	Code          string
@@ -91,6 +122,19 @@ type Defect struct {
 	CreatedBy     string
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
+}
+
+type Deployment struct {
+	ID            uuid.UUID
+	Code          string
+	EnvironmentID uuid.UUID
+	BuildID       uuid.NullUUID
+	PackageID     uuid.NullUUID
+	Result        string
+	Notes         string
+	ExecutedBy    string
+	ExecutedAt    time.Time
+	CreatedAt     time.Time
 }
 
 type Document struct {
@@ -133,6 +177,20 @@ type EntryContractItem struct {
 	UpdatedAt time.Time
 }
 
+type Environment struct {
+	ID        uuid.UUID
+	Code      string
+	SystemID  uuid.UUID
+	Name      string
+	Kind      string
+	Os        string
+	Notes     string
+	RetiredAt *time.Time
+	CreatedBy string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
 type ExploratorySession struct {
 	ID              uuid.UUID
 	Code            string
@@ -145,6 +203,8 @@ type ExploratorySession struct {
 	ExecutedAt      time.Time
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+	BuildID         uuid.NullUUID
+	EnvironmentID   uuid.NullUUID
 }
 
 type FunctionalCase struct {
@@ -158,9 +218,54 @@ type FunctionalCase struct {
 	UpdatedAt     time.Time
 }
 
+type Package struct {
+	ID          uuid.UUID
+	Code        string
+	Title       string
+	Description string
+	SystemID    uuid.UUID
+	StateID     uuid.UUID
+	CreatedBy   string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+type PackageBuild struct {
+	PackageID uuid.UUID
+	BuildID   uuid.UUID
+	AddedBy   string
+	AddedAt   time.Time
+}
+
+type PackageRequirement struct {
+	PackageID     uuid.UUID
+	RequirementID uuid.UUID
+	AddedBy       string
+	AddedAt       time.Time
+}
+
 type Permission struct {
 	Key         string
 	Description string
+}
+
+type RegressionItem struct {
+	PackageID  uuid.UUID
+	TestCaseID uuid.UUID
+	Origin     string
+	Proposed   bool
+	Included   bool
+	Reason     string
+	DecidedBy  *string
+	DecidedAt  *time.Time
+}
+
+type RegressionSelection struct {
+	PackageID   uuid.UUID
+	ProposedBy  string
+	ProposedAt  time.Time
+	ConfirmedBy *string
+	ConfirmedAt *time.Time
 }
 
 type Requirement struct {
@@ -176,6 +281,11 @@ type Requirement struct {
 	CreatedBy          string
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
+}
+
+type RequirementComponent struct {
+	RequirementID uuid.UUID
+	ComponentID   uuid.UUID
 }
 
 type RequirementEntryCheck struct {
@@ -256,6 +366,11 @@ type TestCase struct {
 	UpdatedAt      time.Time
 }
 
+type TestCaseComponent struct {
+	TestCaseID  uuid.UUID
+	ComponentID uuid.UUID
+}
+
 type TestCaseFunctionalCase struct {
 	TestCaseID       uuid.UUID
 	FunctionalCaseID uuid.UUID
@@ -273,6 +388,8 @@ type TestRun struct {
 	ExecutedBy      string
 	ExecutedAt      time.Time
 	CreatedAt       time.Time
+	BuildID         uuid.NullUUID
+	EnvironmentID   uuid.NullUUID
 }
 
 type WorkflowState struct {

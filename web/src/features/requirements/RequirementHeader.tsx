@@ -8,16 +8,17 @@ import { Code } from '../../shared/ui/Code.tsx'
 import { Icon, type IconName } from '../../shared/ui/Icon.tsx'
 import { MetaItem } from '../../shared/ui/layout.tsx'
 
-type Stage = RequirementOverview['lifecycle'][number]
+/** Una etapa de la línea de vida. Sin `days` (el PKG no los trae) solo dice en qué va. */
+export type Stage = Pick<RequirementOverview['lifecycle'][number], 'state' | 'status'> & { days?: number }
 
 const STAGE_ICONS: Record<Stage['status'], IconName> = { done: 'check', current: 'target', blocked: 'lock', pending: 'circle' }
 
 function stageTime(stage: Stage): string {
   switch (stage.status) {
     case 'done':
-      return formatDays(stage.days)
+      return stage.days === undefined ? 'completada' : formatDays(stage.days)
     case 'current':
-      return `${formatDays(stage.days)} · actual`
+      return stage.days === undefined ? 'actual' : `${formatDays(stage.days)} · actual`
     case 'blocked':
       return 'bloqueada'
     case 'pending':
@@ -35,7 +36,7 @@ export function Lifecycle({ stages }: { stages: Stage[] }) {
           </span>
           <span className="life__name">{stage.state.name}</span>
           <span className="life__time">{stageTime(stage)}</span>
-          {stage.status === 'done' && <span className="sr-only">completada</span>}
+          {stage.status === 'done' && stage.days !== undefined && <span className="sr-only">completada</span>}
         </li>
       ))}
     </ol>
@@ -76,7 +77,7 @@ export function RequirementHeader({ overview, actions }: { overview: Requirement
         <MetaItem label="Responsable actual">{requirement.owner?.displayName ?? <span className="muted">Sin asignar</span>}</MetaItem>
         {current && (
           <MetaItem label="En este estado">
-            <span className="num">{formatDaysLong(current.days)}</span>
+            <span className="num">{formatDaysLong(current.days ?? 0)}</span>
           </MetaItem>
         )}
       </dl>
