@@ -111,7 +111,7 @@ La ruta no cambia los estados: cambia qué reglas aplican (columna `route` de `b
 | Ligera (`light`) | SyPago y fixes | RISK simplificado, regresión por impacto, SMOKE. | RISK sin características obligatorias. |
 | Fix menor (`minor_fix`) | Cambios de bajo riesgo en módulos estables | TC mínimos definidos por QA. | El valor de ruta existe; qué TC mínimos pide está `[POR DEFINIR]`. |
 
-## PKG (requerimiento §8.4) — fase 3
+## PKG (requerimiento §8.4)
 
 ```mermaid
 stateDiagram-v2
@@ -130,16 +130,32 @@ stateDiagram-v2
     AprobadoParaProduccion: Aprobado para producción
 ```
 
-Diseñado, pero sin filas en la base hasta la fase 3, cuando exista el feature `bundle`. Regla ya conocida: un DEF de severidad alta abierto bloquea `En pruebas → Listo para liberar` (regla de negocio 2).
+Sembrado en la migración 00015 (decisión D48). El contenido del PKG (BUILD y REQ) solo cambia en «En armado».
+
+| Transición | Permiso | Regla de bloqueo |
+|---|---|---|
+| En armado → En pruebas | `pkg.start_testing` | Tiene al menos un BUILD y un REQ; la regresión está confirmada. `[SUPUESTO]` |
+| En pruebas → En armado | `pkg.reopen`, con motivo | Ninguna. El paso no está en el requerimiento: `[SUPUESTO]` para corregir el contenido. |
+| En pruebas → Listo para liberar | `pkg.mark_ready` | Toda la regresión final con su último RUN sobre un BUILD del PKG aprobado `[SUPUESTO]`; ningún REQ del PKG con un DEF de severidad alta abierto (regla de negocio 2). |
+| Listo para liberar → Aprobado para producción | `pkg.approve_production` | Ninguna. |
+| Aprobado para producción → Desplegado | `pkg.deploy` | Hay un despliegue exitoso del PKG en un ambiente de producción. `[SUPUESTO]` |
+| Desplegado → Verificado | `pkg.verify` | Ninguna hasta la fase 4 (DIAG y SMOKE). |
+
+### Regresión por impacto (regla de negocio 4)
+
+1. Cada REQ y cada TC declaran los componentes (COMP) que tocan.
+2. Al **proponer**, el sistema toma los TC activos que ejercitan algún componente tocado por los REQ del PKG, más los TC críticos del sistema.
+3. QA **ajusta**: incluye o excluye TC. El criterio es obligatorio cuando la decisión difiere de lo propuesto y queda con su autor y su fecha.
+4. QA **confirma**: desde entonces la selección no cambia. Se conservan lo propuesto y lo final para compararlos.
 
 ## Permisos por rol (predeterminados)
 
 | Rol | Permisos |
 |---|---|
-| `change-manager` | `chg.*`, `req.create`, `req.edit`, `req.release`, `req.close`, `req.reject`, `req.defer`, `def.defer`, `link.manage`, `doc.upload`, `comment.create`, `audit.read` |
-| `qa` | `req.edit`, `risk.assess`, `req.start_design`, `req.start_testing`, `req.report_defects`, `req.approve_qa`, `req.verify`, `testdesign.manage`, `run.create`, `exp.create`, `def.create`, `def.edit`, `def.triage`, `def.close`, `def.reopen`, `link.manage`, `doc.upload`, `comment.create`, `audit.read` |
+| `change-manager` | `chg.*`, `req.create`, `req.edit`, `req.release`, `req.close`, `req.reject`, `req.defer`, `def.defer`, `pkg.approve_production`, `pkg.deploy`, `dep.create_production`, `link.manage`, `doc.upload`, `comment.create`, `audit.read` |
+| `qa` | `req.edit`, `risk.assess`, `req.start_design`, `req.start_testing`, `req.report_defects`, `req.approve_qa`, `req.verify`, `testdesign.manage`, `run.create`, `exp.create`, `def.create`, `def.edit`, `def.triage`, `def.close`, `def.reopen`, `comp.manage`, `pkg.start_testing`, `pkg.reopen`, `pkg.mark_ready`, `pkg.verify`, `regression.manage`, `env.manage`, `dep.create`, `link.manage`, `doc.upload`, `comment.create`, `audit.read` |
 | `qa-admin` | Todo lo de `qa`, más `admin.configure` e `import.run` |
-| `dev` | `req.edit`, `req.start_development`, `req.deliver`, `req.package`, `entry_contract.check`, `def.fix`, `link.manage`, `doc.upload`, `comment.create` |
+| `dev` | `req.edit`, `req.start_development`, `req.deliver`, `req.package`, `entry_contract.check`, `def.fix`, `comp.manage`, `build.register`, `pkg.build`, `link.manage`, `doc.upload`, `comment.create` |
 | `ops` | `doc.upload`, `comment.create` |
 | `auditor` | `audit.read` |
 

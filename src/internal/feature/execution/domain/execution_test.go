@@ -30,11 +30,16 @@ func fieldsOf(t *testing.T, err error) []string {
 	return out
 }
 
+var (
+	build       = domain.BuildRef{Id: "b1", Code: "BUILD-2026-0007", SystemKey: "SYPAGO", Version: "2.14.0", Checksum: checksum}
+	environment = domain.EnvironmentRef{Id: "e1", Code: "ENV-2026-0002", Name: "QA-1", SystemKey: "SYPAGO"}
+)
+
 func params() domain.NewRunParams {
 	return domain.NewRunParams{
 		Id: "r1", Code: shared.NewCode(shared.PrefixRun, 2026, 533),
-		TestCase:     domain.TestCaseRef{Id: "t1", Code: "TC-2026-0110", Title: "Rechaza sobre el límite"},
-		BuildVersion: " 2.14.0 ", BuildChecksum: " " + strings.ToUpper(checksum) + " ", EnvironmentName: " QA-1 ",
+		TestCase: domain.TestCaseRef{Id: "t1", Code: "TC-2026-0110", Title: "Rechaza sobre el límite", SystemKey: "SYPAGO"},
+		Build:    build, Environment: environment,
 		Result: "passed", ExecutedBy: domain.UserRef{Id: "u1", Name: "Ana"}, ExecutedAt: now.Add(-time.Hour), Now: now,
 	}
 }
@@ -45,13 +50,15 @@ func TestNewRun(t *testing.T) {
 		mutate     func(p *domain.NewRunParams)
 		wantFields []string
 	}{
-		{"válido: normaliza el checksum", func(*domain.NewRunParams) {}, nil},
+		{"válido: copia versión, checksum y ambiente", func(*domain.NewRunParams) {}, nil},
 		{"ejecutado ahora mismo", func(p *domain.NewRunParams) { p.ExecutedAt = now }, nil},
-		{"sin nada", func(p *domain.NewRunParams) {
-			p.BuildVersion, p.BuildChecksum, p.EnvironmentName, p.Result, p.ExecutedAt = "", "", " ", "", time.Time{}
-		}, []string{"buildVersion:required", "environmentName:required", "buildChecksum:required", "result:required", "executedAt:required"}},
-		{"checksum corto", func(p *domain.NewRunParams) { p.BuildChecksum = "abc123" }, []string{"buildChecksum:invalid"}},
-		{"checksum que no es hexadecimal", func(p *domain.NewRunParams) { p.BuildChecksum = strings.Repeat("zz", 32) }, []string{"buildChecksum:invalid"}},
+		{"sin resultado ni fecha", func(p *domain.NewRunParams) { p.Result, p.ExecutedAt = "", time.Time{} },
+			[]string{"result:required", "executedAt:required"}},
+		{"BUILD de otro sistema", func(p *domain.NewRunParams) { p.Build.SystemKey = "SIMF" }, []string{"build:invalid"}},
+		{"ambiente de otro sistema", func(p *domain.NewRunParams) { p.Environment.SystemKey = "SIMF" }, []string{"environment:invalid"}},
+		{"ambiente retirado", func(p *domain.NewRunParams) { p.Environment.Retired = true }, []string{"environment:invalid"}},
+		{"ambiente de producción", func(p *domain.NewRunParams) { p.Environment.Production = true }, []string{"environment:invalid"}},
+		{"todo de otro sistema", func(p *domain.NewRunParams) { p.TestCase.SystemKey = "SGLPAR" }, []string{"build:invalid", "environment:invalid"}},
 		{"resultado desconocido", func(p *domain.NewRunParams) { p.Result = "aprobado" }, []string{"result:invalid"}},
 		{"fecha futura", func(p *domain.NewRunParams) { p.ExecutedAt = now.Add(time.Minute) }, []string{"executedAt:invalid"}},
 	}
@@ -70,7 +77,8 @@ func TestNewRun(t *testing.T) {
 				t.Fatal(err)
 			}
 			s := run.Snapshot()
-			if s.BuildChecksum != checksum || s.BuildVersion != "2.14.0" || s.EnvironmentName != "QA-1" || s.CreatedAt != now {
+			if s.BuildChecksum != checksum || s.BuildVersion != "2.14.0" || s.EnvironmentName != "QA-1" || s.CreatedAt != now ||
+				s.BuildId != "b1" || s.BuildCode != "BUILD-2026-0007" || s.EnvironmentId != "e1" || s.EnvironmentCode != "ENV-2026-0002" {
 				t.Errorf("RUN inesperado: %+v", s)
 			}
 		})
@@ -118,12 +126,16 @@ func TestCoverage(t *testing.T) {
 
 func TestExploration(t *testing.T) {
 	p := domain.NewExplorationParams{
-		Id: "e1", Code: shared.NewCode(shared.PrefixExploration, 2026, 7), Requirement: domain.RequirementRef{Id: "r1", Code: "REQ-2026-0042"},
-		BuildVersion: "2.14.0", EnvironmentName: "QA-1", ExecutedBy: domain.UserRef{Id: "u1"}, ExecutedAt: now, Now: now,
+		Id: "e1", Code: shared.NewCode(shared.PrefixExploration, 2026, 7), Requirement: domain.RequirementRef{Id: "r1", Code: "REQ-2026-0042", SystemKey: "SYPAGO"},
+		Build: build, Environment: environment, ExecutedBy: domain.UserRef{Id: "u1"}, ExecutedAt: now, Now: now,
 	}
 	exploration, err := domain.NewExploration(p)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if s := exploration.Snapshot(); s.BuildVersion != "2.14.0" || s.EnvironmentName != "QA-1" ||
+		s.BuildCode != "BUILD-2026-0007" || s.EnvironmentCode != "ENV-2026-0002" || s.BuildId != "b1" || s.EnvironmentId != "e1" {
+		t.Errorf("EXP inesperado: %+v", s)
 	}
 	findings := " El saldo queda negativo "
 	changes := exploration.Apply(nil, &findings, now.Add(time.Hour))
@@ -133,8 +145,13 @@ func TestExploration(t *testing.T) {
 	if changes := exploration.Apply(nil, &findings, now.Add(2*time.Hour)); len(changes) != 0 {
 		t.Error("el mismo texto no es un cambio")
 	}
-	p.BuildVersion, p.ExecutedAt = "", now.Add(time.Hour)
-	if _, err := domain.NewExploration(p); !slices.Equal(fieldsOf(t, err), []string{"buildVersion:required", "executedAt:invalid"}) {
+	// Un EXP sí se puede registrar en producción, pero no en un ambiente retirado ni de otro sistema.
+	p.Environment.Production = true
+	if _, err := domain.NewExploration(p); err != nil {
+		t.Errorf("EXP en producción: %v", err)
+	}
+	p.Build.SystemKey, p.Environment.Retired, p.ExecutedAt = "SIMF", true, now.Add(time.Hour)
+	if _, err := domain.NewExploration(p); !slices.Equal(fieldsOf(t, err), []string{"build:invalid", "environment:invalid", "executedAt:invalid"}) {
 		t.Errorf("EXP inválido: %v", err)
 	}
 }

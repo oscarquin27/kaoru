@@ -154,3 +154,20 @@ SELECT id
 FROM requirement
 WHERE code = $1
     FOR UPDATE;
+
+-- name: ListRequirementComponents :many
+-- Los componentes que toca el REQ, por nombre. Lee `component` en el sentido de la llave.
+SELECT c.id, c.code, c.name, c.kind
+FROM requirement_component rc
+         JOIN component c ON c.id = rc.component_id
+WHERE rc.requirement_id = $1
+ORDER BY c.name, c.code;
+
+-- name: DeleteRequirementComponents :exec
+DELETE
+FROM requirement_component
+WHERE requirement_id = $1;
+
+-- name: InsertRequirementComponent :exec
+INSERT INTO requirement_component (requirement_id, component_id)
+VALUES ($1, $2);

@@ -122,3 +122,27 @@ FROM functional_case f
          JOIN system_under_test s ON s.id = r.system_id
 WHERE f.code = ANY (sqlc.arg(codes)::text[])
 ORDER BY f.code;
+
+-- name: LockTestCase :one
+-- Bloquea la fila hasta el fin de la transacción: dos escrituras sobre la misma entidad van una tras otra.
+SELECT id
+FROM test_case
+WHERE code = $1
+    FOR UPDATE;
+
+-- name: ListTestCaseComponents :many
+-- Los componentes que ejercita el TC, por nombre. Lee `component` en el sentido de la llave.
+SELECT c.id, c.code, c.name, c.kind
+FROM test_case_component tc
+         JOIN component c ON c.id = tc.component_id
+WHERE tc.test_case_id = $1
+ORDER BY c.name, c.code;
+
+-- name: DeleteTestCaseComponents :exec
+DELETE
+FROM test_case_component
+WHERE test_case_id = $1;
+
+-- name: InsertTestCaseComponent :exec
+INSERT INTO test_case_component (test_case_id, component_id)
+VALUES ($1, $2);

@@ -15,12 +15,15 @@ import (
 	corepg "kaoru/internal/core/pkg/postgres"
 	"kaoru/internal/core/pkg/problem"
 	"kaoru/internal/feature/audit"
+	"kaoru/internal/feature/build"
 	"kaoru/internal/feature/change"
 	"kaoru/internal/feature/comment"
 	commententities "kaoru/internal/feature/comment/adapter/entities"
+	"kaoru/internal/feature/component"
 	"kaoru/internal/feature/defect"
 	"kaoru/internal/feature/document"
 	"kaoru/internal/feature/document/adapter/entities"
+	"kaoru/internal/feature/environment"
 	"kaoru/internal/feature/execution"
 	"kaoru/internal/feature/requirement"
 	"kaoru/internal/feature/risk"
@@ -72,9 +75,30 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 	if err != nil {
 		return nil, err
 	}
-	requirementModule, err := requirement.New(requirement.Deps{
+	componentModule, err := component.New(component.Deps{
 		Database: d.Database, Clock: d.Clock, IdGenerator: d.IdGenerator,
 		Workflow: workflowModule.UseCases, Audit: auditModule.UseCases,
+	})
+	if err != nil {
+		return nil, err
+	}
+	requirementModule, err := requirement.New(requirement.Deps{
+		Database: d.Database, Clock: d.Clock, IdGenerator: d.IdGenerator,
+		Workflow: workflowModule.UseCases, Audit: auditModule.UseCases, Components: componentModule.UseCases,
+	})
+	if err != nil {
+		return nil, err
+	}
+	buildModule, err := build.New(build.Deps{
+		Database: d.Database, Clock: d.Clock, IdGenerator: d.IdGenerator,
+		Workflow: workflowModule.UseCases, Audit: auditModule.UseCases, Requirements: requirementModule.UseCases,
+	})
+	if err != nil {
+		return nil, err
+	}
+	environmentModule, err := environment.New(environment.Deps{
+		Database: d.Database, Clock: d.Clock, IdGenerator: d.IdGenerator,
+		Workflow: workflowModule.UseCases, Audit: auditModule.UseCases, Builds: buildModule.UseCases,
 	})
 	if err != nil {
 		return nil, err
@@ -89,6 +113,7 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 	testdesignModule, err := testdesign.New(testdesign.Deps{
 		Database: d.Database, Clock: d.Clock, IdGenerator: d.IdGenerator,
 		Workflow: workflowModule.UseCases, Audit: auditModule.UseCases, Requirements: requirementModule.UseCases,
+		Components: componentModule.UseCases,
 	})
 	if err != nil {
 		return nil, err
@@ -96,6 +121,7 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 	executionModule, err := execution.New(execution.Deps{
 		Database: d.Database, Clock: d.Clock, IdGenerator: d.IdGenerator,
 		Workflow: workflowModule.UseCases, Audit: auditModule.UseCases, TestDesign: testdesignModule.UseCases,
+		Builds: buildModule.UseCases, Environments: environmentModule.UseCases,
 	})
 	if err != nil {
 		return nil, err
@@ -164,6 +190,7 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 	workflowModule.RegisterAPI(api)
 	auditModule.RegisterAPI(api)
 	changeModule.RegisterAPI(api)
+	componentModule.RegisterAPI(api)
 	savedviewModule, err := savedview.New(savedview.Deps{Database: d.Database, Clock: d.Clock, IdGenerator: d.IdGenerator})
 	if err != nil {
 		return nil, err
@@ -171,6 +198,8 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 	requirementModule.RegisterAPI(api)
 	riskModule.RegisterAPI(api)
 	testdesignModule.RegisterAPI(api)
+	buildModule.RegisterAPI(api)
+	environmentModule.RegisterAPI(api)
 	executionModule.RegisterAPI(api)
 	defectModule.RegisterAPI(api)
 	documentModule.RegisterAPI(api)

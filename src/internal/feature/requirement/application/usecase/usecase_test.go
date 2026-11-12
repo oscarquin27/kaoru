@@ -23,6 +23,7 @@ type world struct {
 	requirements map[string]domain.Requirement // por código
 	links        map[string]domain.Link        // por id
 	checks       map[string]string             // ítem → nota
+	components   map[string][]string           // id del REQ → códigos de COMP
 	audit        []port.AuditRecord
 	sequence     int
 
@@ -33,14 +34,18 @@ type world struct {
 }
 
 func newWorld() *world {
-	return &world{requirements: map[string]domain.Requirement{}, links: map[string]domain.Link{}, checks: map[string]string{}}
+	return &world{
+		requirements: map[string]domain.Requirement{}, links: map[string]domain.Link{}, checks: map[string]string{},
+		components: map[string][]string{},
+	}
 }
 
 func (w *world) Within(ctx context.Context, fn func(context.Context) error) error {
 	requirements, links, checks := maps.Clone(w.requirements), maps.Clone(w.links), maps.Clone(w.checks)
-	audit, sequence := slices.Clone(w.audit), w.sequence
+	components, audit, sequence := maps.Clone(w.components), slices.Clone(w.audit), w.sequence
 	if err := fn(ctx); err != nil {
 		w.requirements, w.links, w.checks, w.audit, w.sequence = requirements, links, checks, audit, sequence
+		w.components = components
 		return err
 	}
 	return nil
@@ -271,7 +276,7 @@ func setup(t *testing.T) (*usecase.UseCases, *world) {
 	t.Helper()
 	w := newWorld()
 	uc, err := usecase.New(usecase.Deps{
-		Repository: w, Workflow: fakeWorkflow{}, Facts: w, AuditTrail: w,
+		Repository: w, Workflow: fakeWorkflow{}, Facts: w, Components: w, AuditTrail: w,
 		UnitOfWork: w, Clock: fixedClock{}, IdGenerator: &seqIDs{},
 	})
 	if err != nil {

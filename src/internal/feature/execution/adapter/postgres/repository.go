@@ -43,7 +43,9 @@ func (r *Repository) FindTestCase(ctx context.Context, code string) (domain.Test
 	if err != nil {
 		return domain.TestCaseRef{}, corepg.TranslateError(err)
 	}
-	return domain.TestCaseRef{Id: row.ID.String(), Code: row.Code, Title: row.Title, Retired: row.RetiredAt != nil}, nil
+	return domain.TestCaseRef{
+		Id: row.ID.String(), Code: row.Code, Title: row.Title, Retired: row.RetiredAt != nil, SystemKey: row.SystemKey,
+	}, nil
 }
 
 // FindRequirement busca un REQ por su código.
@@ -52,7 +54,7 @@ func (r *Repository) FindRequirement(ctx context.Context, code string) (domain.R
 	if err != nil {
 		return domain.RequirementRef{}, corepg.TranslateError(err)
 	}
-	return domain.RequirementRef{Id: row.ID.String(), Code: row.Code}, nil
+	return domain.RequirementRef{Id: row.ID.String(), Code: row.Code, SystemKey: row.SystemKey}, nil
 }
 
 // FindUser busca un usuario por su id.
@@ -75,10 +77,15 @@ func (r *Repository) InsertRun(ctx context.Context, run domain.Run) error {
 	if err != nil {
 		return err
 	}
+	buildID, environmentID, err := parseCatalogIDs(s.BuildId, s.EnvironmentId)
+	if err != nil {
+		return err
+	}
 	return corepg.TranslateError(r.queries(ctx).InsertRun(ctx, sqlcgen.InsertRunParams{
 		ID: id, Code: s.Code.String(), TestCaseID: testCaseID, BuildVersion: s.BuildVersion,
 		BuildChecksum: s.BuildChecksum, EnvironmentName: s.EnvironmentName, Result: string(s.Result),
 		Notes: s.Notes, ExecutedBy: string(s.ExecutedBy.Id), ExecutedAt: s.ExecutedAt, CreatedAt: s.CreatedAt,
+		BuildID: buildID, EnvironmentID: environmentID,
 	}))
 }
 
@@ -150,10 +157,15 @@ func (r *Repository) InsertExploration(ctx context.Context, exploration domain.E
 	if err != nil {
 		return err
 	}
+	buildID, environmentID, err := parseCatalogIDs(s.BuildId, s.EnvironmentId)
+	if err != nil {
+		return err
+	}
 	return corepg.TranslateError(r.queries(ctx).InsertExploration(ctx, sqlcgen.InsertExplorationParams{
 		ID: id, Code: s.Code.String(), RequirementID: requirementID, BuildVersion: s.BuildVersion,
 		EnvironmentName: s.EnvironmentName, ManualChanges: s.ManualChanges, Findings: s.Findings,
 		ExecutedBy: string(s.ExecutedBy.Id), ExecutedAt: s.ExecutedAt, CreatedAt: s.CreatedAt, UpdatedAt: s.UpdatedAt,
+		BuildID: buildID, EnvironmentID: environmentID,
 	}))
 }
 
@@ -220,6 +232,8 @@ func toRun(row sqlcgen.ListRunsRow) (domain.Run, error) {
 		Id: row.ID.String(), Code: code,
 		TestCase:     domain.TestCaseRef{Id: row.TestCaseID.String(), Code: row.TestCaseCode, Title: row.TestCaseTitle},
 		BuildVersion: row.BuildVersion, BuildChecksum: row.BuildChecksum, EnvironmentName: row.EnvironmentName,
+		BuildId: nullableID(row.BuildID), BuildCode: text(row.BuildCode),
+		EnvironmentId: nullableID(row.EnvironmentID), EnvironmentCode: text(row.EnvironmentCode),
 		Result: domain.Result(row.Result), Notes: row.Notes,
 		ExecutedBy: domain.UserRef{Id: shared.UserId(row.ExecutedBy), Name: row.ExecutedByName},
 		ExecutedAt: row.ExecutedAt.UTC(), CreatedAt: row.CreatedAt.UTC(),
@@ -235,6 +249,8 @@ func toExploration(row sqlcgen.ListExplorationsRow) (domain.Exploration, error) 
 		Id: row.ID.String(), Code: code,
 		Requirement:  domain.RequirementRef{Id: row.RequirementID.String(), Code: row.RequirementCode},
 		BuildVersion: row.BuildVersion, EnvironmentName: row.EnvironmentName,
+		BuildId: nullableID(row.BuildID), BuildCode: text(row.BuildCode),
+		EnvironmentId: nullableID(row.EnvironmentID), EnvironmentCode: text(row.EnvironmentCode),
 		ManualChanges: row.ManualChanges, Findings: row.Findings,
 		ExecutedBy: domain.UserRef{Id: shared.UserId(row.ExecutedBy), Name: row.ExecutedByName},
 		ExecutedAt: row.ExecutedAt.UTC(), CreatedAt: row.CreatedAt.UTC(), UpdatedAt: row.UpdatedAt.UTC(),
@@ -247,6 +263,33 @@ func parseID(raw string) (uuid.UUID, error) {
 		return id, axis.Wrap(axis.InternalServerError, "id no válido", err)
 	}
 	return id, nil
+}
+
+// parseCatalogIDs convierte los ids del BUILD y del ENV sobre los que se registra.
+func parseCatalogIDs(build, environment string) (buildID, environmentID uuid.NullUUID, err error) {
+	if buildID.UUID, err = parseID(build); err != nil {
+		return buildID, environmentID, err
+	}
+	if environmentID.UUID, err = parseID(environment); err != nil {
+		return buildID, environmentID, err
+	}
+	buildID.Valid, environmentID.Valid = true, true
+	return buildID, environmentID, nil
+}
+
+// nullableID y text devuelven vacío en las filas anteriores al catálogo, que no tienen BUILD ni ENV.
+func nullableID(id uuid.NullUUID) string {
+	if !id.Valid {
+		return ""
+	}
+	return id.UUID.String()
+}
+
+func text(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }
 
 func parseIDs(raw []string) ([]uuid.UUID, error) {

@@ -30,6 +30,7 @@ type Deps struct {
 	Repository  port.Repository
 	Workflow    port.Workflow
 	Facts       port.Facts
+	Components  port.Components
 	AuditTrail  port.AuditTrail
 	UnitOfWork  uow.Factory
 	Clock       clock.Clock
@@ -38,41 +39,45 @@ type Deps struct {
 
 // UseCases reúne los casos de uso del feature.
 type UseCases struct {
-	CreateRequirement     *CreateRequirement
-	GetRequirement        *GetRequirement
-	ListRequirements      *ListRequirements
-	UpdateRequirement     *UpdateRequirement
-	TransitionRequirement *TransitionRequirement
-	GetReadiness          *GetReadiness
-	ListLinks             *ListLinks
-	AddLink               *AddLink
-	UpdateLink            *UpdateLink
-	RemoveLink            *RemoveLink
-	GetEntryContract      *GetEntryContract
-	CheckEntryItem        *CheckEntryItem
-	UncheckEntryItem      *UncheckEntryItem
+	CreateRequirement         *CreateRequirement
+	GetRequirement            *GetRequirement
+	ListRequirements          *ListRequirements
+	UpdateRequirement         *UpdateRequirement
+	TransitionRequirement     *TransitionRequirement
+	GetReadiness              *GetReadiness
+	ListLinks                 *ListLinks
+	AddLink                   *AddLink
+	UpdateLink                *UpdateLink
+	RemoveLink                *RemoveLink
+	GetEntryContract          *GetEntryContract
+	CheckEntryItem            *CheckEntryItem
+	UncheckEntryItem          *UncheckEntryItem
+	ListRequirementComponents *ListRequirementComponents
+	SetRequirementComponents  *SetRequirementComponents
 }
 
 // New arma los casos de uso; falla si falta una dependencia.
 func New(d Deps) (*UseCases, error) {
-	if d.Repository == nil || d.Workflow == nil || d.Facts == nil || d.AuditTrail == nil ||
-		d.UnitOfWork == nil || d.Clock == nil || d.IdGenerator == nil {
+	if d.Repository == nil || d.Workflow == nil || d.Facts == nil || d.Components == nil ||
+		d.AuditTrail == nil || d.UnitOfWork == nil || d.Clock == nil || d.IdGenerator == nil {
 		return nil, errors.New("requirement: faltan dependencias")
 	}
 	return &UseCases{
-		CreateRequirement:     &CreateRequirement{d: d},
-		GetRequirement:        &GetRequirement{d: d},
-		ListRequirements:      &ListRequirements{d: d},
-		UpdateRequirement:     &UpdateRequirement{d: d},
-		TransitionRequirement: &TransitionRequirement{d: d},
-		GetReadiness:          &GetReadiness{d: d},
-		ListLinks:             &ListLinks{d: d},
-		AddLink:               &AddLink{d: d},
-		UpdateLink:            &UpdateLink{d: d},
-		RemoveLink:            &RemoveLink{d: d},
-		GetEntryContract:      &GetEntryContract{d: d},
-		CheckEntryItem:        &CheckEntryItem{d: d},
-		UncheckEntryItem:      &UncheckEntryItem{d: d},
+		CreateRequirement:         &CreateRequirement{d: d},
+		GetRequirement:            &GetRequirement{d: d},
+		ListRequirements:          &ListRequirements{d: d},
+		UpdateRequirement:         &UpdateRequirement{d: d},
+		TransitionRequirement:     &TransitionRequirement{d: d},
+		GetReadiness:              &GetReadiness{d: d},
+		ListLinks:                 &ListLinks{d: d},
+		AddLink:                   &AddLink{d: d},
+		UpdateLink:                &UpdateLink{d: d},
+		RemoveLink:                &RemoveLink{d: d},
+		GetEntryContract:          &GetEntryContract{d: d},
+		CheckEntryItem:            &CheckEntryItem{d: d},
+		UncheckEntryItem:          &UncheckEntryItem{d: d},
+		ListRequirementComponents: &ListRequirementComponents{d: d},
+		SetRequirementComponents:  &SetRequirementComponents{d: d},
 	}, nil
 }
 

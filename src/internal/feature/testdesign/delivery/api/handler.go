@@ -35,6 +35,8 @@ func (h *Handler) Register(r gin.IRouter) {
 	r.POST("/api/test-cases", h.createTestCase)
 	r.GET("/api/test-cases/:code", h.getTestCase)
 	r.PATCH("/api/test-cases/:code", h.updateTestCase)
+	r.GET("/api/test-cases/:code/components", h.listTestCaseComponents)
+	r.PUT("/api/test-cases/:code/components", h.setTestCaseComponents)
 }
 
 type functionalCaseDTO struct {
@@ -253,4 +255,48 @@ func (h *Handler) updateTestCase(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, toTestCaseDTO(out))
+}
+
+type componentRefDTO struct {
+	Code string `json:"code"`
+	Name string `json:"name"`
+	Kind string `json:"kind"`
+}
+
+// componentsDTO es el cuerpo que declara los componentes de un TC; sin `components` no vale.
+type componentsDTO struct {
+	Components []string `json:"components"`
+}
+
+func toComponentDTOs(refs []domain.ComponentRef) []componentRefDTO {
+	items := make([]componentRefDTO, len(refs))
+	for i, r := range refs {
+		items[i] = componentRefDTO{Code: r.Code, Name: r.Name, Kind: r.Kind}
+	}
+	return items
+}
+
+func (h *Handler) listTestCaseComponents(c *gin.Context) {
+	refs, err := h.uc.ListTestCaseComponents.Execute(c.Request.Context(), usecase.ListTestCaseComponentsInput{Code: c.Param("code")})
+	if err != nil {
+		problem.Write(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": toComponentDTOs(refs)})
+}
+
+func (h *Handler) setTestCaseComponents(c *gin.Context) {
+	var body componentsDTO
+	if err := httpserver.DecodeJSON(c, &body); err != nil {
+		problem.Write(c, err)
+		return
+	}
+	refs, err := h.uc.SetTestCaseComponents.Execute(c.Request.Context(), usecase.SetTestCaseComponentsInput{
+		Actor: actorOf(c), Code: c.Param("code"), Components: body.Components,
+	})
+	if err != nil {
+		problem.Write(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": toComponentDTOs(refs)})
 }

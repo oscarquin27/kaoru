@@ -28,6 +28,7 @@ var (
 type Deps struct {
 	Repository   port.Repository
 	Requirements port.Requirements
+	Components   port.Components
 	Permissions  port.Permissions
 	AuditTrail   port.AuditTrail
 	UnitOfWork   uow.Factory
@@ -46,11 +47,13 @@ type UseCases struct {
 	ListTestCases            *ListTestCases
 	UpdateTestCase           *UpdateTestCase
 	ListRequirementTestCases *ListRequirementTestCases
+	ListTestCaseComponents   *ListTestCaseComponents
+	SetTestCaseComponents    *SetTestCaseComponents
 }
 
 // New arma los casos de uso; falla si falta una dependencia.
 func New(d Deps) (*UseCases, error) {
-	if d.Repository == nil || d.Requirements == nil || d.Permissions == nil || d.AuditTrail == nil ||
+	if d.Repository == nil || d.Requirements == nil || d.Components == nil || d.Permissions == nil || d.AuditTrail == nil ||
 		d.UnitOfWork == nil || d.Clock == nil || d.IdGenerator == nil {
 		return nil, errors.New("testdesign: faltan dependencias")
 	}
@@ -64,6 +67,8 @@ func New(d Deps) (*UseCases, error) {
 		ListTestCases:            &ListTestCases{d: d},
 		UpdateTestCase:           &UpdateTestCase{d: d},
 		ListRequirementTestCases: &ListRequirementTestCases{d: d},
+		ListTestCaseComponents:   &ListTestCaseComponents{d: d},
+		SetTestCaseComponents:    &SetTestCaseComponents{d: d},
 	}, nil
 }
 

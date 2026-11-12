@@ -132,6 +132,7 @@ func matrixFilter(c *gin.Context) (domain.MatrixFilter, error) {
 	filter := domain.MatrixFilter{
 		ChangeCode: c.Query("change"), SystemKey: c.Query("system"), StateKey: c.Query("state"),
 		RiskLevel: c.Query("risk"), OwnerId: c.Query("owner"),
+		PackageCode: c.Query("package"), ComponentCode: c.Query("component"),
 	}
 	var errs axis.FieldErrors
 	if raw := c.Query("from"); raw != "" {

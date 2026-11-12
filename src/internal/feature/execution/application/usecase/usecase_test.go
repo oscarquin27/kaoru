@@ -39,12 +39,49 @@ func (w *world) Within(ctx context.Context, fn func(context.Context) error) erro
 
 var notFound = axis.New(axis.NotFoundResource, "No existe.")
 
-// El REQ-2026-0042 tiene tres TC (uno retirado); el TC-2026-0009 es del REQ-2026-0043.
+// El REQ-2026-0042 tiene tres TC (uno retirado); el TC-2026-0009 es del REQ-2026-0043. Todos son de SyPago.
 var testCases = map[string]domain.TestCaseRef{
-	"TC-2026-0001": {Id: "t1", Code: "TC-2026-0001", Title: "Saldo"},
-	"TC-2026-0002": {Id: "t2", Code: "TC-2026-0002", Title: "Transferencia"},
-	"TC-2026-0003": {Id: "t3", Code: "TC-2026-0003", Title: "Saldo viejo", Retired: true},
-	"TC-2026-0009": {Id: "t9", Code: "TC-2026-0009", Title: "Movimientos"},
+	"TC-2026-0001": {Id: "t1", Code: "TC-2026-0001", Title: "Saldo", SystemKey: "SYPAGO"},
+	"TC-2026-0002": {Id: "t2", Code: "TC-2026-0002", Title: "Transferencia", SystemKey: "SYPAGO"},
+	"TC-2026-0003": {Id: "t3", Code: "TC-2026-0003", Title: "Saldo viejo", Retired: true, SystemKey: "SYPAGO"},
+	"TC-2026-0009": {Id: "t9", Code: "TC-2026-0009", Title: "Movimientos", SystemKey: "SYPAGO"},
+}
+
+// El catálogo: dos BUILD de SyPago y uno de SIMF; ambientes de SyPago de prueba, de producción y retirado, y uno de SIMF.
+var builds = map[string]domain.BuildRef{
+	"BUILD-2026-0001": {Id: "b1", Code: "BUILD-2026-0001", SystemKey: "SYPAGO", Version: "1.4.0", Checksum: checksum},
+	"BUILD-2026-0002": {Id: "b2", Code: "BUILD-2026-0002", SystemKey: "SYPAGO", Version: "1.5.0", Checksum: strings.Repeat("b", 64)},
+	"BUILD-2026-0003": {Id: "b3", Code: "BUILD-2026-0003", SystemKey: "SYPAGO", Version: "1.5.1", Checksum: strings.Repeat("c", 64)},
+	"BUILD-2026-0009": {Id: "b9", Code: "BUILD-2026-0009", SystemKey: "SIMF", Version: "4.2.0", Checksum: strings.Repeat("d", 64)},
+}
+
+var environments = map[string]domain.EnvironmentRef{
+	"ENV-2026-0001": {Id: "e1", Code: "ENV-2026-0001", Name: "QA", SystemKey: "SYPAGO"},
+	"ENV-2026-0002": {Id: "e2", Code: "ENV-2026-0002", Name: "Producción", SystemKey: "SYPAGO", Production: true},
+	"ENV-2026-0003": {Id: "e3", Code: "ENV-2026-0003", Name: "QA viejo", SystemKey: "SYPAGO", Retired: true},
+	"ENV-2026-0009": {Id: "e9", Code: "ENV-2026-0009", Name: "QA SIMF", SystemKey: "SIMF"},
+}
+
+// fakeBuilds hace de port.Builds.
+type fakeBuilds struct{}
+
+func (fakeBuilds) Find(_ context.Context, code string) (domain.BuildRef, error) {
+	build, ok := builds[code]
+	if !ok {
+		return domain.BuildRef{}, notFound
+	}
+	return build, nil
+}
+
+// fakeEnvironments hace de port.Environments.
+type fakeEnvironments struct{}
+
+func (fakeEnvironments) Find(_ context.Context, code string) (domain.EnvironmentRef, error) {
+	environment, ok := environments[code]
+	if !ok {
+		return domain.EnvironmentRef{}, notFound
+	}
+	return environment, nil
 }
 
 func (w *world) NextCode(_ context.Context, prefix string, year int) (shared.Code, error) {
@@ -66,7 +103,7 @@ func (w *world) FindRequirement(_ context.Context, code string) (domain.Requirem
 	if !ok {
 		return domain.RequirementRef{}, notFound
 	}
-	return domain.RequirementRef{Id: id, Code: code}, nil
+	return domain.RequirementRef{Id: id, Code: code, SystemKey: "SYPAGO"}, nil
 }
 
 func (w *world) FindUser(_ context.Context, id shared.UserId) (domain.UserRef, error) {
@@ -216,7 +253,8 @@ func setup(t *testing.T) (*usecase.UseCases, *world) {
 	t.Helper()
 	w := &world{explorations: map[string]domain.Exploration{}, sequences: map[string]int{}}
 	uc, err := usecase.New(usecase.Deps{
-		Repository: w, TestDesign: w, Permissions: fakePermissions{}, AuditTrail: w,
+		Repository: w, TestDesign: w, Builds: fakeBuilds{}, Environments: fakeEnvironments{},
+		Permissions: fakePermissions{}, AuditTrail: w,
 		UnitOfWork: w, Clock: fixedClock{}, IdGenerator: &seqIDs{},
 	})
 	if err != nil {
@@ -226,20 +264,25 @@ func setup(t *testing.T) (*usecase.UseCases, *world) {
 }
 
 var baseRun = usecase.CreateRunInput{
-	Actor: qa, TestCaseCode: "TC-2026-0001", BuildVersion: "1.4.0", BuildChecksum: checksum,
-	EnvironmentName: "QA", Result: "passed", ExecutedAt: t0.Add(-time.Hour),
+	Actor: qa, TestCaseCode: "TC-2026-0001", BuildCode: "BUILD-2026-0001", EnvironmentCode: "ENV-2026-0001",
+	Result: "passed", ExecutedAt: t0.Add(-time.Hour),
 }
 
 var baseExploration = usecase.CreateExplorationInput{
-	Actor: qa, RequirementCode: "REQ-2026-0042", BuildVersion: "1.4.0", EnvironmentName: "QA",
+	Actor: qa, RequirementCode: "REQ-2026-0042", BuildCode: "BUILD-2026-0001", EnvironmentCode: "ENV-2026-0001",
 	ManualChanges: "Parche a mano", Findings: "Nada raro", ExecutedAt: t0.Add(-time.Hour),
 }
 
-// run registra un RUN del TC con ese resultado sobre esa versión y devuelve su código.
+// run registra un RUN del TC con ese resultado sobre el BUILD de esa versión y devuelve su código.
 func run(t *testing.T, uc *usecase.UseCases, testCaseCode, result, buildVersion string) string {
 	t.Helper()
 	in := baseRun
-	in.TestCaseCode, in.Result, in.BuildVersion = testCaseCode, result, buildVersion
+	in.TestCaseCode, in.Result = testCaseCode, result
+	for code, build := range builds {
+		if build.Version == buildVersion {
+			in.BuildCode = code
+		}
+	}
 	out, err := uc.CreateRun.Execute(ctx, in)
 	if err != nil {
 		t.Fatal(err)
@@ -283,7 +326,6 @@ func TestCreateRun(t *testing.T) {
 	uc, w := setup(t)
 	in := baseRun
 	in.Actor, in.Result, in.Notes = tester, "failed", " Saldo negativo "
-	in.BuildChecksum = " " + strings.ToUpper(checksum) + " "
 	out, err := uc.CreateRun.Execute(ctx, in)
 	if err != nil {
 		t.Fatal(err)
@@ -296,6 +338,11 @@ func TestCreateRun(t *testing.T) {
 		saved.BuildChecksum != checksum || saved.EnvironmentName != "QA" || saved.Result != domain.ResultFailed ||
 		saved.Notes != "Saldo negativo" || !saved.ExecutedAt.Equal(t0.Add(-time.Hour)) || !saved.CreatedAt.Equal(t0) {
 		t.Errorf("RUN guardado inesperado: %+v", saved)
+	}
+	// Queda atado al BUILD y al ENV del catálogo; versión, checksum y nombre son copias.
+	if saved.BuildId != "b1" || saved.BuildCode != "BUILD-2026-0001" || saved.EnvironmentId != "e1" || saved.EnvironmentCode != "ENV-2026-0001" ||
+		out.BuildCode != "BUILD-2026-0001" || out.EnvironmentCode != "ENV-2026-0001" {
+		t.Errorf("BUILD y ENV del RUN: %+v", saved)
 	}
 	// Quién lo registra sale de la sesión.
 	if saved.ExecutedBy != (domain.UserRef{Id: "u4", Name: "Usuario u4"}) {
@@ -323,10 +370,18 @@ func TestCreateRunErrors(t *testing.T) {
 		{"TC inexistente", func(in *usecase.CreateRunInput) { in.TestCaseCode = "TC-2026-0099" }, axis.InvalidRequest, []string{"testCase:invalid"}},
 		{"TC retirado", func(in *usecase.CreateRunInput) { in.TestCaseCode = "TC-2026-0003" }, axis.InvalidAction, nil},
 		{"actor sin usuario", func(in *usecase.CreateRunInput) { in.Actor = ghost }, axis.NotFoundResource, nil},
-		{"campos vacíos", func(in *usecase.CreateRunInput) {
-			in.BuildVersion, in.BuildChecksum, in.EnvironmentName, in.Result, in.ExecutedAt = " ", "", "", "", time.Time{}
-		}, axis.InvalidRequest, []string{"buildVersion:required", "environmentName:required", "buildChecksum:required", "result:required", "executedAt:required"}},
-		{"checksum que no es SHA-256", func(in *usecase.CreateRunInput) { in.BuildChecksum = "abc123" }, axis.InvalidRequest, []string{"buildChecksum:invalid"}},
+		{"sin TC, BUILD ni ENV", func(in *usecase.CreateRunInput) { in.TestCaseCode, in.BuildCode, in.EnvironmentCode = "", "", "" },
+			axis.InvalidRequest, []string{"testCase:required", "build:required", "environment:required"}},
+		{"BUILD inexistente", func(in *usecase.CreateRunInput) { in.BuildCode = "BUILD-2026-0099" }, axis.InvalidRequest, []string{"build:invalid"}},
+		{"ENV inexistente", func(in *usecase.CreateRunInput) { in.EnvironmentCode = "ENV-2026-0099" }, axis.InvalidRequest, []string{"environment:invalid"}},
+		{"BUILD y ENV inexistentes", func(in *usecase.CreateRunInput) { in.BuildCode, in.EnvironmentCode = "x", "y" },
+			axis.InvalidRequest, []string{"build:invalid", "environment:invalid"}},
+		{"BUILD de otro sistema", func(in *usecase.CreateRunInput) { in.BuildCode = "BUILD-2026-0009" }, axis.InvalidRequest, []string{"build:invalid"}},
+		{"ENV de otro sistema", func(in *usecase.CreateRunInput) { in.EnvironmentCode = "ENV-2026-0009" }, axis.InvalidRequest, []string{"environment:invalid"}},
+		{"ENV retirado", func(in *usecase.CreateRunInput) { in.EnvironmentCode = "ENV-2026-0003" }, axis.InvalidRequest, []string{"environment:invalid"}},
+		{"ENV de producción", func(in *usecase.CreateRunInput) { in.EnvironmentCode = "ENV-2026-0002" }, axis.InvalidRequest, []string{"environment:invalid"}},
+		{"campos vacíos", func(in *usecase.CreateRunInput) { in.Result, in.ExecutedAt = "", time.Time{} },
+			axis.InvalidRequest, []string{"result:required", "executedAt:required"}},
 		{"resultado desconocido", func(in *usecase.CreateRunInput) { in.Result = "aprobado" }, axis.InvalidRequest, []string{"result:invalid"}},
 		{"fecha futura", func(in *usecase.CreateRunInput) { in.ExecutedAt = t0.Add(time.Minute) }, axis.InvalidRequest, []string{"executedAt:invalid"}},
 	}
@@ -455,8 +510,9 @@ func TestCreateExploration(t *testing.T) {
 		t.Fatal(err)
 	}
 	saved := w.explorations["EXP-2026-0001"].Snapshot()
-	if out.Code.String() != "EXP-2026-0001" || saved.Id != "id-1" || saved.Requirement != (domain.RequirementRef{Id: "r1", Code: "REQ-2026-0042"}) ||
+	if out.Code.String() != "EXP-2026-0001" || saved.Id != "id-1" || saved.Requirement != (domain.RequirementRef{Id: "r1", Code: "REQ-2026-0042", SystemKey: "SYPAGO"}) ||
 		saved.BuildVersion != "1.4.0" || saved.EnvironmentName != "QA" || saved.ManualChanges != "Parche a mano" ||
+		saved.BuildId != "b1" || saved.BuildCode != "BUILD-2026-0001" || saved.EnvironmentId != "e1" || saved.EnvironmentCode != "ENV-2026-0001" ||
 		saved.Findings != "Nada raro" || saved.ExecutedBy != (domain.UserRef{Id: "u5", Name: "Usuario u5"}) ||
 		!saved.ExecutedAt.Equal(t0.Add(-time.Hour)) || !saved.CreatedAt.Equal(t0) {
 		t.Errorf("EXP guardado inesperado: %+v", saved)
@@ -464,6 +520,17 @@ func TestCreateExploration(t *testing.T) {
 	want := port.AuditRecord{Actor: "u5", EntityType: port.EntityExploration, EntityId: "id-1", Code: out.Code, Action: port.AuditCreate}
 	if len(w.audit) != 1 || w.audit[0] != want {
 		t.Errorf("auditoría del alta: %+v", w.audit)
+	}
+}
+
+// Explorar en producción sí vale: la regla «QA no ejecuta en producción» es del RUN oficial.
+func TestCreateExplorationInProduction(t *testing.T) {
+	uc, w := setup(t)
+	in := baseExploration
+	in.EnvironmentCode = "ENV-2026-0002"
+	out, err := uc.CreateExploration.Execute(ctx, in)
+	if err != nil || out.EnvironmentName != "Producción" || w.explorations["EXP-2026-0001"].Snapshot().EnvironmentCode != "ENV-2026-0002" {
+		t.Errorf("EXP en producción = %+v, %v", out, err)
 	}
 }
 
@@ -479,9 +546,18 @@ func TestCreateExplorationErrors(t *testing.T) {
 		{"sin REQ", func(in *usecase.CreateExplorationInput) { in.RequirementCode = "" }, axis.InvalidRequest, []string{"requirement:required"}},
 		{"REQ inexistente", func(in *usecase.CreateExplorationInput) { in.RequirementCode = "REQ-2026-0099" }, axis.InvalidRequest, []string{"requirement:invalid"}},
 		{"actor sin usuario", func(in *usecase.CreateExplorationInput) { in.Actor = ghost }, axis.NotFoundResource, nil},
-		{"campos vacíos", func(in *usecase.CreateExplorationInput) {
-			in.BuildVersion, in.EnvironmentName, in.ExecutedAt = "", " ", time.Time{}
-		}, axis.InvalidRequest, []string{"buildVersion:required", "environmentName:required", "executedAt:required"}},
+		{"sin REQ, BUILD ni ENV", func(in *usecase.CreateExplorationInput) {
+			in.RequirementCode, in.BuildCode, in.EnvironmentCode = "", "", ""
+		},
+			axis.InvalidRequest, []string{"requirement:required", "build:required", "environment:required"}},
+		{"BUILD inexistente", func(in *usecase.CreateExplorationInput) { in.BuildCode = "BUILD-2026-0099" }, axis.InvalidRequest, []string{"build:invalid"}},
+		{"ENV inexistente", func(in *usecase.CreateExplorationInput) { in.EnvironmentCode = "ENV-2026-0099" }, axis.InvalidRequest, []string{"environment:invalid"}},
+		{"BUILD y ENV de otro sistema", func(in *usecase.CreateExplorationInput) {
+			in.BuildCode, in.EnvironmentCode = "BUILD-2026-0009", "ENV-2026-0009"
+		},
+			axis.InvalidRequest, []string{"build:invalid", "environment:invalid"}},
+		{"ENV retirado", func(in *usecase.CreateExplorationInput) { in.EnvironmentCode = "ENV-2026-0003" }, axis.InvalidRequest, []string{"environment:invalid"}},
+		{"sin fecha", func(in *usecase.CreateExplorationInput) { in.ExecutedAt = time.Time{} }, axis.InvalidRequest, []string{"executedAt:required"}},
 		{"fecha futura", func(in *usecase.CreateExplorationInput) { in.ExecutedAt = t0.Add(time.Minute) }, axis.InvalidRequest, []string{"executedAt:invalid"}},
 	}
 	for _, tc := range cases {

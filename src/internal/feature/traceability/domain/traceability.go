@@ -181,13 +181,16 @@ type Overview struct {
 
 // MatrixFilter acota la matriz. Un campo vacío o nil no filtra.
 type MatrixFilter struct {
-	ChangeCode  string
-	SystemKey   string
-	StateKey    string
-	RiskLevel   string
-	OwnerId     string
-	CreatedFrom *time.Time
-	CreatedTo   *time.Time
+	ChangeCode string
+	SystemKey  string
+	StateKey   string
+	RiskLevel  string
+	OwnerId    string
+	// PackageCode y ComponentCode acotan a los REQ de un PKG o que tocan un COMP.
+	PackageCode   string
+	ComponentCode string
+	CreatedFrom   *time.Time
+	CreatedTo     *time.Time
 }
 
 // MatrixRow es una fila de la matriz: un REQ con uno de sus TC (o sin ninguno).
@@ -200,7 +203,9 @@ type MatrixRow struct {
 	RiskCode         string
 	RiskLevel        string
 	OwnerName        string
-	FunctionalCases  []string
+	// Packages son los códigos de los PKG que incluyen el REQ.
+	Packages        []string
+	FunctionalCases []string
 	// TestCase.Code vacío significa que el REQ no tiene TC.
 	TestCase TestCaseSummary
 	Defects  []DefectSummary

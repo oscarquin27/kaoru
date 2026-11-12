@@ -54,6 +54,15 @@ sql:
         emit_pointers_for_null_types: true
   - engine: postgresql
     schema: migrations
+    queries: internal/feature/component/adapter/postgres/queries
+    gen:
+      go:
+        package: sqlcgen
+        out: internal/feature/component/adapter/postgres/sqlcgen
+        sql_package: pgx/v5
+        emit_pointers_for_null_types: true
+  - engine: postgresql
+    schema: migrations
     queries: internal/feature/requirement/adapter/postgres/queries
     gen:
       go:
@@ -131,5 +140,23 @@ sql:
       go:
         package: sqlcgen
         out: internal/feature/savedview/adapter/postgres/sqlcgen
+        sql_package: pgx/v5
+        emit_pointers_for_null_types: true
+  - engine: postgresql
+    schema: migrations
+    queries: internal/feature/build/adapter/postgres/queries
+    gen:
+      go:
+        package: sqlcgen
+        out: internal/feature/build/adapter/postgres/sqlcgen
+        sql_package: pgx/v5
+        emit_pointers_for_null_types: true
+  - engine: postgresql
+    schema: migrations
+    queries: internal/feature/environment/adapter/postgres/queries
+    gen:
+      go:
+        package: sqlcgen
+        out: internal/feature/environment/adapter/postgres/sqlcgen
         sql_package: pgx/v5
         emit_pointers_for_null_types: true

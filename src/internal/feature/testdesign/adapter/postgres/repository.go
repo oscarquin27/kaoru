@@ -299,3 +299,50 @@ func nullable(s string) *string {
 	}
 	return &s
 }
+
+// LockTestCase bloquea el TC hasta el fin de la transacción en curso.
+func (r *Repository) LockTestCase(ctx context.Context, code shared.Code) error {
+	_, err := r.queries(ctx).LockTestCase(ctx, code.String())
+	return corepg.TranslateError(err)
+}
+
+// ListTestCaseComponents devuelve los componentes que ejercita el TC, por nombre.
+func (r *Repository) ListTestCaseComponents(ctx context.Context, testCaseId string) ([]domain.ComponentRef, error) {
+	testCaseID, err := parseID(testCaseId)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := r.queries(ctx).ListTestCaseComponents(ctx, testCaseID)
+	if err != nil {
+		return nil, corepg.TranslateError(err)
+	}
+	refs := make([]domain.ComponentRef, len(rows))
+	for i, row := range rows {
+		refs[i] = domain.ComponentRef{Id: row.ID.String(), Code: row.Code, Name: row.Name, Kind: row.Kind}
+	}
+	return refs, nil
+}
+
+// ReplaceTestCaseComponents deja como componentes del TC exactamente los dados.
+func (r *Repository) ReplaceTestCaseComponents(ctx context.Context, testCaseId string, componentIds []string) error {
+	testCaseID, err := parseID(testCaseId)
+	if err != nil {
+		return err
+	}
+	q := r.queries(ctx)
+	if err := q.DeleteTestCaseComponents(ctx, testCaseID); err != nil {
+		return corepg.TranslateError(err)
+	}
+	for _, raw := range componentIds {
+		componentID, err := parseID(raw)
+		if err != nil {
+			return err
+		}
+		if err := q.InsertTestCaseComponent(ctx, sqlcgen.InsertTestCaseComponentParams{
+			TestCaseID: testCaseID, ComponentID: componentID,
+		}); err != nil {
+			return corepg.TranslateError(err)
+		}
+	}
+	return nil
+}

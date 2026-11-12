@@ -183,11 +183,24 @@ erDiagram
 - **Qué falta para avanzar:** las `blocking_rule` de las transiciones que salen del estado actual, evaluadas por el dominio.
 - **Cadena de auditoría:** `hash = SHA-256(prev_hash + contenido de la fila)`. El orden lo da `seq`. La inserción se serializa con un bloqueo para que dos escrituras no lean el mismo `prev_hash`.
 
+## Fase 3 (migraciones 00014 y 00015, decisión D48)
+
+| Tabla | Dueño | Qué guarda |
+|---|---|---|
+| `component` | `component` | COMP: componente del catálogo de un sistema. Se retira, no se borra. |
+| `requirement_component`, `test_case_component` | `requirement`, `testdesign` | Impacto: qué componentes toca un REQ y cuáles ejercita un TC. |
+| `build`, `build_requirement` | `build` | BUILD inmutable (solo inserción): versión, checksum único y manifiesto. |
+| `environment` | `environment` | ENV: ambiente de un sistema, con tipo y sistema operativo. Lo instalado sale de su último despliegue exitoso. |
+| `deployment` | `environment` | DEP (solo inserción): despliegue de un BUILD o de un PKG en un ambiente. |
+| `package`, `package_build`, `package_requirement` | `bundle` | PKG con su estado, sus BUILD y sus REQ. |
+| `regression_selection`, `regression_item` | `regression` | Regresión de un PKG: lo propuesto, lo final y el criterio de cada ajuste. |
+
+`test_run` y `exploratory_session` ganan `build_id` y `environment_id`. La versión, el checksum y el nombre del ambiente se siguen copiando en la fila como evidencia; las filas anteriores quedan sin BUILD ni ENV.
+
 ## Previsto para fases posteriores (sin tablas todavía)
 
 | Fase | Entidades | Cambio sobre lo existente |
 |---|---|---|
-| 3 | COMP-, BUILD-, PKG-, ENV-, DEP-, selección de regresión | `test_run` y `exploratory_session` cambian `build_version`, `build_checksum` y `environment_name` por llaves foráneas a BUILD y ENV. REQ y TC declaran componentes. Se agrega el flujo del PKG a `workflow_state`. |
 | 4 | CHK- con firmas, DIAG-, SMOKE-, RPT-, hitos y ventanas | Las ventanas del CHG pasan de `change.window_*` al calendario. |
 
 ## Pendiente

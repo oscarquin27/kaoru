@@ -118,6 +118,7 @@ type matrixRowDTO struct {
 	Risk            string       `json:"risk,omitempty"`
 	RiskLevel       string       `json:"riskLevel,omitempty"`
 	Owner           string       `json:"owner,omitempty"`
+	Packages        []string     `json:"packages"`
 	FunctionalCases []string     `json:"functionalCases"`
 	TestCase        *testCaseDTO `json:"testCase,omitempty"`
 	Defects         []defectDTO  `json:"defects"`
@@ -222,7 +223,10 @@ func toMatrixRow(r domain.MatrixRow) matrixRowDTO {
 	dto := matrixRowDTO{
 		Requirement: codeTitleDTO{Code: r.RequirementCode, Title: r.RequirementTitle}, System: r.SystemKey,
 		State: toState(r.State), Change: r.ChangeCode, Risk: r.RiskCode, RiskLevel: r.RiskLevel, Owner: r.OwnerName,
-		FunctionalCases: r.FunctionalCases, Defects: toDefects(r.Defects),
+		Packages: r.Packages, FunctionalCases: r.FunctionalCases, Defects: toDefects(r.Defects),
+	}
+	if dto.Packages == nil {
+		dto.Packages = []string{}
 	}
 	if dto.FunctionalCases == nil {
 		dto.FunctionalCases = []string{}

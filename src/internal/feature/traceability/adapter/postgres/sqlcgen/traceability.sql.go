@@ -27,19 +27,31 @@ WHERE NOT ds.is_final
   AND ($3::text IS NULL OR st.key = $3)
   AND ($4::text IS NULL OR ra.level = $4)
   AND ($5::text IS NULL OR r.owner_id = $5)
-  AND ($6::timestamptz IS NULL OR r.created_at >= $6)
-  AND ($7::timestamptz IS NULL OR r.created_at < $7)
+  AND ($6::text IS NULL OR EXISTS (SELECT 1
+                                                        FROM package_requirement pr
+                                                                 JOIN package p ON p.id = pr.package_id
+                                                        WHERE pr.requirement_id = r.id
+                                                          AND p.code = $6))
+  AND ($7::text IS NULL OR EXISTS (SELECT 1
+                                                          FROM requirement_component rc
+                                                                   JOIN component k ON k.id = rc.component_id
+                                                          WHERE rc.requirement_id = r.id
+                                                            AND k.code = $7))
+  AND ($8::timestamptz IS NULL OR r.created_at >= $8)
+  AND ($9::timestamptz IS NULL OR r.created_at < $9)
 GROUP BY d.severity
 `
 
 type CountOpenDefectsBySeverityParams struct {
-	ChangeCode  *string
-	SystemKey   *string
-	StateKey    *string
-	RiskLevel   *string
-	OwnerID     *string
-	CreatedFrom *time.Time
-	CreatedTo   *time.Time
+	ChangeCode    *string
+	SystemKey     *string
+	StateKey      *string
+	RiskLevel     *string
+	OwnerID       *string
+	PackageCode   *string
+	ComponentCode *string
+	CreatedFrom   *time.Time
+	CreatedTo     *time.Time
 }
 
 type CountOpenDefectsBySeverityRow struct {
@@ -54,6 +66,8 @@ func (q *Queries) CountOpenDefectsBySeverity(ctx context.Context, arg CountOpenD
 		arg.StateKey,
 		arg.RiskLevel,
 		arg.OwnerID,
+		arg.PackageCode,
+		arg.ComponentCode,
 		arg.CreatedFrom,
 		arg.CreatedTo,
 	)
@@ -105,18 +119,30 @@ WHERE ($1::text IS NULL OR c.code = $1)
   AND ($3::text IS NULL OR st.key = $3)
   AND ($4::text IS NULL OR ra.level = $4)
   AND ($5::text IS NULL OR r.owner_id = $5)
-  AND ($6::timestamptz IS NULL OR r.created_at >= $6)
-  AND ($7::timestamptz IS NULL OR r.created_at < $7)
+  AND ($6::text IS NULL OR EXISTS (SELECT 1
+                                                        FROM package_requirement pr
+                                                                 JOIN package p ON p.id = pr.package_id
+                                                        WHERE pr.requirement_id = r.id
+                                                          AND p.code = $6))
+  AND ($7::text IS NULL OR EXISTS (SELECT 1
+                                                          FROM requirement_component rc
+                                                                   JOIN component k ON k.id = rc.component_id
+                                                          WHERE rc.requirement_id = r.id
+                                                            AND k.code = $7))
+  AND ($8::timestamptz IS NULL OR r.created_at >= $8)
+  AND ($9::timestamptz IS NULL OR r.created_at < $9)
 `
 
 type GetMatrixIndicatorsParams struct {
-	ChangeCode  *string
-	SystemKey   *string
-	StateKey    *string
-	RiskLevel   *string
-	OwnerID     *string
-	CreatedFrom *time.Time
-	CreatedTo   *time.Time
+	ChangeCode    *string
+	SystemKey     *string
+	StateKey      *string
+	RiskLevel     *string
+	OwnerID       *string
+	PackageCode   *string
+	ComponentCode *string
+	CreatedFrom   *time.Time
+	CreatedTo     *time.Time
 }
 
 type GetMatrixIndicatorsRow struct {
@@ -134,6 +160,8 @@ func (q *Queries) GetMatrixIndicators(ctx context.Context, arg GetMatrixIndicato
 		arg.StateKey,
 		arg.RiskLevel,
 		arg.OwnerID,
+		arg.PackageCode,
+		arg.ComponentCode,
 		arg.CreatedFrom,
 		arg.CreatedTo,
 	)
@@ -258,6 +286,11 @@ SELECT r.code AS requirement_code, r.title AS requirement_title, s.key AS system
        coalesce(lr.code, '') AS run_code, coalesce(lr.result, '') AS run_result,
        coalesce(lr.build_version, '') AS run_build_version, coalesce(lr.environment_name, '') AS run_environment_name,
        coalesce(to_char(lr.executed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'), '')::text AS run_executed_at,
+       ARRAY(SELECT p.code
+             FROM package p
+                      JOIN package_requirement pr ON pr.package_id = p.id
+             WHERE pr.requirement_id = r.id
+             ORDER BY p.code)::text[] AS packages,
        ARRAY(SELECT f.code
              FROM functional_case f
                       JOIN test_case_functional_case l ON l.functional_case_id = f.id
@@ -291,22 +324,34 @@ WHERE ($1::text IS NULL OR c.code = $1)
   AND ($3::text IS NULL OR st.key = $3)
   AND ($4::text IS NULL OR ra.level = $4)
   AND ($5::text IS NULL OR r.owner_id = $5)
-  AND ($6::timestamptz IS NULL OR r.created_at >= $6)
-  AND ($7::timestamptz IS NULL OR r.created_at < $7)
+  AND ($6::text IS NULL OR EXISTS (SELECT 1
+                                                        FROM package_requirement pr
+                                                                 JOIN package p ON p.id = pr.package_id
+                                                        WHERE pr.requirement_id = r.id
+                                                          AND p.code = $6))
+  AND ($7::text IS NULL OR EXISTS (SELECT 1
+                                                          FROM requirement_component rc
+                                                                   JOIN component k ON k.id = rc.component_id
+                                                          WHERE rc.requirement_id = r.id
+                                                            AND k.code = $7))
+  AND ($8::timestamptz IS NULL OR r.created_at >= $8)
+  AND ($9::timestamptz IS NULL OR r.created_at < $9)
 ORDER BY r.created_at DESC, r.code DESC, t.code
-LIMIT $9 OFFSET $8
+LIMIT $11 OFFSET $10
 `
 
 type ListMatrixParams struct {
-	ChangeCode  *string
-	SystemKey   *string
-	StateKey    *string
-	RiskLevel   *string
-	OwnerID     *string
-	CreatedFrom *time.Time
-	CreatedTo   *time.Time
-	PageOffset  int32
-	PageSize    int32
+	ChangeCode    *string
+	SystemKey     *string
+	StateKey      *string
+	RiskLevel     *string
+	OwnerID       *string
+	PackageCode   *string
+	ComponentCode *string
+	CreatedFrom   *time.Time
+	CreatedTo     *time.Time
+	PageOffset    int32
+	PageSize      int32
 }
 
 type ListMatrixRow struct {
@@ -328,6 +373,7 @@ type ListMatrixRow struct {
 	RunBuildVersion    string
 	RunEnvironmentName string
 	RunExecutedAt      string
+	Packages           []string
 	FunctionalCases    []string
 	Defects            []byte
 }
@@ -340,6 +386,8 @@ func (q *Queries) ListMatrix(ctx context.Context, arg ListMatrixParams) ([]ListM
 		arg.StateKey,
 		arg.RiskLevel,
 		arg.OwnerID,
+		arg.PackageCode,
+		arg.ComponentCode,
 		arg.CreatedFrom,
 		arg.CreatedTo,
 		arg.PageOffset,
@@ -371,6 +419,7 @@ func (q *Queries) ListMatrix(ctx context.Context, arg ListMatrixParams) ([]ListM
 			&i.RunBuildVersion,
 			&i.RunEnvironmentName,
 			&i.RunExecutedAt,
+			&i.Packages,
 			&i.FunctionalCases,
 			&i.Defects,
 		); err != nil {
@@ -621,7 +670,24 @@ FROM (SELECT 'requirement' AS kind, r.code, r.title, st.key AS state_key, st.nam
                JOIN requirement r ON r.id = ra.requirement_id
       UNION ALL
       SELECT 'document', code, title, '', ''
-      FROM document) x
+      FROM document
+      UNION ALL
+      SELECT 'component', code, name, '', ''
+      FROM component
+      UNION ALL
+      SELECT 'build', code, version, '', ''
+      FROM build
+      UNION ALL
+      SELECT 'package', p.code, p.title, st.key, st.name
+      FROM package p
+               JOIN workflow_state st ON st.id = p.state_id
+      UNION ALL
+      SELECT 'environment', code, name, '', ''
+      FROM environment
+      UNION ALL
+      SELECT 'deployment', d.code, e.name, '', ''
+      FROM deployment d
+               JOIN environment e ON e.id = d.environment_id) x
 WHERE x.code = upper($1::text)
    OR x.code ILIKE $2::text || '%'
    OR x.title ILIKE '%' || $2::text || '%'

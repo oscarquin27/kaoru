@@ -80,6 +80,17 @@ func (q *Queries) DeleteLink(ctx context.Context, id uuid.UUID) (int64, error) {
 	return result.RowsAffected(), nil
 }
 
+const deleteRequirementComponents = `-- name: DeleteRequirementComponents :exec
+DELETE
+FROM requirement_component
+WHERE requirement_id = $1
+`
+
+func (q *Queries) DeleteRequirementComponents(ctx context.Context, requirementID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteRequirementComponents, requirementID)
+	return err
+}
+
 const getChangeRef = `-- name: GetChangeRef :one
 SELECT c.id, c.code, c.title, c.route, s.key AS system_key
 FROM change c
@@ -355,6 +366,21 @@ func (q *Queries) InsertRequirement(ctx context.Context, arg InsertRequirementPa
 	return err
 }
 
+const insertRequirementComponent = `-- name: InsertRequirementComponent :exec
+INSERT INTO requirement_component (requirement_id, component_id)
+VALUES ($1, $2)
+`
+
+type InsertRequirementComponentParams struct {
+	RequirementID uuid.UUID
+	ComponentID   uuid.UUID
+}
+
+func (q *Queries) InsertRequirementComponent(ctx context.Context, arg InsertRequirementComponentParams) error {
+	_, err := q.db.Exec(ctx, insertRequirementComponent, arg.RequirementID, arg.ComponentID)
+	return err
+}
+
 const listEntryContract = `-- name: ListEntryContract :many
 SELECT i.key, i.label, k.note, k.checked_by, u.display_name AS checked_by_name, k.checked_at
 FROM entry_contract_item i
@@ -451,6 +477,47 @@ func (q *Queries) ListLinks(ctx context.Context, requirementID uuid.UUID) ([]Lis
 			&i.AddedBy,
 			&i.AddedByName,
 			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listRequirementComponents = `-- name: ListRequirementComponents :many
+SELECT c.id, c.code, c.name, c.kind
+FROM requirement_component rc
+         JOIN component c ON c.id = rc.component_id
+WHERE rc.requirement_id = $1
+ORDER BY c.name, c.code
+`
+
+type ListRequirementComponentsRow struct {
+	ID   uuid.UUID
+	Code string
+	Name string
+	Kind string
+}
+
+// Los componentes que toca el REQ, por nombre. Lee `component` en el sentido de la llave.
+func (q *Queries) ListRequirementComponents(ctx context.Context, requirementID uuid.UUID) ([]ListRequirementComponentsRow, error) {
+	rows, err := q.db.Query(ctx, listRequirementComponents, requirementID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListRequirementComponentsRow
+	for rows.Next() {
+		var i ListRequirementComponentsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Code,
+			&i.Name,
+			&i.Kind,
 		); err != nil {
 			return nil, err
 		}

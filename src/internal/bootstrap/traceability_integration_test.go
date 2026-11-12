@@ -89,7 +89,7 @@ type matrixBody struct {
 // La matriz y la ficha devuelven la cadena completa REQ → RISK → UC → TC → RUN → DEF.
 func TestTraceabilityReturnsTheWholeChain(t *testing.T) {
 	a := newAPI(t)
-	checksum := strings.Repeat("cd34", 16)
+	build, environment := a.catalog("SGLPAR")
 	executedAt := time.Now().Add(-time.Hour).UTC().Format(time.RFC3339)
 
 	var chg changeBody
@@ -129,7 +129,7 @@ func TestTraceabilityReturnsTheWholeChain(t *testing.T) {
 	a.call("qa", "POST", "/api/test-cases", tc("Cuadra"), 201, &tc1)
 	a.call("qa", "POST", "/api/test-cases", tc("No cuadra"), 201, &tc2)
 	run := func(code, result string) map[string]any {
-		return map[string]any{"testCase": code, "buildVersion": "9.1.0", "buildChecksum": checksum, "environmentName": "QA-2", "result": result, "executedAt": executedAt}
+		return map[string]any{"testCase": code, "build": build, "environment": environment, "result": result, "executedAt": executedAt}
 	}
 	a.call("qa", "POST", "/api/runs", run(tc1.Code, "passed"), 201, &run1)
 	a.call("qa", "POST", "/api/runs", run(tc2.Code, "failed"), 201, &run2)
@@ -189,17 +189,17 @@ func TestTraceabilityReturnsTheWholeChain(t *testing.T) {
 	// Exportación: CSV y XLSX con las mismas filas, sin fórmulas ejecutables.
 	rec := a.download("auditor", "/api/traceability/matrix/export?format=csv&change="+chg.Code, 200)
 	records, err := csv.NewReader(bytes.NewReader(bytes.TrimPrefix(rec.Body.Bytes(), []byte("\xEF\xBB\xBF")))).ReadAll()
-	if err != nil || len(records) != 4 || records[0][0] != "REQ" || len(records[1]) != 18 {
+	if err != nil || len(records) != 4 || records[0][0] != "REQ" || len(records[1]) != 19 {
 		t.Fatalf("CSV: %v, %d filas", err, len(records))
 	}
 	var csvRow []string
 	for _, r := range records[1:] {
-		if r[9] == tc2.Code {
+		if r[10] == tc2.Code {
 			csvRow = r
 		}
 	}
 	if csvRow == nil || csvRow[0] != req.Code || csvRow[1] != "Conciliación =SUMA(A1)" || csvRow[6] != "Alto" ||
-		csvRow[13] != "Fallido" || !strings.Contains(csvRow[17], def.Code+" (alta, Abierto)") {
+		csvRow[14] != "Fallido" || !strings.Contains(csvRow[18], def.Code+" (alta, Abierto)") {
 		t.Errorf("fila del CSV: %v", csvRow)
 	}
 	a.call("manager", "PATCH", path, map[string]any{"title": "=SUMA(A1) conciliación"}, 200, nil)

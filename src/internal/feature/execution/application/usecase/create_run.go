@@ -10,7 +10,7 @@ import (
 	shared "kaoru/internal/shared/domain"
 )
 
-// CreateRun registra un RUN: la ejecución oficial de un TC sobre un BUILD.
+// CreateRun registra un RUN: la ejecución oficial de un TC sobre un BUILD y un ENV del catálogo.
 // Quién lo registra y cuándo salen de la sesión y del servidor.
 type CreateRun struct {
 	d Deps
@@ -20,9 +20,8 @@ type CreateRun struct {
 type CreateRunInput struct {
 	Actor           shared.Actor
 	TestCaseCode    string
-	BuildVersion    string
-	BuildChecksum   string
-	EnvironmentName string
+	BuildCode       string
+	EnvironmentCode string
 	Result          string
 	Notes           string
 	ExecutedAt      time.Time
@@ -33,15 +32,21 @@ func (uc *CreateRun) Execute(ctx context.Context, in CreateRunInput) (domain.Run
 	if err := uc.d.Permissions.Require(ctx, in.Actor.Roles, PermissionCreateRun); err != nil {
 		return domain.RunSnapshot{}, err
 	}
+	var missing axis.FieldErrors
 	testCase, err := uc.d.Repository.FindTestCase(ctx, in.TestCaseCode)
-	if axis.IsCode(err, axis.NotFoundResource) {
-		field := axis.InvalidField("testCase", "El TC no existe.")
-		if in.TestCaseCode == "" {
-			field = axis.Required("testCase", "Indica el TC que se ejecutó.")
-		}
-		return domain.RunSnapshot{}, axis.Invalid(field)
+	switch {
+	case in.TestCaseCode == "":
+		missing.Add(axis.Required("testCase", "Indica el TC que se ejecutó."))
+	case axis.IsCode(err, axis.NotFoundResource):
+		missing.Add(axis.InvalidField("testCase", "El TC no existe."))
+	case err != nil:
+		return domain.RunSnapshot{}, err
 	}
+	build, environment, err := findCatalog(ctx, uc.d, in.BuildCode, in.EnvironmentCode, &missing)
 	if err != nil {
+		return domain.RunSnapshot{}, err
+	}
+	if err := missing.Err(); err != nil {
 		return domain.RunSnapshot{}, err
 	}
 	executor, err := uc.d.Repository.FindUser(ctx, in.Actor.Id)
@@ -60,8 +65,8 @@ func (uc *CreateRun) Execute(ctx context.Context, in CreateRunInput) (domain.Run
 			return err
 		}
 		run, err := domain.NewRun(domain.NewRunParams{
-			Id: id, Code: code, TestCase: testCase, BuildVersion: in.BuildVersion, BuildChecksum: in.BuildChecksum,
-			EnvironmentName: in.EnvironmentName, Result: in.Result, Notes: in.Notes,
+			Id: id, Code: code, TestCase: testCase, Build: build, Environment: environment,
+			Result: in.Result, Notes: in.Notes,
 			ExecutedBy: executor, ExecutedAt: in.ExecutedAt, Now: now,
 		})
 		if err != nil {

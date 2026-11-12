@@ -50,6 +50,8 @@ type runDTO struct {
 	Result          string       `json:"result"`
 	BuildVersion    string       `json:"buildVersion"`
 	EnvironmentName string       `json:"environmentName"`
+	Build           string       `json:"build,omitempty"`
+	Environment     string       `json:"environment,omitempty"`
 	ExecutedAt      time.Time    `json:"executedAt"`
 	TestCase        entityRefDTO `json:"testCase"`
 	BuildChecksum   string       `json:"buildChecksum"`
@@ -59,13 +61,12 @@ type runDTO struct {
 }
 
 type runCreateDTO struct {
-	TestCase        string    `json:"testCase"`
-	BuildVersion    string    `json:"buildVersion"`
-	BuildChecksum   string    `json:"buildChecksum"`
-	EnvironmentName string    `json:"environmentName"`
-	Result          string    `json:"result"`
-	Notes           string    `json:"notes"`
-	ExecutedAt      time.Time `json:"executedAt"`
+	TestCase    string    `json:"testCase"`
+	Build       string    `json:"build"`
+	Environment string    `json:"environment"`
+	Result      string    `json:"result"`
+	Notes       string    `json:"notes"`
+	ExecutedAt  time.Time `json:"executedAt"`
 }
 
 type explorationDTO struct {
@@ -73,6 +74,8 @@ type explorationDTO struct {
 	Requirement     string     `json:"requirement"`
 	BuildVersion    string     `json:"buildVersion"`
 	EnvironmentName string     `json:"environmentName"`
+	Build           string     `json:"build,omitempty"`
+	Environment     string     `json:"environment,omitempty"`
 	ManualChanges   string     `json:"manualChanges"`
 	Findings        string     `json:"findings"`
 	ExecutedBy      userRefDTO `json:"executedBy"`
@@ -82,12 +85,12 @@ type explorationDTO struct {
 }
 
 type explorationCreateDTO struct {
-	Requirement     string    `json:"requirement"`
-	BuildVersion    string    `json:"buildVersion"`
-	EnvironmentName string    `json:"environmentName"`
-	ManualChanges   string    `json:"manualChanges"`
-	Findings        string    `json:"findings"`
-	ExecutedAt      time.Time `json:"executedAt"`
+	Requirement   string    `json:"requirement"`
+	Build         string    `json:"build"`
+	Environment   string    `json:"environment"`
+	ManualChanges string    `json:"manualChanges"`
+	Findings      string    `json:"findings"`
+	ExecutedAt    time.Time `json:"executedAt"`
 }
 
 type explorationPatchDTO struct {
@@ -103,6 +106,7 @@ func actorOf(c *gin.Context) shared.Actor {
 func toRunDTO(s domain.RunSnapshot) runDTO {
 	return runDTO{
 		Code: s.Code.String(), Result: string(s.Result), BuildVersion: s.BuildVersion, EnvironmentName: s.EnvironmentName,
+		Build: s.BuildCode, Environment: s.EnvironmentCode,
 		ExecutedAt: s.ExecutedAt, TestCase: entityRefDTO{Type: "test_case", Code: s.TestCase.Code, Title: s.TestCase.Title},
 		BuildChecksum: s.BuildChecksum, Notes: s.Notes,
 		ExecutedBy: userRefDTO{ID: string(s.ExecutedBy.Id), DisplayName: s.ExecutedBy.Name}, CreatedAt: s.CreatedAt,
@@ -112,7 +116,7 @@ func toRunDTO(s domain.RunSnapshot) runDTO {
 func toExplorationDTO(s domain.ExplorationSnapshot) explorationDTO {
 	return explorationDTO{
 		Code: s.Code.String(), Requirement: s.Requirement.Code, BuildVersion: s.BuildVersion,
-		EnvironmentName: s.EnvironmentName, ManualChanges: s.ManualChanges, Findings: s.Findings,
+		EnvironmentName: s.EnvironmentName, Build: s.BuildCode, Environment: s.EnvironmentCode, ManualChanges: s.ManualChanges, Findings: s.Findings,
 		ExecutedBy: userRefDTO{ID: string(s.ExecutedBy.Id), DisplayName: s.ExecutedBy.Name},
 		ExecutedAt: s.ExecutedAt, CreatedAt: s.CreatedAt, UpdatedAt: s.UpdatedAt,
 	}
@@ -146,8 +150,8 @@ func (h *Handler) createRun(c *gin.Context) {
 		return
 	}
 	out, err := h.uc.CreateRun.Execute(c.Request.Context(), usecase.CreateRunInput{
-		Actor: actorOf(c), TestCaseCode: body.TestCase, BuildVersion: body.BuildVersion, BuildChecksum: body.BuildChecksum,
-		EnvironmentName: body.EnvironmentName, Result: body.Result, Notes: body.Notes, ExecutedAt: body.ExecutedAt,
+		Actor: actorOf(c), TestCaseCode: body.TestCase, BuildCode: body.Build,
+		EnvironmentCode: body.Environment, Result: body.Result, Notes: body.Notes, ExecutedAt: body.ExecutedAt,
 	})
 	if err != nil {
 		problem.Write(c, err)
@@ -192,8 +196,8 @@ func (h *Handler) createExploration(c *gin.Context) {
 		return
 	}
 	out, err := h.uc.CreateExploration.Execute(c.Request.Context(), usecase.CreateExplorationInput{
-		Actor: actorOf(c), RequirementCode: body.Requirement, BuildVersion: body.BuildVersion,
-		EnvironmentName: body.EnvironmentName, ManualChanges: body.ManualChanges, Findings: body.Findings,
+		Actor: actorOf(c), RequirementCode: body.Requirement, BuildCode: body.Build,
+		EnvironmentCode: body.Environment, ManualChanges: body.ManualChanges, Findings: body.Findings,
 		ExecutedAt: body.ExecutedAt,
 	})
 	if err != nil {

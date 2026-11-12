@@ -8,7 +8,11 @@ import (
 	"kaoru/internal/core/pkg/idgen"
 	corepg "kaoru/internal/core/pkg/postgres"
 	audituc "kaoru/internal/feature/audit/application/usecase"
+	builduc "kaoru/internal/feature/build/application/usecase"
+	environmentuc "kaoru/internal/feature/environment/application/usecase"
 	"kaoru/internal/feature/execution/adapter/audit"
+	"kaoru/internal/feature/execution/adapter/build"
+	"kaoru/internal/feature/execution/adapter/environment"
 	"kaoru/internal/feature/execution/adapter/postgres"
 	"kaoru/internal/feature/execution/adapter/testdesign"
 	"kaoru/internal/feature/execution/adapter/workflow"
@@ -20,12 +24,14 @@ import (
 
 // Deps son las dependencias del módulo.
 type Deps struct {
-	Database    *corepg.Database
-	Clock       clock.Clock
-	IdGenerator idgen.IdGenerator
-	Workflow    *workflowuc.UseCases
-	Audit       *audituc.UseCases
-	TestDesign  *testdesignuc.UseCases
+	Database     *corepg.Database
+	Clock        clock.Clock
+	IdGenerator  idgen.IdGenerator
+	Workflow     *workflowuc.UseCases
+	Audit        *audituc.UseCases
+	TestDesign   *testdesignuc.UseCases
+	Builds       *builduc.UseCases
+	Environments *environmentuc.UseCases
 }
 
 // Module expone los casos de uso y las rutas del feature.
@@ -37,13 +43,15 @@ type Module struct {
 // New arma el módulo.
 func New(d Deps) (*Module, error) {
 	uc, err := usecase.New(usecase.Deps{
-		Repository:  postgres.NewRepository(d.Database),
-		TestDesign:  testdesign.New(d.TestDesign.ListRequirementTestCases),
-		Permissions: workflow.NewPermissions(d.Workflow.CheckPermission),
-		AuditTrail:  audit.New(d.Audit.Record),
-		UnitOfWork:  d.Database,
-		Clock:       d.Clock,
-		IdGenerator: d.IdGenerator,
+		Repository:   postgres.NewRepository(d.Database),
+		TestDesign:   testdesign.New(d.TestDesign.ListRequirementTestCases),
+		Builds:       build.New(d.Builds.FindBuild),
+		Environments: environment.New(d.Environments.FindEnvironment),
+		Permissions:  workflow.NewPermissions(d.Workflow.CheckPermission),
+		AuditTrail:   audit.New(d.Audit.Record),
+		UnitOfWork:   d.Database,
+		Clock:        d.Clock,
+		IdGenerator:  d.IdGenerator,
 	})
 	if err != nil {
 		return nil, err

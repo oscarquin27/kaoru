@@ -22,15 +22,17 @@ type world struct {
 	functionalCases map[string]domain.FunctionalCase // por código
 	testCases       map[string]domain.TestCase       // por código
 	sequences       map[string]int                   // por prefijo
+	components      map[string][]string              // id del TC → códigos de COMP
 	audit           []port.AuditRecord
 	auditErr        error
 }
 
 func (w *world) Within(ctx context.Context, fn func(context.Context) error) error {
 	functionalCases, testCases := maps.Clone(w.functionalCases), maps.Clone(w.testCases)
-	sequences, audit := maps.Clone(w.sequences), slices.Clone(w.audit)
+	sequences, audit, components := maps.Clone(w.sequences), slices.Clone(w.audit), maps.Clone(w.components)
 	if err := fn(ctx); err != nil {
 		w.functionalCases, w.testCases, w.sequences, w.audit = functionalCases, testCases, sequences, audit
+		w.components = components
 		return err
 	}
 	return nil
@@ -185,9 +187,10 @@ func setup(t *testing.T) (*usecase.UseCases, *world) {
 	t.Helper()
 	w := &world{
 		functionalCases: map[string]domain.FunctionalCase{}, testCases: map[string]domain.TestCase{}, sequences: map[string]int{},
+		components: map[string][]string{},
 	}
 	uc, err := usecase.New(usecase.Deps{
-		Repository: w, Requirements: w, Permissions: fakePermissions{}, AuditTrail: w,
+		Repository: w, Requirements: w, Components: w, Permissions: fakePermissions{}, AuditTrail: w,
 		UnitOfWork: w, Clock: fixedClock{}, IdGenerator: &seqIDs{},
 	})
 	if err != nil {

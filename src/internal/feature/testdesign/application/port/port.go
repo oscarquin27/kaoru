@@ -37,6 +37,20 @@ type Repository interface {
 	UpdateTestCase(ctx context.Context, testCase domain.TestCase) error
 	FindTestCase(ctx context.Context, code shared.Code) (domain.TestCase, error)
 	ListTestCases(ctx context.Context, filter TestCaseFilter) (testCases []domain.TestCase, total int, err error)
+
+	// LockTestCase bloquea el TC hasta el fin de la transacción en curso.
+	LockTestCase(ctx context.Context, code shared.Code) error
+	// ListTestCaseComponents devuelve los componentes que ejercita el TC, por nombre.
+	ListTestCaseComponents(ctx context.Context, testCaseId string) ([]domain.ComponentRef, error)
+	// ReplaceTestCaseComponents deja como componentes del TC exactamente los dados.
+	ReplaceTestCaseComponents(ctx context.Context, testCaseId string, componentIds []string) error
+}
+
+// Components valida componentes en el feature component.
+type Components interface {
+	// Resolve devuelve una referencia por código. Si un componente no existe, es de otro sistema
+	// o está retirado, devuelve un INVALID_REQUEST en el campo `components`.
+	Resolve(ctx context.Context, systemKey string, codes []string) ([]domain.ComponentRef, error)
 }
 
 // Requirements busca REQ en el feature requirement.
