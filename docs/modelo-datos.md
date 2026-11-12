@@ -174,6 +174,7 @@ erDiagram
 | `execution` | `test_run`, `exploratory_session` | 00009 |
 | `defect` | `defect` | 00010 |
 | `traceability` | Ninguna: solo lee. | — |
+| Fases 3 y 4 | Ver las secciones de abajo. | 00014 a 00017 |
 
 ## Cómo responde el modelo a las preguntas del producto
 
@@ -197,11 +198,37 @@ erDiagram
 
 `test_run` y `exploratory_session` ganan `build_id` y `environment_id`. La versión, el checksum y el nombre del ambiente se siguen copiando en la fila como evidencia; las filas anteriores quedan sin BUILD ni ENV.
 
-## Previsto para fases posteriores (sin tablas todavía)
+## Fase 4 (migraciones 00016 y 00017, decisión D50)
 
-| Fase | Entidades | Cambio sobre lo existente |
+| Tabla | Dueño | Qué guarda |
 |---|---|---|
-| 4 | CHK- con firmas, DIAG-, SMOKE-, RPT-, hitos y ventanas | Las ventanas del CHG pasan de `change.window_*` al calendario. |
+| `checklist_template`, `checklist_template_step` | `production` | Plantilla del checklist de un sistema, versionada (solo inserción): publicar crea la versión siguiente. |
+| `checklist` | `production` | CHK (solo inserción): la ejecución de una versión de la plantilla para un PKG en un ambiente de producción. |
+| `checklist_signature` | `production` | La firma de un paso (solo inserción): quién, cuándo y con qué comentario. Un paso se firma una vez. |
+| `diagnostic` | `production` | DIAG (solo inserción): notas de dev u ops sobre un despliegue del PKG en producción. |
+| `diagnostic_review` | `production` | La revisión de QA de un DIAG (solo inserción, una por DIAG): conforme o no conforme. |
+| `smoke_test` | `production` | SMOKE (solo inserción): resultado de la prueba de humo sobre un despliegue del PKG en producción. |
+| `conformance_report` | `report` | RPT (solo inserción): el Markdown tal como se emitió, su SHA-256 y el RPT anterior al que reemplaza. |
+| `milestone` | `planning` | Hito del calendario: fecha, responsable, notas y cumplido. Se edita. |
+
+```mermaid
+erDiagram
+    package ||--o{ checklist : "se ejecuta en"
+    checklist_template ||--o{ checklist_template_step : tiene
+    checklist_template ||--o{ checklist : "versión usada"
+    environment ||--o{ checklist : "ambiente de producción"
+    checklist ||--o{ checklist_signature : "pasos firmados"
+    deployment ||--o{ diagnostic : diagnostica
+    diagnostic ||--o| diagnostic_review : "revisión de QA"
+    deployment ||--o{ smoke_test : "prueba de humo"
+    package ||--o{ conformance_report : "versiones del informe"
+    conformance_report |o--o| conformance_report : reemplaza
+```
+
+- **Las ventanas de cambio no se copian:** siguen en `change.window_start` y `change.window_end`; el calendario las lee por un caso de uso de `change`.
+- **Lo que no se guarda:** la ruta del PKG (se calcula de sus REQ), si un CHK está completo, las alertas de atraso y los días de atraso. Todo se calcula al leer.
+- `blocking_rule.rule_key` admite `checklist_signed`, `diagnostic_reviewed` y `smoke_passed`; `document_link.entity_type` admite `checklist`, `diagnostic` y `smoke_test`.
+- `kaoru_app` no tiene `UPDATE` ni `DELETE` sobre ninguna tabla de la fase salvo `milestone`; `tools/check-migrations.sh` lo comprueba.
 
 ## Pendiente
 

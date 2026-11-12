@@ -1,15 +1,18 @@
-// La matriz con la columna PKG y los filtros de la fase 3.
+// La matriz con las columnas PKG y RPT y los filtros de la fase 3.
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import fixtures from '../../../mocks/fixtures.json' with { type: 'json' }
 import type { Matrix } from '../../shared/api/types.ts'
-import { COMPONENT, PACKAGE } from '../../test-data.ts'
+import { COMPONENT, PACKAGE, REPORT } from '../../test-data.ts'
 import { pageOf, renderApp, routes } from '../../test-utils.tsx'
 
 const recorded = fixtures['GET /api/traceability/matrix'] as unknown as Matrix
-// La grabación es anterior a la fase 3: aquí cada fila trae sus paquetes.
-const matrix: Matrix = { ...recorded, items: recorded.items.map((row, index) => ({ ...row, packages: index === 0 ? [PACKAGE.code] : [] })) }
+// Aquí la primera fila trae su paquete y el informe vigente de ese paquete; las demás, nada.
+const matrix: Matrix = {
+  ...recorded,
+  items: recorded.items.map((row, index) => ({ ...row, packages: index === 0 ? [PACKAGE.code] : [], reports: index === 0 ? [REPORT.code] : [] })),
+}
 
 const api = routes({ 'GET /api/traceability/matrix': matrix, 'GET /api/packages': pageOf([PACKAGE]), 'GET /api/components': pageOf([COMPONENT]) })
 
@@ -21,6 +24,15 @@ describe('matriz de trazabilidad', () => {
     expect(table.getByRole('columnheader', { name: 'PKG' })).toBeInTheDocument()
     expect(table.getByRole('link', { name: 'PKG-2026-0001' })).toHaveAttribute('href', '/paquetes/PKG-2026-0001')
     expect(table.getAllByText('Sin paquete').length).toBeGreaterThan(0)
+  })
+
+  it('tiene la columna RPT con el informe vigente de cada paquete', async () => {
+    renderApp('/pruebas', [], api)
+
+    const table = within(await screen.findByRole('region', { name: 'Matriz' }))
+    expect(table.getByRole('columnheader', { name: 'RPT' })).toBeInTheDocument()
+    expect(table.getByRole('link', { name: 'RPT-2026-0002' })).toHaveAttribute('href', '/informes/RPT-2026-0002')
+    expect(table.getAllByText('Sin informe').length).toBeGreaterThan(0)
   })
 
   it('filtra por PKG y por componente', async () => {
@@ -37,9 +49,19 @@ describe('matriz de trazabilidad', () => {
     expect(within(filters).getByRole('button', { name: 'Guardar vista' })).toBeEnabled()
   })
 
-  it('con la respuesta grabada antes de la fase 3 (sin `packages`) la matriz sigue pintando', async () => {
+  it('con la respuesta grabada de la API, el REQ empaquetado enlaza a su PKG y al informe vigente', async () => {
     renderApp('/pruebas')
     const table = within(await screen.findByRole('region', { name: 'Matriz' }))
+    expect(table.getByRole('link', { name: 'PKG-2026-0001' })).toBeInTheDocument()
+    expect(table.getByRole('link', { name: 'RPT-2026-0002' })).toHaveAttribute('href', '/informes/RPT-2026-0002')
     expect(table.getAllByText('Sin paquete').length).toBeGreaterThan(0)
+  })
+
+  it('una fila sin `packages` ni `reports` (grabada antes de las fases 3 y 4) sigue pintando', async () => {
+    const old = { ...recorded, items: recorded.items.map((row) => ({ ...row, packages: undefined, reports: undefined })) } as unknown as Matrix
+    renderApp('/pruebas', [], routes({ 'GET /api/traceability/matrix': old }))
+    const table = within(await screen.findByRole('region', { name: 'Matriz' }))
+    expect(table.getAllByText('Sin paquete').length).toBeGreaterThan(0)
+    expect(table.getAllByText('Sin informe').length).toBeGreaterThan(0)
   })
 })

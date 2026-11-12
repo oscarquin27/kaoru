@@ -1,12 +1,14 @@
-// Inicio: tablero por rol (boceto: index.html). Se arma con las listas que ya da la API;
-// lo que el contrato aún no trae (hitos y sus atrasos) no se muestra.
+// Inicio: tablero por rol (boceto: index.html). Se arma con las listas que ya da la API y con el
+// calendario, que trae las ventanas de cambio y las alertas de atraso.
 import { useState } from 'react'
 import { useChanges } from '../features/changes/api.ts'
 import { useDefects } from '../features/defects/api.ts'
 import { useRequirements } from '../features/requirements/api.ts'
+import { LateAlerts } from '../features/planning/LateAlerts.tsx'
+import { useCalendar } from '../features/planning/api.ts'
 import { useMatrix } from '../features/traceability/api.ts'
 import { useCan, useMe, useWorkflow } from '../shared/api/session.ts'
-import type { Change, Defect, Requirement, StateRef, Workflow } from '../shared/api/types.ts'
+import type { CalendarWindow, Change, Defect, Requirement, StateRef, Workflow } from '../shared/api/types.ts'
 import { formatDate, formatDays, formatDaysLong, formatLongDate, median } from '../shared/lib/format.ts'
 import { ROLE_LABELS, ROUTE_LABELS } from '../shared/lib/labels.ts'
 import { SeverityChip, StateChip } from '../shared/ui/chips.tsx'
@@ -68,25 +70,24 @@ function Pending({ requirements, defects }: { requirements: Requirement[]; defec
   )
 }
 
-function Windows({ changes }: { changes: Change[] }) {
+function Windows({ windows }: { windows: CalendarWindow[] }) {
   const [now] = useState(() => Date.now())
-  const upcoming = changes
-    .filter((change) => change.windowStart && new Date(change.windowStart).getTime() > now)
-    .sort((a, b) => (a.windowStart ?? '').localeCompare(b.windowStart ?? ''))
+  // El calendario ya las trae por fecha de inicio; aquí solo las que no empezaron.
+  const upcoming = windows.filter((window) => new Date(window.start).getTime() > now)
   if (upcoming.length === 0) return <Empty>Ningún cambio tiene una ventana futura definida.</Empty>
   return (
     <ul className="list">
-      {upcoming.map((change) => (
-        <li key={change.code}>
+      {upcoming.map((window) => (
+        <li key={window.change.code}>
           <span className="list__icon">
             <Icon name="calendar" />
           </span>
           <div className="list__main">
-            <Code code={change.code} /> · {change.system.name}
+            <Code code={window.change.code} /> · {window.system}
             <br />
-            <span className="muted">{formatLongDate(new Date(change.windowStart ?? ''))}</span>
+            <span className="muted">{formatLongDate(new Date(window.start))}</span>
           </div>
-          <span className="muted">en {formatDaysLong((new Date(change.windowStart ?? '').getTime() - now) / DAY)}</span>
+          <span className="muted">en {formatDaysLong((new Date(window.start).getTime() - now) / DAY)}</span>
         </li>
       ))}
     </ul>
@@ -228,6 +229,7 @@ export default function HomePage() {
   const requirements = useRequirements(BOARD)
   const defects = useDefects(BOARD)
   const changes = useChanges(BOARD)
+  const calendar = useCalendar()
   const role = me?.roles.map((item) => ROLE_LABELS[item]).join(' · ')
 
   return (
@@ -247,9 +249,16 @@ export default function HomePage() {
           <h2 className="h2" id="h-ventanas">
             Próximas ventanas de cambio
           </h2>
-          <Async query={changes}>{(data) => <Windows changes={data.items} />}</Async>
+          <Async query={calendar}>{(data) => <Windows windows={data.windows} />}</Async>
         </section>
       </div>
+
+      <section className="surface pad stack" aria-labelledby="h-atrasos">
+        <h2 className="h2" id="h-atrasos">
+          Alertas de atraso
+        </h2>
+        <Async query={calendar}>{(data) => <LateAlerts alerts={data.alerts} empty="Ningún hito ni ventana de cambio está atrasado." />}</Async>
+      </section>
 
       <section className="stack" aria-labelledby="h-cambios">
         <h2 className="h2" id="h-cambios">

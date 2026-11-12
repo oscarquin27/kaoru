@@ -70,6 +70,7 @@ function MatrixTable({ rows, systemNames }: { rows: MatrixRow[]; systemNames: Re
             <th>RUN · BUILD · ENV</th>
             <th>DEF</th>
             <th>PKG</th>
+            <th>RPT</th>
           </tr>
         </thead>
         <tbody>
@@ -148,6 +149,20 @@ function MatrixTable({ rows, systemNames }: { rows: MatrixRow[]; systemNames: Re
                     )}
                   </td>
                 )}
+                {span > 0 && (
+                  <td rowSpan={span}>
+                    {/* `reports` falta en las respuestas grabadas antes de la fase 4. */}
+                    {(row.reports ?? []).length === 0 ? (
+                      <span className="muted">Sin informe</span>
+                    ) : (
+                      <div className="cell-stack">
+                        {row.reports.map((code) => (
+                          <Code key={code} code={code} />
+                        ))}
+                      </div>
+                    )}
+                  </td>
+                )}
               </tr>
             )
           })}
@@ -184,7 +199,7 @@ export default function MatrixPage() {
       <Crumbs items={[{ label: 'Pruebas' }, { label: 'Matriz de trazabilidad' }]} />
       <PageHead
         title="Matriz de trazabilidad"
-        subtitle="REQ → RISK → UC → TC → RUN → DEF → PKG"
+        subtitle="REQ → RISK → UC → TC → RUN → DEF → PKG → RPT"
         actions={
           <>
             <a className="btn" href={matrixExportUrl('csv', filters)} download>

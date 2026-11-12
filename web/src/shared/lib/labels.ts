@@ -2,6 +2,7 @@
 import type {
   ComponentKind,
   DeploymentResult,
+  DiagnosticResult,
   DocumentKind,
   EntityType,
   EnvironmentKind,
@@ -15,6 +16,7 @@ import type {
   RunResult,
   SearchHit,
   Severity,
+  SmokeResult,
 } from '../api/types.ts'
 
 export const ROUTE_LABELS: Record<Route, string> = { high: 'Alta', light: 'Ligera', minor_fix: 'Ligera · fix menor' }
@@ -58,6 +60,8 @@ export const ENVIRONMENT_KIND_LABELS: Record<EnvironmentKind, string> = { clean:
 export const OS_LABELS: Record<OperatingSystem, string> = { windows: 'Windows', linux: 'Linux' }
 export const DEPLOYMENT_RESULT_LABELS: Record<DeploymentResult, string> = { success: 'Exitoso', failed: 'Fallido', rolled_back: 'Revertido' }
 export const REGRESSION_ORIGIN_LABELS: Record<RegressionOrigin, string> = { impact: 'Impacto', critical: 'Crítico', manual: 'Manual' }
+export const DIAGNOSTIC_RESULT_LABELS: Record<DiagnosticResult, string> = { conforming: 'Conforme', non_conforming: 'No conforme' }
+export const SMOKE_RESULT_LABELS: Record<SmokeResult, string> = { passed: 'Aprobada', failed: 'Fallida' }
 export const ROLE_LABELS: Record<Role, string> = {
   'change-manager': 'Change manager',
   'qa-admin': 'QA admin',
@@ -67,7 +71,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   auditor: 'Auditoría',
 }
 // Además de las entidades, la auditoría registra cambios de configuración.
-export const ENTITY_LABELS: Record<EntityType | SearchHit['type'] | 'role_permission' | 'blocking_rule' | 'workflow_state' | 'workflow_transition' | 'regression', string> = {
+export const ENTITY_LABELS: Record<EntityType | SearchHit['type'] | 'role_permission' | 'blocking_rule' | 'workflow_state' | 'workflow_transition' | 'regression' | 'checklist_template' | 'conformance_report' | 'milestone', string> = {
   role_permission: 'Permisos de rol',
   blocking_rule: 'Regla de bloqueo',
   workflow_state: 'Estado de flujo',
@@ -87,6 +91,13 @@ export const ENTITY_LABELS: Record<EntityType | SearchHit['type'] | 'role_permis
   deployment: 'Despliegue',
   package: 'Paquete',
   regression: 'Regresión',
+  checklist_template: 'Plantilla de checklist',
+  checklist: 'Checklist de producción',
+  diagnostic: 'Diagnóstico',
+  smoke_test: 'Prueba de humo',
+  report: 'Informe de conformidad',
+  conformance_report: 'Informe de conformidad',
+  milestone: 'Hito',
 }
 
 /** Etiqueta de un valor que puede no estar en la tabla (la API manda texto libre). */

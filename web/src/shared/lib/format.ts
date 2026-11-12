@@ -8,6 +8,15 @@ export function formatDate(iso: string | undefined): string {
   return iso ? DATE.format(new Date(iso)) : 'Por definir'
 }
 
+// Un día de calendario («2026-11-12») no tiene hora ni zona: se muestra tal cual, sin correrlo a la
+// zona del navegador.
+const DAY = new Intl.DateTimeFormat('es', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+
+/** Día de calendario de un hito: acepta «2026-11-12» o un instante a medianoche UTC. */
+export function formatDay(day: string): string {
+  return DAY.format(new Date(`${day.slice(0, 10)}T00:00:00Z`))
+}
+
 export function formatDateTime(iso: string): string {
   return DATE_TIME.format(new Date(iso))
 }

@@ -1,4 +1,5 @@
-// Ficha del PKG: estado, qué falta para avanzar, contenido, regresión, documentos y actividad.
+// Ficha del PKG: estado, qué falta para avanzar, contenido, regresión, producción, informes,
+// documentos y actividad.
 // Junta piezas de varios features, por eso vive en app/ (reglas §A.16.2).
 import { useState } from 'react'
 import { useParams } from 'react-router'
@@ -7,13 +8,17 @@ import { PackageForm } from '../features/bundle/PackageForm.tsx'
 import { usePackage, useTransitionPackage } from '../features/bundle/api.ts'
 import { DocumentsTab } from '../features/documents/DocumentsTab.tsx'
 import { useEntityDocuments } from '../features/documents/api.ts'
+import { ProductionTab } from '../features/production/ProductionTab.tsx'
 import { RegressionTab } from '../features/regression/RegressionTab.tsx'
+import { ReportsTab } from '../features/report/ReportsTab.tsx'
+import { useReports } from '../features/report/api.ts'
 import { useRegression } from '../features/regression/api.ts'
 import { MissingList, type RuleTabs } from '../features/requirements/MissingList.tsx'
 import { Lifecycle, type Stage } from '../features/requirements/RequirementHeader.tsx'
 import { useCan, useWorkflow } from '../shared/api/session.ts'
 import type { Package, Workflow } from '../shared/api/types.ts'
 import { formatDate } from '../shared/lib/format.ts'
+import { ROUTE_LABELS } from '../shared/lib/labels.ts'
 import { StateChip } from '../shared/ui/chips.tsx'
 import { Async, PageSkeleton } from '../shared/ui/feedback.tsx'
 import { Icon } from '../shared/ui/Icon.tsx'
@@ -29,6 +34,9 @@ const RULE_TABS: RuleTabs = {
   regression_confirmed: { tab: 'regresion', label: 'Ver regresión' },
   regression_passed: { tab: 'regresion', label: 'Ver regresión' },
   no_open_defect_with_severity: { tab: 'contenido', label: 'Ver los REQ' },
+  checklist_signed: { tab: 'produccion', label: 'Ver checklist' },
+  diagnostic_reviewed: { tab: 'produccion', label: 'Ver diagnósticos' },
+  smoke_passed: { tab: 'produccion', label: 'Ver pruebas de humo' },
 }
 
 /** La línea de estados sale del flujo configurado: el PKG no trae tiempos por etapa. */
@@ -50,6 +58,7 @@ function PackageView({ bundle }: { bundle: Package }) {
   const transition = useTransitionPackage(code)
   const documents = useEntityDocuments('package', code)
   const regression = useRegression(code)
+  const reports = useReports({ package: code, size: 50 })
   const [editing, setEditing] = useState(false)
 
   const stages = stagesOf(workflow, bundle)
@@ -76,6 +85,7 @@ function PackageView({ bundle }: { bundle: Package }) {
         </div>
         <dl className="meta">
           <MetaItem label="Sistema">{bundle.system.name}</MetaItem>
+          {bundle.route && <MetaItem label="Ruta">{ROUTE_LABELS[bundle.route]}</MetaItem>}
           <MetaItem label="Contenido">
             <span className="num">
               {bundle.builds.length} BUILD · {bundle.requirements.length} REQ
@@ -112,6 +122,17 @@ function PackageView({ bundle }: { bundle: Package }) {
             label: 'Regresión',
             count: summary ? `${summary.passed}/${summary.included}` : undefined,
             render: () => <RegressionTab packageCode={code} canManage={can('regression.manage')} />,
+          },
+          {
+            id: 'produccion',
+            label: 'Producción',
+            render: () => <ProductionTab packageCode={code} systemKey={bundle.system.key} route={bundle.route} />,
+          },
+          {
+            id: 'informes',
+            label: 'Informes',
+            count: reports.data?.total,
+            render: () => <ReportsTab packageCode={code} />,
           },
           {
             id: 'documentacion',

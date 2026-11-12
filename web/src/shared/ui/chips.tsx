@@ -1,7 +1,7 @@
 // Chip de estado: color + ícono + texto, siempre los tres (boceto, «Estados»).
 import type { ReactNode } from 'react'
-import type { ComponentRef, DeploymentResult, RiskLevel, RunResult, Severity, StateRef } from '../api/types.ts'
-import { COMPONENT_KIND_LABELS, DEPLOYMENT_RESULT_LABELS, RESULT_LABELS, RISK_LABELS, SEVERITY_LABELS } from '../lib/labels.ts'
+import type { ComponentRef, DeploymentResult, Diagnostic, RiskLevel, RunResult, Severity, SmokeResult, StateRef } from '../api/types.ts'
+import { COMPONENT_KIND_LABELS, DEPLOYMENT_RESULT_LABELS, DIAGNOSTIC_RESULT_LABELS, RESULT_LABELS, RISK_LABELS, SEVERITY_LABELS, SMOKE_RESULT_LABELS } from '../lib/labels.ts'
 import { Icon, type IconName } from './Icon.tsx'
 
 export type Tone = 'ok' | 'curso' | 'aviso' | 'bloq' | 'neutro' | 'actual'
@@ -95,6 +95,26 @@ const DEPLOYMENT_LOOKS: Record<DeploymentResult, Look> = {
 
 export function DeploymentResultChip({ result }: { result: DeploymentResult }) {
   return <Chip {...DEPLOYMENT_LOOKS[result]}>{DEPLOYMENT_RESULT_LABELS[result]}</Chip>
+}
+
+/** Revisión de QA de un DIAG; sin revisar, «Sin revisar». */
+export function DiagnosticChip({ review }: { review: Diagnostic['review'] }) {
+  if (!review) return <Chip {...IN_PROGRESS}>Sin revisar</Chip>
+  return review.result === 'conforming' ? <Chip {...OK}>{DIAGNOSTIC_RESULT_LABELS.conforming}</Chip> : <Chip tone="bloq" icon="x">{DIAGNOSTIC_RESULT_LABELS.non_conforming}</Chip>
+}
+
+export function SmokeChip({ result }: { result: SmokeResult }) {
+  return result === 'passed' ? <Chip {...OK}>{SMOKE_RESULT_LABELS.passed}</Chip> : <Chip tone="bloq" icon="x">{SMOKE_RESULT_LABELS.failed}</Chip>
+}
+
+/** Avance de un checklist: completo, o cuántos pasos lleva firmados. */
+export function ChecklistChip({ signed, total }: { signed: number; total: number }) {
+  if (signed === total) return <Chip {...OK}>Firmado</Chip>
+  return (
+    <Chip {...IN_PROGRESS}>
+      {signed} de {total} firmados
+    </Chip>
+  )
 }
 
 /** Vigencia de algo que no se borra, solo se retira (COMP, ENV). */

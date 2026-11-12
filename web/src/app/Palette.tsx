@@ -35,6 +35,10 @@ const HIT_ICONS: Record<SearchHit['type'], IconName> = {
   package: 'box',
   environment: 'server',
   deployment: 'server',
+  checklist: 'flag',
+  diagnostic: 'flag',
+  smoke_test: 'flag',
+  report: 'chart',
 }
 
 const ACTIONS: (Entry & { permission?: string })[] = [
@@ -42,6 +46,9 @@ const ACTIONS: (Entry & { permission?: string })[] = [
   { group: 'Acciones', label: 'Ir a matriz', note: 'Matriz de trazabilidad', icon: 'grid', to: '/pruebas' },
   { group: 'Acciones', label: 'Ir a paquetes', note: 'Paquetes y regresión', icon: 'box', to: '/paquetes' },
   { group: 'Acciones', label: 'Ir a ambientes', note: 'Ambientes y despliegues', icon: 'server', to: '/ambientes' },
+  { group: 'Acciones', label: 'Ir a producción', note: 'Checklists, diagnósticos y pruebas de humo', icon: 'flag', to: '/produccion' },
+  { group: 'Acciones', label: 'Ir a informes', note: 'Informes de conformidad', icon: 'chart', to: '/informes' },
+  { group: 'Acciones', label: 'Ir a calendario', note: 'Hitos, ventanas y atrasos', icon: 'calendar', to: '/calendario' },
   { group: 'Acciones', label: 'Ir a inicio', note: 'Tablero', icon: 'house', to: '/' },
 ]
 

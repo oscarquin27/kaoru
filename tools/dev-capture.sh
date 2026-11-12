@@ -29,6 +29,10 @@ build="$(first /api/builds BUILD)"
 env="$(first /api/environments ENV)"
 dep="$(first /api/deployments DEP)"
 comp="$(first /api/components COMP)"
+chk="$(first /api/checklists CHK)"
+diag="$(first /api/diagnostics DIAG)"
+smoke="$(first /api/smoke-tests SMOKE)"
+rpt="$(first /api/reports RPT)"
 
 paths=(
     /api/me /api/users /api/systems
@@ -52,10 +56,17 @@ paths=(
     /api/admin/role-permissions
     '/api/saved-views?screen=requirements' '/api/saved-views?screen=changes' '/api/saved-views?screen=defects'
     '/api/saved-views?screen=matrix' '/api/saved-views?screen=test-cases' '/api/saved-views?screen=audit'
+    /api/checklist-templates /api/checklists "/api/checklists/$chk" "/api/checklists?package=$pkg"
+    "/api/documents?entityType=checklist&entityCode=$chk" "/api/audit?entityCode=$chk"
+    /api/diagnostics "/api/diagnostics/$diag" "/api/diagnostics?package=$pkg" "/api/documents?entityType=diagnostic&entityCode=$diag"
+    /api/smoke-tests "/api/smoke-tests/$smoke" "/api/smoke-tests?package=$pkg" "/api/documents?entityType=smoke_test&entityCode=$smoke"
+    "/api/deployments?package=$pkg" "/api/environments?system=SYPAGO"
+    /api/reports "/api/reports/$rpt" "/api/reports?package=$pkg" "/api/audit?entityCode=$rpt"
+    /api/calendar /api/milestones '/api/milestones?status=pending'
 )
 {
     printf '{\n  "_nota": "Respuestas reales de la API con datos de EJEMPLO. Se regeneran con tools/dev-capture.sh.",\n'
-    printf '  "_ids": {"change": "%s", "requirement": "%s", "defect": "%s", "document": "%s", "testCase": "%s", "run": "%s", "package": "%s", "build": "%s", "environment": "%s", "deployment": "%s", "component": "%s"},\n' "$chg" "$req" "$def" "$doc" "$tc" "$run" "$pkg" "$build" "$env" "$dep" "$comp"
+    printf '  "_ids": {"change": "%s", "requirement": "%s", "defect": "%s", "document": "%s", "testCase": "%s", "run": "%s", "package": "%s", "build": "%s", "environment": "%s", "deployment": "%s", "component": "%s", "checklist": "%s", "diagnostic": "%s", "smokeTest": "%s", "report": "%s"},\n' "$chg" "$req" "$def" "$doc" "$tc" "$run" "$pkg" "$build" "$env" "$dep" "$comp" "$chk" "$diag" "$smoke" "$rpt"
     sep=''
     for path in "${paths[@]}"; do
         body="$(get "$path")"

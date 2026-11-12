@@ -390,7 +390,7 @@ Tomadas el 11 nov 2026 al construir el core y el primer corte vertical (`workflo
   - «En armado» es el estado inicial del flujo, no una clave fija; las claves `approved_qa` e `in_package` del REQ sí están fijas en `bundle` y en el front. Si QA renombra esas claves del flujo del REQ, hay que tocar código.
   - Cambiar el contenido, o volver a armado, **quita la confirmación de la regresión**: la selección ya no corresponde.
   - Fuera de armado, tocar el contenido responde `INVALID_ACTION` siempre.
-  - Las reglas del PKG no miran la ruta del CHG: un paquete no tiene ruta.
+  - Las reglas del PKG no miran la ruta del CHG: un paquete no tiene ruta. (Cambió en la fase 4: D50.)
   - Documentos en PKG y DEP, comentarios en PKG.
 - **Matriz y búsqueda.** La matriz tiene columna PKG (también en CSV y XLSX) y filtros por PKG y por COMP. La búsqueda encuentra COMP, BUILD, PKG, ENV y DEP.
 - **Front.** Paquetes y BUILD en la sección «Paquetes»; ambientes y despliegues en «Ambientes»; componentes en «Pruebas», porque los mantienen QA y dev y alimentan la regresión. Las listas nuevas no tienen vistas guardadas. Los selectores traen hasta 200 elementos: un sistema con más BUILD, REQ o componentes no los mostraría todos.
@@ -400,3 +400,67 @@ Tomadas el 11 nov 2026 al construir el core y el primer corte vertical (`workflo
   - En el navegador, contra la API real: ficha del PKG con lo que falta para avanzar; transición bloqueada por la regresión sin confirmar (409 real); quitar un TC propuesto exige criterio; confirmar; pasar a pruebas; ambiente con lo instalado; BUILD con su manifiesto; catálogo de componentes; matriz filtrada por PKG; y un RUN registrado sobre un BUILD y un ambiente del catálogo.
 - **Lo que no se verificó en el navegador:** alta de BUILD, de ambiente y de componente desde la pantalla; registrar un despliegue; agregar y quitar contenido de un PKG; el resto del flujo del PKG (listo, producción, verificado); impacto en REQ y TC; y las pantallas de administración con el flujo de paquetes. Todo eso está cubierto por pruebas del front con respuestas simuladas y por la integración del backend, no a mano.
 - **Sigue pendiente de la fase 3:** ingesta de JUnit XML y cobertura (regla 8); el piloto de regresión en SyPago comparado contra la hoja, que es el criterio de salida y no depende del código.
+
+### D50 — Fase 4: checklist de producción, DIAG, SMOKE, informe de conformidad y calendario
+- **Fecha:** 12 nov 2026
+- **Estado:** `[SUPUESTO]` hasta que QA, dev, ops y change management lo revisen. Parte de la propuesta de `docs/fase-4.md`; aquí queda lo que se decidió al construirla y lo que cambió respecto de esa propuesta. Las preguntas abiertas de esa guía (§5) siguen sin respuesta: cada supuesto dice a cuál responde.
+- **Esquema:** migraciones 00016 (tablas) y 00017 (permisos y reglas por ruta). **Contrato:** `api/openapi.yaml`, etiquetas `production`, `report` y `planning`; 122 de 122 operaciones implementadas.
+- **Features y sus tablas** (cada uno escribe solo las suyas). Cambia respecto de la propuesta:
+  - `production`: `checklist_template`, `checklist_template_step`, `checklist`, `checklist_signature`, `diagnostic`, `diagnostic_review`, `smoke_test`. La propuesta separaba `checklist` y `verification`; van juntos porque los tres bloquean la misma fila del PKG y dan juntos los hechos de sus reglas. DIAG y SMOKE quedan en tablas separadas, y la revisión del DIAG en otra (`diagnostic_review`), para que **todo sea de solo inserción** sin excepciones: ni la firma ni la revisión hacen `UPDATE`.
+  - `report`: `conformance_report`, de solo inserción.
+  - `planning`: `milestone`, la única tabla nueva que se edita. Se llama `planning` y no `calendar` porque el calendario es una lectura que junta hitos y ventanas; las ventanas siguen en el CHG y `planning` las pide a un caso de uso de `change` (`ListWindows`), no a su tabla.
+- **La ruta del PKG** (cierra el punto abierto de la guía y cambia D49, que decía que un paquete no tiene ruta): es la **más exigente** de las rutas de sus REQ. La ruta de un REQ es la de su CHG o, sin CHG, la ruta por omisión de su sistema. Un PKG sin REQ toma la de su sistema. Se muestra en la ficha del PKG. `[SUPUESTO]`.
+- **Reglas de bloqueo por ruta** (sembradas en 00017, editables en Administración):
+  - Aprobado para producción → Desplegado: `checklist_signed`, solo en ruta alta.
+  - Desplegado → Verificado: `diagnostic_reviewed`, solo en ruta alta; `smoke_passed`, solo en ruta ligera.
+  - **Cuenta lo último de cada cosa** `[SUPUESTO]`: el último CHK del PKG con todos sus pasos firmados; el último DIAG, revisado y conforme; el último SMOKE, aprobado. Un DIAG no conforme o un SMOKE fallido se superan entregando otro.
+  - **Fix menor no exige ninguna de las tres** `[SUPUESTO]`, aunque se pueden registrar.
+- **Checklist (CHK).**
+  - **Una plantilla por sistema, versionada** (pregunta 1). Publicar crea la versión siguiente; las anteriores quedan y los CHK abiertos conservan la suya. Ninguna migración siembra pasos: una instalación nueva tiene que publicar la plantilla de cada sistema antes de abrir un CHK. `tools/dev-seed.sh` publica una de ejemplo para SyPago.
+  - Un CHK es la ejecución de la última versión de la plantilla para un PKG en un **ambiente de producción** activo del sistema del PKG. Se pueden abrir varios; cuenta el último.
+  - **Cualquiera con `chk.sign` firma cualquier paso, en cualquier orden** (pregunta 2). Un paso se firma una vez, con usuario, hora del servidor y comentario opcional; no se desfirma. QA no tiene `chk.sign` (regla de negocio 6).
+  - La evidencia de un paso es un DOC adjunto al CHK (`document_link` admite `checklist`, `diagnostic` y `smoke_test`).
+- **DIAG y SMOKE.**
+  - Se registran sobre un **despliegue del PKG en un ambiente de producción**, cualquiera sea su resultado: un despliegue fallido también se diagnostica.
+  - El DIAG lo entregan dev u ops; QA lo **revisa una sola vez** (regla 7): conforme o no conforme, con notas obligatorias si no lo está. Si el resultado cambia, se entrega otro DIAG. La salida real de los diagnósticos de SIMF y SGLPAR sigue sin conocerse (pregunta 3): el DIAG son notas y documentos adjuntos.
+  - El SMOKE lo registra QA, aprobado o fallido, con notas obligatorias si falló.
+- **Informe de conformidad (RPT).**
+  - **Se emite por PKG** (pregunta 4), en cualquier estado del PKG `[SUPUESTO]`: QA decide cuándo lo necesita; el informe dice en qué estado estaba.
+  - Emitir **bloquea la fila del PKG** y reúne la evidencia en la misma transacción, pidiéndola a los casos de uso de `bundle`, `traceability`, `regression` y `production`: `report` no repite reglas ni lee sus tablas.
+  - Contenido (requerimiento §10, pregunta 5): datos del PKG; contenido (BUILD y REQ); trazabilidad REQ → CHG → RISK → UC → TC → último RUN → DEF; ejecuciones; regresión propuesta y final con los criterios de QA; DEF abiertos y diferidos con quién los difirió, cuándo y por qué; checklists con cada firma; DIAG con su revisión y SMOKE. Sin firma manuscrita.
+  - **«Ejecuciones» lista todos los RUN sobre los BUILD del PKG**, también los de TC de REQ que no están en el paquete: el artefacto es el mismo. `[SUPUESTO]`, conviene que QA lo confirme.
+  - **El Markdown es el formato canónico.** Se guarda tal como se emitió y su SHA-256 es la huella del informe: se guarda, se muestra en la ficha, viaja en la cabecera `X-Content-SHA256` de las descargas y va en el pie de cada página del PDF. La huella no puede ir dentro del texto que la produce.
+  - **Inmutable:** emitir otra vez crea la versión siguiente, que referencia a la anterior (`previous_id`); la anterior se muestra como reemplazada. La matriz muestra en la columna RPT solo el informe vigente de cada PKG (también en CSV y XLSX, que ganan una columna).
+  - Fechas del informe en UTC.
+- **PDF sin dependencias.** Se escribió `core/pkg/mdpdf` con la biblioteca estándar, como el XLSX, y no con una librería de PDF como recomendaba la guía: el Markdown del informe usa un subconjunto pequeño (títulos, párrafos, listas, tablas, negrita y código), y con eso alcanza un escritor de unas 530 líneas, determinista y probado. Una herramienta por problema (reglas): el repositorio ya resuelve así el XLSX.
+  - PDF 1.4, A4, fuentes estándar Helvetica y Helvetica-Bold con sus anchos AFM: no se incrusta ninguna fuente.
+  - Encabezado con la marca y el lema de Kaoru y el título del informe; pie con el RPT, su versión, la fecha de emisión, la huella y «Página n de N».
+  - Las tablas parten página repitiendo su encabezado, y una columna nunca es más angosta que su palabra más larga, para que un ID no se corte.
+  - **Límite conocido:** las fuentes estándar solo cubren WinAnsi (cp1252). Un carácter fuera de ese juego (emoji, alfabetos no latinos) sale como «?» en el PDF; el Markdown lo conserva. `[SUPUESTO]` aceptable para textos en español.
+  - El informe **se descarga**; no se ve como PDF dentro de Kaoru, así que Nginx no necesita una excepción a `frame-ancestors`. La ficha muestra el Markdown renderizado.
+- **Calendario y alertas.**
+  - El calendario junta las ventanas de los CHG vigentes (no finales) y los hitos. Las fases del plan no entran (pregunta 7): si change management las quiere, se cargan como hitos.
+  - **Alerta de atraso:** un hito pendiente con la fecha vencida, o una ventana que terminó sin que el CHG esté «Liberado». Se calcula al leer, sin procesos en segundo plano; lo más atrasado primero.
+  - Fechas en UTC `[SUPUESTO]`: un hito vence al terminar su día en UTC y los días de atraso de una ventana se redondean hacia arriba. Con la hora de Venezuela (UTC−4) un hito puede salir atrasado cuatro horas antes de la medianoche local.
+  - Hitos: título, fecha, responsable opcional, notas y cumplido o pendiente. Sin ID legible. Los mantiene change management (`milestone.manage`); crear y editar se auditan.
+  - **Sin correo** (pregunta 6): las alertas solo se ven en Kaoru (Inicio y Calendario).
+- **Permisos nuevos y su reparto inicial:** el de la guía (§4.5), sin cambios: `chk.manage_template`, `chk.start`, `chk.sign` (change-manager; `chk.sign` también ops), `diag.submit` (dev, ops), `diag.review`, `smoke.create`, `rpt.issue` (qa, qa-admin), `milestone.manage` (change-manager).
+- **Front.**
+  - Producción: checklists, diagnósticos, pruebas de humo y plantillas, con la ficha de cada CHK, DIAG y SMOKE (evidencia y actividad). Informes: lista y ficha con el Markdown, la huella, la cadena de versiones y las descargas. Calendario: alertas arriba y una sola lista por fecha con hitos y ventanas; sin vista de mes.
+  - La ficha del PKG gana las pestañas «Producción» (con lo que exige su ruta y las acciones según permisos) e «Informes», y su ruta en la cabecera. Inicio toma las ventanas y las alertas del calendario.
+  - CHK, DIAG, SMOKE y RPT no admiten comentarios: su actividad es solo la auditoría. La auditoría dice las firmas y las revisiones con palabras («marcó el paso 2 como firmado. Comentario: …»).
+  - Ninguna pantalla nueva tiene estilos nuevos: se componen con las clases del boceto.
+
+### D51 — Fase 4: cómo se verificó y qué falta
+- **Fecha:** 12 nov 2026
+- **Cómo se verificó.**
+  - `make check` completo y `make check-offline`. La integración recorre un PKG de SIMF (ruta alta) de punta a punta: plantilla, CHK con firmas, desplegado, DIAG revisado, verificado, inmutabilidad de firmas y revisiones, RPT v1 y v2, exportaciones, búsqueda, documentos enlazados y auditoría; y el calendario con ventanas, hitos y alertas. La ruta ligera del PKG de la fase 3 ahora exige su SMOKE. 128 pruebas del front.
+  - `tools/dev-seed.sh` lleva el PKG de SyPago hasta verificado (plantilla, CHK con 3 de 4 firmas y un DOC de evidencia, despliegue en producción, DIAG revisado, un SMOKE fallido y otro aprobado, dos versiones del RPT, tres hitos y una ventana vencida), y `web/mocks/fixtures.json` se volvió a grabar de esos datos.
+  - En el navegador, contra la API real: Inicio con próximas ventanas y alertas; pestañas Producción e Informes del PKG; registrar un SMOKE (con la validación de notas); emitir un RPT nuevo y abrir su ficha; descargar el PDF y el Markdown y comprobar que el SHA-256 del Markdown coincide con la huella mostrada; ver el PDF real (encabezado, pie, tablas); ficha del CHK con su actividad; como change management: firmar el último paso, publicar la versión 2 de la plantilla, abrir un CHK nuevo que la toma, y crear, editar (quitar el responsable) y cumplir hitos, con la alerta que desaparece; matriz con la columna RPT; búsqueda de un DIAG.
+- **Lo que no se verificó en el navegador:** entregar y revisar un DIAG desde la pantalla (las dos acciones tienen pruebas del front y de integración), adjuntar evidencia desde la ficha del CHK, el tema claro y el ancho de teléfono de las pantallas nuevas.
+- **Corregido al probar:** los selectores de despliegue, ambiente y sistema de los formularios de producción no tomaban el valor por omisión porque se pintaban antes de que llegara la lista.
+- **Pendiente de la fase 4:**
+  - Respuestas a las preguntas 1 a 8 de `docs/fase-4.md` §5; cada supuesto de D50 depende de una.
+  - El criterio de salida: un informe emitido para un PKG de ruta alta en una ventana real que defina change management. No depende del código.
+  - Correo de alertas, si aparece un SMTP interno.
+  - El pie de la aplicación dice «Servidor de datos de ejemplo» en cualquier servidor de desarrollo, también cuando habla con la API real (`tools/dev-front.sh`). Es de una fase anterior y no afecta a producción.
