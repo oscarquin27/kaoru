@@ -28,6 +28,11 @@ for stmt in \
     "UPDATE test_run SET notes = 'x'" \
     "DELETE FROM document_version" \
     "DELETE FROM comment" \
+    "UPDATE checklist_signature SET comment = 'x'" \
+    "DELETE FROM diagnostic_review" \
+    "UPDATE smoke_test SET result = 'passed'" \
+    "UPDATE conformance_report SET content = 'x'" \
+    "DELETE FROM conformance_report" \
     "CREATE TABLE intruso (id int)"; do
     if out="$(psql_as kaoru_app -c "$stmt" 2>&1)"; then
         echo "FALLO: kaoru_app pudo ejecutar: $stmt" >&2

@@ -5,7 +5,7 @@ import type { Document, Items } from '../../shared/api/types.ts'
 import { useQuery } from '@tanstack/react-query'
 
 /** Entidades a las que se adjuntan documentos desde su ficha. */
-export type DocumentOwner = 'requirement' | 'package'
+export type DocumentOwner = 'requirement' | 'package' | 'checklist' | 'diagnostic' | 'smoke_test'
 export const useEntityDocuments = (entityType: DocumentOwner, entityCode: string) => useApiQuery<Items<Document>>('/api/documents', { entityType, entityCode })
 export const useRequirementDocuments = (requirementCode: string) => useEntityDocuments('requirement', requirementCode)
 export const useDocument = (code: string) => useApiQuery<Document>(`/api/documents/${code}`)

@@ -12,6 +12,10 @@ const ROUTES: Record<string, string> = {
   ENV: '/ambientes',
   DEP: '/ambientes/despliegues',
   COMP: '/pruebas/componentes',
+  CHK: '/produccion',
+  DIAG: '/produccion/diagnosticos',
+  SMOKE: '/produccion/humo',
+  RPT: '/informes',
 }
 
 export function prefixOf(code: string): string {

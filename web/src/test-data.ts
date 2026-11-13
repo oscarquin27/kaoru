@@ -1,6 +1,23 @@
-// Ejemplos de la fase 3 para las pruebas de las pantallas nuevas, tipados contra el contrato.
-// Las grabaciones de mocks/fixtures.json todavía no traen estas rutas.
-import type { Build, Component, Deployment, Environment, Package, Regression, System, UserRef, Workflow } from './shared/api/types.ts'
+// Ejemplos de las fases 3 y 4 para las pruebas de las pantallas nuevas, tipados contra el contrato.
+// Las grabaciones de mocks/fixtures.json no traen todos los casos que las pruebas necesitan.
+import type {
+  Build,
+  Calendar,
+  Checklist,
+  ChecklistTemplate,
+  Component,
+  Deployment,
+  Diagnostic,
+  Environment,
+  Milestone,
+  Package,
+  Regression,
+  Report,
+  SmokeTest,
+  System,
+  UserRef,
+  Workflow,
+} from './shared/api/types.ts'
 
 export const SYPAGO: System = { key: 'SYPAGO', name: 'SyPago', defaultRoute: 'light' }
 export const ANA: UserRef = { id: 'eb0a2839-b99a-41c5-884d-60a37e4a3127', displayName: 'Ana Rojas' }
@@ -157,3 +174,132 @@ export const REGRESSION: Regression = {
   ],
 }
 export const REGRESSION_CONFIRMED: Regression = { ...REGRESSION, confirmedBy: ANA, confirmedAt: AT }
+
+// Fase 4: producción, informes y calendario.
+
+export const SIMF: System = { key: 'SIMF', name: 'SIMF', defaultRoute: 'high' }
+const pkgRef = { code: 'PKG-2026-0001', title: 'SyPago 2.14' }
+const productionRef = { code: PRODUCTION.code, name: PRODUCTION.name, kind: PRODUCTION.kind }
+
+export const PRODUCTION_DEPLOYMENT: Deployment = {
+  ...DEPLOYMENT,
+  code: 'DEP-2026-0002',
+  environment: productionRef,
+  build: undefined,
+  package: pkgRef,
+}
+
+/** Paquete desplegado en ruta alta al que le falta el diagnóstico revisado. */
+export const PACKAGE_DEPLOYED: Package = {
+  ...PACKAGE,
+  route: 'high',
+  state: { key: 'deployed', name: 'Desplegado' },
+  missing: [
+    {
+      to: { key: 'verified', name: 'Verificado' },
+      conditions: [{ ruleKey: 'diagnostic_reviewed', message: 'Falta que QA revise el diagnóstico posterior al despliegue.', blocks: true, related: [] }],
+    },
+  ],
+}
+
+export const TEMPLATE: ChecklistTemplate = {
+  system: SYPAGO,
+  version: 2,
+  steps: [
+    { position: 1, title: 'Respaldar la base', description: 'Con pg_dump' },
+    { position: 2, title: 'Aplicar migraciones', description: '' },
+  ],
+  createdBy: JUAN,
+  createdAt: AT,
+}
+export const TEMPLATE_V1: ChecklistTemplate = { ...TEMPLATE, version: 1, steps: [{ position: 1, title: 'Respaldar la base', description: '' }] }
+
+export const CHECKLIST: Checklist = {
+  code: 'CHK-2026-0001',
+  package: pkgRef,
+  environment: productionRef,
+  templateVersion: 2,
+  steps: [
+    { position: 1, title: 'Respaldar la base', description: 'Con pg_dump', signature: { signedBy: JUAN, signedAt: AT, comment: 'Respaldo en /backups/1112' } },
+    { position: 2, title: 'Aplicar migraciones', description: '' },
+  ],
+  signedSteps: 1,
+  complete: false,
+  startedBy: JUAN,
+  createdAt: AT,
+}
+
+const deploymentRef = { code: PRODUCTION_DEPLOYMENT.code, environment: productionRef, executedAt: AT }
+
+export const DIAGNOSTIC: Diagnostic = {
+  code: 'DIAG-2026-0001',
+  package: pkgRef,
+  deployment: deploymentRef,
+  notes: 'Logs limpios durante 30 minutos',
+  submittedBy: JUAN,
+  createdAt: AT,
+}
+export const DIAGNOSTIC_REVIEWED: Diagnostic = { ...DIAGNOSTIC, review: { result: 'conforming', notes: 'Sin hallazgos', reviewedBy: ANA, reviewedAt: AT } }
+
+export const SMOKE: SmokeTest = {
+  code: 'SMOKE-2026-0001',
+  package: pkgRef,
+  deployment: deploymentRef,
+  result: 'failed',
+  notes: 'El login devuelve 502',
+  executedBy: ANA,
+  createdAt: AT,
+}
+
+export const REPORT: Report = {
+  code: 'RPT-2026-0002',
+  package: pkgRef,
+  version: 2,
+  previous: 'RPT-2026-0001',
+  checksum: CHECKSUM,
+  issuedBy: ANA,
+  createdAt: AT,
+  content: '**kaoru** · Trazabilidad a prueba de errores\n\n# Informe de conformidad PKG-2026-0001\n\n## 1. Contenido\n\n| BUILD | Versión |\n|---|---|\n| BUILD-2026-0001 | 2.14.0 |\n',
+}
+export const REPORT_V1: Report = { ...REPORT, code: 'RPT-2026-0001', version: 1, previous: undefined, supersededBy: 'RPT-2026-0002' }
+
+export const MILESTONE: Milestone = {
+  id: '7d8e2f10-2b1a-4c9e-9a51-0f7c3b2a1d01',
+  title: 'Congelar el alcance de 2.14',
+  dueDate: '2026-11-05',
+  notes: 'Con el comité de cambios',
+  owner: JUAN,
+  completed: false,
+  daysLate: 7,
+  createdBy: JUAN,
+  createdAt: AT,
+  updatedAt: AT,
+}
+export const MILESTONE_FUTURE: Milestone = { ...MILESTONE, id: '7d8e2f10-2b1a-4c9e-9a51-0f7c3b2a1d02', title: 'Salida a producción', dueDate: '2026-12-01', owner: undefined, notes: '', daysLate: 0 }
+
+export const CALENDAR: Calendar = {
+  windows: [
+    {
+      change: { code: 'CHG-2026-0001', title: 'Límite diario' },
+      system: 'SyPago',
+      route: 'light',
+      state: { key: 'approved', name: 'Aprobado' },
+      start: '2026-11-01T22:00:00Z',
+      end: '2026-11-02T02:00:00Z',
+      daysLate: 10,
+    },
+    {
+      change: { code: 'CHG-2026-0002', title: 'Nuevo comprobante' },
+      system: 'SyPago',
+      route: 'light',
+      state: { key: 'approved', name: 'Aprobado' },
+      start: '2099-11-20T22:00:00Z',
+      end: '2099-11-21T02:00:00Z',
+      daysLate: 0,
+    },
+  ],
+  alerts: [
+    { kind: 'change_window', title: 'Límite diario', change: 'CHG-2026-0001', dueAt: '2026-11-02T02:00:00Z', daysLate: 10 },
+    { kind: 'milestone', title: MILESTONE.title, milestone: MILESTONE.id, dueAt: '2026-11-05T00:00:00Z', daysLate: 7 },
+  ],
+}

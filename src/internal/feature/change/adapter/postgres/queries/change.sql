@@ -67,3 +67,18 @@ SELECT id
 FROM change
 WHERE code = $1
     FOR UPDATE;
+
+-- name: ListWindows :many
+-- Las ventanas de cambio vigentes: las de los CHG con ventana completa que no están en un estado final.
+SELECT c.id, c.code, c.title, c.description, c.route, c.window_start, c.window_end,
+       c.created_by, u.display_name AS created_by_name, c.created_at, c.updated_at,
+       s.key AS system_key, s.name AS system_name, s.default_route AS system_default_route,
+       st.id AS state_id, st.key AS state_key, st.name AS state_name
+FROM change c
+         JOIN system_under_test s ON s.id = c.system_id
+         JOIN workflow_state st ON st.id = c.state_id
+         JOIN app_user u ON u.id = c.created_by
+WHERE c.window_start IS NOT NULL
+  AND c.window_end IS NOT NULL
+  AND NOT st.is_final
+ORDER BY c.window_start, c.code;

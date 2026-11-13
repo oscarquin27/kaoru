@@ -20,6 +20,7 @@ import (
 	"kaoru/internal/feature/bundle/delivery/api"
 	defectuc "kaoru/internal/feature/defect/application/usecase"
 	environmentuc "kaoru/internal/feature/environment/application/usecase"
+	productionuc "kaoru/internal/feature/production/application/usecase"
 	regressionuc "kaoru/internal/feature/regression/application/usecase"
 	requirementuc "kaoru/internal/feature/requirement/application/usecase"
 	workflowuc "kaoru/internal/feature/workflow/application/usecase"
@@ -37,6 +38,7 @@ type Deps struct {
 	Regression   *regressionuc.UseCases
 	Defects      *defectuc.UseCases
 	Environments *environmentuc.UseCases
+	Production   *productionuc.UseCases
 }
 
 // Module expone los casos de uso y las rutas del feature.
@@ -56,6 +58,7 @@ func New(d Deps) (*Module, error) {
 		Facts: facts.New(facts.Sources{
 			Regression: d.Regression.GetRegressionFacts, Defects: d.Defects.ListOpenDefects,
 			Deployments: d.Environments.HasProductionDeployment,
+			Production:  d.Production.GetPackageFacts, Requirement: d.Requirements.GetRequirement,
 		}),
 		AuditTrail:  audit.New(d.Audit.Record),
 		UnitOfWork:  d.Database,

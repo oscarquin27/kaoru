@@ -107,9 +107,11 @@ La ruta no cambia los estados: cambia qué reglas aplican (columna `route` de `b
 
 | Ruta | Sistemas | Exige | En el esquema hoy |
 |---|---|---|---|
-| Alta (`high`) | SIMF, SGLPAR | RISK con características ISO 25010, regresión completa por impacto + TC críticos, checklist firmado, DIAG. | La regla del RISK. El resto llega con las fases 3 y 4. |
-| Ligera (`light`) | SyPago y fixes | RISK simplificado, regresión por impacto, SMOKE. | RISK sin características obligatorias. |
-| Fix menor (`minor_fix`) | Cambios de bajo riesgo en módulos estables | TC mínimos definidos por QA. | El valor de ruta existe; qué TC mínimos pide está `[POR DEFINIR]`. |
+| Alta (`high`) | SIMF, SGLPAR | RISK con características ISO 25010, regresión completa por impacto + TC críticos, checklist firmado, DIAG. | La regla del RISK; en el PKG, `checklist_signed` y `diagnostic_reviewed`. |
+| Ligera (`light`) | SyPago y fixes | RISK simplificado, regresión por impacto, SMOKE. | RISK sin características obligatorias; en el PKG, `smoke_passed`. |
+| Fix menor (`minor_fix`) | Cambios de bajo riesgo en módulos estables | TC mínimos definidos por QA. | El valor de ruta existe; qué TC mínimos pide está `[POR DEFINIR]`. En el PKG no exige checklist, DIAG ni SMOKE `[SUPUESTO]`. |
+
+**La ruta de un PKG** es la más exigente de las de sus REQ (alta, luego ligera, luego fix menor). La de un REQ es la de su CHG o, sin CHG, la ruta por omisión de su sistema. Un PKG sin REQ toma la de su sistema. `[SUPUESTO]`, decisión D50.
 
 ## PKG (requerimiento §8.4)
 
@@ -138,8 +140,8 @@ Sembrado en la migración 00015 (decisión D48). El contenido del PKG (BUILD y R
 | En pruebas → En armado | `pkg.reopen`, con motivo | Ninguna. El paso no está en el requerimiento: `[SUPUESTO]` para corregir el contenido. |
 | En pruebas → Listo para liberar | `pkg.mark_ready` | Toda la regresión final con su último RUN sobre un BUILD del PKG aprobado `[SUPUESTO]`; ningún REQ del PKG con un DEF de severidad alta abierto (regla de negocio 2). |
 | Listo para liberar → Aprobado para producción | `pkg.approve_production` | Ninguna. |
-| Aprobado para producción → Desplegado | `pkg.deploy` | Hay un despliegue exitoso del PKG en un ambiente de producción. `[SUPUESTO]` |
-| Desplegado → Verificado | `pkg.verify` | Ninguna hasta la fase 4 (DIAG y SMOKE). |
+| Aprobado para producción → Desplegado | `pkg.deploy` | Hay un despliegue exitoso del PKG en un ambiente de producción. `[SUPUESTO]` En ruta alta, además, el último CHK del PKG tiene todos sus pasos firmados (`checklist_signed`). |
+| Desplegado → Verificado | `pkg.verify` | En ruta alta, el último DIAG del PKG está revisado y conforme (`diagnostic_reviewed`). En ruta ligera, el último SMOKE está aprobado (`smoke_passed`). `[SUPUESTO]` |
 
 ### Regresión por impacto (regla de negocio 4)
 
@@ -148,15 +150,34 @@ Sembrado en la migración 00015 (decisión D48). El contenido del PKG (BUILD y R
 3. QA **ajusta**: incluye o excluye TC. El criterio es obligatorio cuando la decisión difiere de lo propuesto y queda con su autor y su fecha.
 4. QA **confirma**: desde entonces la selección no cambia. Se conservan lo propuesto y lo final para compararlos.
 
+### Producción: checklist, DIAG y SMOKE (fase 4, decisión D50)
+
+Ninguno tiene estados: se registran, y cuenta lo último de cada uno.
+
+1. **Plantilla.** Change management publica la plantilla del checklist de cada sistema. No se edita: se publica otra versión.
+2. **Checklist (CHK).** Con el PKG aprobado, change management abre el CHK en un ambiente de producción del sistema; toma la última versión de la plantilla. Change management y ops firman los pasos, uno a uno y en cualquier orden. La firma no se quita. La evidencia se adjunta como documento del CHK.
+3. **Despliegue.** Change management registra el despliegue del PKG en producción y pasa el PKG a «Desplegado».
+4. **DIAG** (ruta alta). Dev u ops entregan el diagnóstico de ese despliegue; QA lo revisa una vez: conforme o no conforme. Si no está conforme, se entrega otro DIAG.
+5. **SMOKE** (ruta ligera). QA registra la prueba de humo: aprobada o fallida. Si falló, se registra otra.
+6. QA pasa el PKG a «Verificado».
+
+### Informe de conformidad (fase 4)
+
+QA emite el RPT de un PKG cuando lo necesita, en cualquier estado. Emitir congela la evidencia de ese momento; emitir otra vez crea la versión siguiente, que reemplaza a la anterior sin borrarla.
+
+### Calendario (fase 4)
+
+Junta las ventanas de los CHG vigentes y los hitos. Una **alerta de atraso** es un hito pendiente con la fecha vencida, o una ventana que terminó sin que el CHG esté «Liberado». Se ven en Inicio y en Calendario; no hay correo.
+
 ## Permisos por rol (predeterminados)
 
 | Rol | Permisos |
 |---|---|
-| `change-manager` | `chg.*`, `req.create`, `req.edit`, `req.release`, `req.close`, `req.reject`, `req.defer`, `def.defer`, `pkg.approve_production`, `pkg.deploy`, `dep.create_production`, `link.manage`, `doc.upload`, `comment.create`, `audit.read` |
-| `qa` | `req.edit`, `risk.assess`, `req.start_design`, `req.start_testing`, `req.report_defects`, `req.approve_qa`, `req.verify`, `testdesign.manage`, `run.create`, `exp.create`, `def.create`, `def.edit`, `def.triage`, `def.close`, `def.reopen`, `comp.manage`, `pkg.start_testing`, `pkg.reopen`, `pkg.mark_ready`, `pkg.verify`, `regression.manage`, `env.manage`, `dep.create`, `link.manage`, `doc.upload`, `comment.create`, `audit.read` |
+| `change-manager` | `chg.*`, `req.create`, `req.edit`, `req.release`, `req.close`, `req.reject`, `req.defer`, `def.defer`, `pkg.approve_production`, `pkg.deploy`, `dep.create_production`, `chk.manage_template`, `chk.start`, `chk.sign`, `milestone.manage`, `link.manage`, `doc.upload`, `comment.create`, `audit.read` |
+| `qa` | `req.edit`, `risk.assess`, `req.start_design`, `req.start_testing`, `req.report_defects`, `req.approve_qa`, `req.verify`, `testdesign.manage`, `run.create`, `exp.create`, `def.create`, `def.edit`, `def.triage`, `def.close`, `def.reopen`, `comp.manage`, `pkg.start_testing`, `pkg.reopen`, `pkg.mark_ready`, `pkg.verify`, `regression.manage`, `env.manage`, `dep.create`, `diag.review`, `smoke.create`, `rpt.issue`, `link.manage`, `doc.upload`, `comment.create`, `audit.read` |
 | `qa-admin` | Todo lo de `qa`, más `admin.configure` e `import.run` |
-| `dev` | `req.edit`, `req.start_development`, `req.deliver`, `req.package`, `entry_contract.check`, `def.fix`, `comp.manage`, `build.register`, `pkg.build`, `link.manage`, `doc.upload`, `comment.create` |
-| `ops` | `doc.upload`, `comment.create` |
+| `dev` | `req.edit`, `req.start_development`, `req.deliver`, `req.package`, `entry_contract.check`, `def.fix`, `comp.manage`, `build.register`, `pkg.build`, `diag.submit`, `link.manage`, `doc.upload`, `comment.create` |
+| `ops` | `chk.sign`, `diag.submit`, `doc.upload`, `comment.create` |
 | `auditor` | `audit.read` |
 
 Leer no exige permiso: cualquier usuario con sesión y un rol ve todo, salvo la auditoría, que pide `audit.read`.
@@ -171,3 +192,5 @@ Leer no exige permiso: cualquier usuario con sesión y un rol ve todo, salvo la 
 | Quién tría (`def.triage`) y con qué cadencia | `qa` | Change management y QA (pregunta 2) |
 | Desde qué estados se puede rechazar o diferir un REQ | Los del diagrama | Change management |
 | TC mínimos de la ruta fix menor | Sin regla | QA |
+| Plantilla del checklist y quién firma cada paso | Una por sistema; firma cualquiera con `chk.sign` | Change management (preguntas 1 y 2 de la fase 4) |
+| De qué se emite el informe | Del PKG | Change management y QA (pregunta 4 de la fase 4) |

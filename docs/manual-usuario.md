@@ -55,9 +55,41 @@ Además de lo anterior, cada rol participa en el paquete (PKG):
 - **QA define la regresión** en la pestaña *Regresión* del PKG: *Proponer* trae los TC que cruzan con los componentes tocados más los críticos del sistema; puedes quitar o agregar TC, y cuando te apartas de lo propuesto escribes el criterio; *Confirmar* la congela. Sin regresión confirmada el PKG no pasa a pruebas, y no queda «Listo para liberar» mientras un TC de la regresión no tenga un RUN aprobado sobre un BUILD del paquete o haya un defecto de severidad alta abierto.
 - **Change manager** aprueba el PKG para producción, registra el despliegue en producción y lo marca desplegado. QA lo verifica después.
 
+## Producción, informes y calendario (fase 4)
+
+Lo que exige el paso a producción depende de la **ruta del PKG**, que se ve en su cabecera: la más exigente de las de sus REQ. La pestaña *Producción* del PKG lo explica y reúne su checklist, sus diagnósticos y sus pruebas de humo. En todos los casos cuenta lo último: si un diagnóstico no estuvo conforme o una prueba de humo falló, se registra otra.
+
+- **Ruta alta** (SIMF, SGLPAR): para pasar a «Desplegado», el checklist firmado entero; para pasar a «Verificado», un diagnóstico revisado y conforme.
+- **Ruta ligera** (SyPago): para pasar a «Verificado», una prueba de humo aprobada.
+- **Fix menor:** no exige ninguno de los tres.
+
+**Change manager**
+
+1. **Publica la plantilla del checklist** de cada sistema en *Producción → Plantillas*: un paso por renglón, y la descripción después de una barra («Respaldar la base | Con pg_dump»). Una plantilla no se edita: *Nueva versión* parte de la actual. Sin plantilla no se abre ningún checklist.
+2. **Abre el checklist** desde la pestaña *Producción* del PKG (*Abrir checklist*), en el ambiente de producción. Toma la última versión de la plantilla.
+3. **Firma los pasos** en la ficha del checklist (*Firmar*), con un comentario si hace falta. Firman change management y ops, cada uno el paso que ejecutó, en cualquier orden. Una firma no se quita. La evidencia (salidas, capturas) se adjunta en la pestaña *Evidencia*.
+4. **Mantén los hitos** en *Calendario*: *Nuevo hito* con fecha y responsable; *Marcar cumplido* cuando se cumple.
+
+**Desarrollo y operaciones**
+
+- **Entrega el diagnóstico** después del despliegue: pestaña *Producción* del PKG → *Entregar DIAG*, eligiendo el despliegue y escribiendo lo que se revisó. Los archivos de salida se adjuntan en la ficha del DIAG.
+- **Operaciones firma** los pasos del checklist que ejecuta.
+
+**QA**
+
+- **Revisa el diagnóstico** en su ficha (*Revisar*): conforme o no conforme, con notas si no lo está. Se revisa una sola vez.
+- **Registra la prueba de humo** desde la pestaña *Producción* del PKG (*Registrar SMOKE*): aprobada o fallida, con notas si falló.
+- **Emite el informe de conformidad** desde la pestaña *Informes* del PKG. El informe congela la evidencia de ese momento: contenido, trazabilidad, ejecuciones, regresión con sus criterios, defectos abiertos y diferidos, firmas del checklist, diagnóstico y prueba de humo. Si algo cambia, *Emitir nueva versión*: la anterior queda, marcada como reemplazada.
+- En la ficha del informe lo lees, ves su **huella** (SHA-256) y lo **descargas en PDF o en Markdown**. La huella es la del Markdown; el PDF la lleva en el pie de cada página. Para comprobar que un informe no cambió, calcula el SHA-256 del Markdown descargado y compáralo con la huella.
+
+**Todos**
+
+- *Inicio* muestra las **próximas ventanas de cambio** y las **alertas de atraso**: un hito vencido sin cumplir, o un CHG cuya ventana terminó sin liberarse. *Calendario* las pone arriba y, debajo, hitos y ventanas por fecha. Las fechas de los hitos son días en UTC. No llegan correos.
+- La matriz de trazabilidad tiene la columna **RPT**: el informe vigente del paquete de cada REQ.
+
 ## Operaciones
 
-Consultas el estado de lo que vas a desplegar, comentas y adjuntas documentos (por ejemplo, la evidencia de un despliegue). Ves los paquetes, sus BUILD, los ambientes y sus despliegues; la pantalla de producción llega en la fase 4.
+Consultas el estado de lo que vas a desplegar, comentas y adjuntas documentos (por ejemplo, la evidencia de un despliegue). Ves los paquetes, sus BUILD, los ambientes y sus despliegues. En producción firmas los pasos del checklist y entregas diagnósticos (ver la sección de la fase 4).
 
 ## Auditoría
 
@@ -74,4 +106,4 @@ Además de lo de QA, configuras el sistema en *Administración*. Cada cambio val
 
 ## Lo que este manual no cubre todavía
 
-La importación de la hoja actual, el checklist de producción, los diagnósticos y pruebas de humo, los informes y el calendario: todavía no existen.
+La importación de la hoja actual (todavía no existe) y el correo de alertas (no hay servidor de correo).

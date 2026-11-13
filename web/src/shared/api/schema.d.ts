@@ -1211,6 +1211,317 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/checklist-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Versiones de la plantilla del checklist de producción, la más reciente primero */
+        get: operations["listChecklistTemplates"];
+        put?: never;
+        /**
+         * Publica una versión nueva de la plantilla del checklist de un sistema
+         * @description Exige `chk.manage_template`. Una versión publicada no se edita: los checklists ya abiertos conservan la suya.
+         */
+        post: operations["publishChecklistTemplate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/checklists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Checklists de producción, del más reciente al más antiguo */
+        get: operations["listChecklists"];
+        put?: never;
+        /**
+         * Abre el checklist de producción de un PKG con la última versión de la plantilla de su sistema
+         * @description Exige `chk.start`. El ambiente debe ser de producción y del sistema del PKG.
+         */
+        post: operations["startChecklist"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/checklists/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        /** Ficha de un checklist con sus pasos y firmas */
+        get: operations["getChecklist"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/checklists/{code}/steps/{position}/signature": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+                position: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Firma un paso del checklist
+         * @description Exige `chk.sign`. La firma es el usuario de la sesión, la fecha del servidor y el comentario; un paso se firma una sola vez y no se desfirma (reglas §A.13).
+         */
+        post: operations["signChecklistStep"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/diagnostics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Diagnósticos posteriores al despliegue, del más reciente al más antiguo */
+        get: operations["listDiagnostics"];
+        put?: never;
+        /**
+         * Entrega el diagnóstico posterior a un despliegue de un PKG en producción
+         * @description Exige `diag.submit` (dev u ops, regla de negocio 7). Su salida se adjunta como DOC.
+         */
+        post: operations["submitDiagnostic"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/diagnostics/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        /** Ficha de un diagnóstico */
+        get: operations["getDiagnostic"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/diagnostics/{code}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revisa un diagnóstico y marca su resultado
+         * @description Exige `diag.review` (QA, regla de negocio 7). Un DIAG se revisa una sola vez.
+         */
+        post: operations["reviewDiagnostic"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/smoke-tests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pruebas de humo posteriores al despliegue, de la más reciente a la más antigua */
+        get: operations["listSmokeTests"];
+        put?: never;
+        /**
+         * Registra la prueba de humo posterior a un despliegue de un PKG en producción
+         * @description Exige `smoke.create` (QA, regla de negocio 7). No se edita ni se borra.
+         */
+        post: operations["registerSmokeTest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/smoke-tests/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        /** Ficha de una prueba de humo */
+        get: operations["getSmokeTest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Informes de conformidad, del más reciente al más antiguo */
+        get: operations["listReports"];
+        put?: never;
+        /**
+         * Emite el informe de conformidad de un PKG con lo que hay en ese momento
+         * @description Exige `rpt.issue`. Un informe emitido no cambia (regla de negocio 11): si el PKG ya tiene uno, se emite la versión siguiente, que referencia a la anterior.
+         */
+        post: operations["issueReport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reports/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        /** Ficha de un informe con su contenido en Markdown */
+        get: operations["getReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reports/{code}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Descarga el informe en Markdown o en PDF
+         * @description El Markdown es el contenido tal como se emitió: su SHA-256 es el hash del informe. El PDF se genera de ese mismo contenido, sin salir del servidor, y lleva el hash en el pie.
+         */
+        get: operations["exportReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/milestones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Hitos del calendario, por fecha */
+        get: operations["listMilestones"];
+        put?: never;
+        /**
+         * Registra un hito
+         * @description Exige `milestone.manage`.
+         */
+        post: operations["createMilestone"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/milestones/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Edita un hito, lo marca cumplido o lo vuelve a dejar pendiente
+         * @description Exige `milestone.manage`. Un hito no se borra.
+         */
+        patch: operations["updateMilestone"];
+        trace?: never;
+    };
+    "/api/calendar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ventanas de cambio vigentes y alertas de atraso
+         * @description Las ventanas se leen de los CHG que no están cerrados ni rechazados. El atraso se calcula al leer: un hito pendiente con la fecha vencida, o un CHG cuya ventana terminó sin estar liberado.
+         */
+        get: operations["getCalendar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/saved-views": {
         parameters: {
             query?: never;
@@ -1398,7 +1709,7 @@ export interface components {
          */
         QualityCharacteristic: "functional_suitability" | "performance_efficiency" | "compatibility" | "usability" | "reliability" | "security" | "maintainability" | "portability";
         /** @enum {string} */
-        EntityType: "requirement" | "change" | "functional_case" | "test_case" | "test_run" | "exploratory_session" | "defect" | "package" | "deployment";
+        EntityType: "requirement" | "change" | "functional_case" | "test_case" | "test_run" | "exploratory_session" | "defect" | "package" | "deployment" | "checklist" | "diagnostic" | "smoke_test";
         /** @enum {string} */
         DocumentKind: "specification" | "manual" | "evidence" | "minutes" | "snapshot" | "other";
         /** @enum {string} */
@@ -1605,6 +1916,8 @@ export interface components {
             description: string;
             system: components["schemas"]["System"];
             state: components["schemas"]["StateRef"];
+            /** @description La ruta más exigente de las de sus REQ; sin REQ, la del sistema. Decide qué reglas de bloqueo aplican. Solo viene en la ficha. */
+            route?: components["schemas"]["Route"];
             builds: components["schemas"]["BuildRef"][];
             requirements: {
                 code: components["schemas"]["Code"];
@@ -1664,6 +1977,195 @@ export interface components {
                 components: components["schemas"]["ComponentRef"][];
                 /** @description Último RUN del TC sobre un BUILD del PKG. */
                 lastRun?: components["schemas"]["RunSummary"];
+            }[];
+        };
+        ChecklistStepInput: {
+            title: string;
+            description?: string;
+        };
+        ChecklistTemplateInput: {
+            /** @description Clave del sistema */
+            system: string;
+            /** @description En el orden en que se ejecutan. */
+            steps: components["schemas"]["ChecklistStepInput"][];
+        };
+        ChecklistTemplate: {
+            system: components["schemas"]["System"];
+            version: number;
+            steps: {
+                position: number;
+                title: string;
+                description: string;
+            }[];
+            createdBy: components["schemas"]["UserRef"];
+            /** Format: date-time */
+            createdAt: string;
+        };
+        ChecklistInput: {
+            package: components["schemas"]["Code"];
+            /** @description Código del ENV de producción */
+            environment: components["schemas"]["Code"];
+        };
+        Checklist: {
+            code: components["schemas"]["Code"];
+            package: components["schemas"]["CodeTitle"];
+            environment: components["schemas"]["EnvironmentRef"];
+            /** @description Versión de la plantilla con la que se abrió. */
+            templateVersion: number;
+            steps: {
+                position: number;
+                title: string;
+                description: string;
+                /** @description Ausente mientras el paso no esté firmado. */
+                signature?: {
+                    signedBy: components["schemas"]["UserRef"];
+                    /** Format: date-time */
+                    signedAt: string;
+                    comment: string;
+                };
+            }[];
+            signedSteps: number;
+            /** @description Todos los pasos están firmados. */
+            complete: boolean;
+            startedBy: components["schemas"]["UserRef"];
+            /** Format: date-time */
+            createdAt: string;
+        };
+        DeploymentRef: {
+            code: components["schemas"]["Code"];
+            environment: components["schemas"]["EnvironmentRef"];
+            /** Format: date-time */
+            executedAt: string;
+        };
+        /**
+         * @description `conforming` conforme, `non_conforming` no conforme.
+         * @enum {string}
+         */
+        DiagnosticResult: "conforming" | "non_conforming";
+        DiagnosticInput: {
+            /** @description Código del DEP de un PKG en producción */
+            deployment: components["schemas"]["Code"];
+            notes?: string;
+        };
+        DiagnosticReviewInput: {
+            result: components["schemas"]["DiagnosticResult"];
+            notes?: string;
+        };
+        Diagnostic: {
+            code: components["schemas"]["Code"];
+            package: components["schemas"]["CodeTitle"];
+            deployment: components["schemas"]["DeploymentRef"];
+            notes: string;
+            submittedBy: components["schemas"]["UserRef"];
+            /** Format: date-time */
+            createdAt: string;
+            /** @description Ausente mientras QA no lo revise. */
+            review?: {
+                result: components["schemas"]["DiagnosticResult"];
+                notes: string;
+                reviewedBy: components["schemas"]["UserRef"];
+                /** Format: date-time */
+                reviewedAt: string;
+            };
+        };
+        SmokeTestInput: {
+            /** @description Código del DEP de un PKG en producción */
+            deployment: components["schemas"]["Code"];
+            /** @enum {string} */
+            result: "passed" | "failed";
+            notes?: string;
+        };
+        SmokeTest: {
+            code: components["schemas"]["Code"];
+            package: components["schemas"]["CodeTitle"];
+            deployment: components["schemas"]["DeploymentRef"];
+            /** @enum {string} */
+            result: "passed" | "failed";
+            notes: string;
+            executedBy: components["schemas"]["UserRef"];
+            /** Format: date-time */
+            createdAt: string;
+        };
+        Report: {
+            code: components["schemas"]["Code"];
+            package: components["schemas"]["CodeTitle"];
+            version: number;
+            /** @description El informe al que reemplaza. Ausente en la primera versión. */
+            previous?: components["schemas"]["Code"];
+            /** @description El informe que lo reemplazó. Ausente en la versión vigente. */
+            supersededBy?: components["schemas"]["Code"];
+            checksum: components["schemas"]["Checksum"];
+            issuedBy: components["schemas"]["UserRef"];
+            /** Format: date-time */
+            createdAt: string;
+            /** @description El Markdown tal como se emitió. Solo viene en la ficha. */
+            content?: string;
+        };
+        MilestoneInput: {
+            title: string;
+            /** Format: date */
+            dueDate: string;
+            /** @description Id del usuario responsable. Vacío si nadie lo tiene. */
+            owner?: string;
+            notes?: string;
+        };
+        MilestonePatch: {
+            title?: string;
+            /** Format: date */
+            dueDate?: string;
+            /** @description Id del usuario responsable. Vacío lo deja sin responsable. */
+            owner?: string;
+            notes?: string;
+            completed?: boolean;
+        };
+        Milestone: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            /** Format: date */
+            dueDate: string;
+            notes: string;
+            owner?: components["schemas"]["UserRef"];
+            completed: boolean;
+            /** Format: date-time */
+            completedAt?: string;
+            /** @description Días de atraso de un hito pendiente; cero si no está atrasado o ya se cumplió. */
+            daysLate: number;
+            createdBy: components["schemas"]["UserRef"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        Calendar: {
+            /** @description Ventanas de los CHG vigentes, por fecha de inicio. */
+            windows: {
+                change: components["schemas"]["CodeTitle"];
+                system: string;
+                route: components["schemas"]["Route"];
+                state: components["schemas"]["StateRef"];
+                /** Format: date-time */
+                start: string;
+                /** Format: date-time */
+                end: string;
+                /** @description Días desde que terminó la ventana sin que el CHG esté liberado; cero si no hay atraso. */
+                daysLate: number;
+            }[];
+            /** @description Lo atrasado, lo más atrasado primero. */
+            alerts: {
+                /** @enum {string} */
+                kind: "milestone" | "change_window";
+                title: string;
+                /** @description El CHG, si la alerta es de una ventana. */
+                change?: components["schemas"]["Code"];
+                /**
+                 * Format: uuid
+                 * @description El hito, si la alerta es de un hito.
+                 */
+                milestone?: string;
+                /** Format: date-time */
+                dueAt: string;
+                daysLate: number;
             }[];
         };
         /** @enum {string} */
@@ -2055,7 +2557,7 @@ export interface components {
         };
         SearchHit: {
             /** @enum {string} */
-            type: "requirement" | "change" | "risk_assessment" | "functional_case" | "test_case" | "test_run" | "exploratory_session" | "defect" | "document" | "component" | "build" | "package" | "environment" | "deployment";
+            type: "requirement" | "change" | "risk_assessment" | "functional_case" | "test_case" | "test_run" | "exploratory_session" | "defect" | "document" | "component" | "build" | "package" | "environment" | "deployment" | "checklist" | "diagnostic" | "smoke_test" | "report";
             code: components["schemas"]["Code"];
             title: string;
             state?: components["schemas"]["StateRef"];
@@ -2150,6 +2652,8 @@ export interface components {
                 owner?: string;
                 /** @description Los PKG que incluyen el REQ. */
                 packages: components["schemas"]["Code"][];
+                /** @description El informe de conformidad vigente de cada uno de esos PKG. */
+                reports: components["schemas"]["Code"][];
                 functionalCases: components["schemas"]["Code"][];
                 testCase?: components["schemas"]["TestCaseSummary"];
                 /** @description Los DEF reproducidos en un RUN de ese TC. */
@@ -2207,6 +2711,8 @@ export interface components {
         MatrixPackage: components["schemas"]["Code"];
         /** @description Código de un COMP que toca el REQ */
         MatrixComponent: components["schemas"]["Code"];
+        /** @description Código del PKG */
+        PackageFilter: components["schemas"]["Code"];
         /** @description REQ creados desde esta fecha */
         MatrixFrom: string;
         /** @description REQ creados hasta esta fecha */
@@ -4623,6 +5129,547 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Regression"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listChecklistTemplates: {
+        parameters: {
+            query?: {
+                /** @description Clave del sistema (`SIMF`, `SGLPAR`, `SYPAGO`) */
+                system?: components["parameters"]["SystemKey"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Versiones de la plantilla */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["ChecklistTemplate"][];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    publishChecklistTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChecklistTemplateInput"];
+            };
+        };
+        responses: {
+            /** @description Versión publicada */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChecklistTemplate"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listChecklists: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                size?: components["parameters"]["Size"];
+                /** @description Código del PKG */
+                package?: components["parameters"]["PackageFilter"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Página de CHK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageInfo"] & {
+                        items: components["schemas"]["Checklist"][];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    startChecklist: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChecklistInput"];
+            };
+        };
+        responses: {
+            /** @description CHK abierto */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Checklist"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getChecklist: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CHK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Checklist"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    signChecklistStep: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+                position: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    comment?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description CHK con el paso firmado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Checklist"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listDiagnostics: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                size?: components["parameters"]["Size"];
+                /** @description Código del PKG */
+                package?: components["parameters"]["PackageFilter"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Página de DIAG */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageInfo"] & {
+                        items: components["schemas"]["Diagnostic"][];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    submitDiagnostic: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DiagnosticInput"];
+            };
+        };
+        responses: {
+            /** @description DIAG entregado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Diagnostic"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getDiagnostic: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description DIAG */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Diagnostic"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    reviewDiagnostic: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DiagnosticReviewInput"];
+            };
+        };
+        responses: {
+            /** @description DIAG revisado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Diagnostic"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listSmokeTests: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                size?: components["parameters"]["Size"];
+                /** @description Código del PKG */
+                package?: components["parameters"]["PackageFilter"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Página de SMOKE */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageInfo"] & {
+                        items: components["schemas"]["SmokeTest"][];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    registerSmokeTest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmokeTestInput"];
+            };
+        };
+        responses: {
+            /** @description SMOKE registrado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmokeTest"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getSmokeTest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description SMOKE */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmokeTest"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listReports: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                size?: components["parameters"]["Size"];
+                /** @description Código del PKG */
+                package?: components["parameters"]["PackageFilter"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Página de RPT, sin su contenido */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageInfo"] & {
+                        items: components["schemas"]["Report"][];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    issueReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    package: components["schemas"]["Code"];
+                };
+            };
+        };
+        responses: {
+            /** @description RPT emitido */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Report"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description RPT */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Report"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    exportReport: {
+        parameters: {
+            query: {
+                format: "markdown" | "pdf";
+            };
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Archivo */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/markdown": string;
+                    "application/pdf": string;
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listMilestones: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                size?: components["parameters"]["Size"];
+                /** @description Sin valor devuelve todos. */
+                status?: "pending" | "completed";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Página de hitos */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageInfo"] & {
+                        items: components["schemas"]["Milestone"][];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    createMilestone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MilestoneInput"];
+            };
+        };
+        responses: {
+            /** @description Hito registrado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Milestone"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    updateMilestone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MilestonePatch"];
+            };
+        };
+        responses: {
+            /** @description Hito actualizado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Milestone"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getCalendar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Calendario */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Calendar"];
                 };
             };
             default: components["responses"]["Problem"];

@@ -68,6 +68,10 @@ type Facts interface {
 	OpenDefects(ctx context.Context, requirementCodes []string) ([]domain.DefectFact, error)
 	// DeployedToProduction dice si el PKG tiene un despliegue exitoso en un ambiente de producción.
 	DeployedToProduction(ctx context.Context, packageCode shared.Code) (bool, error)
+	// Production dice cómo están el último checklist, el último DIAG y el último SMOKE del PKG.
+	Production(ctx context.Context, packageCode shared.Code) (domain.ProductionFact, error)
+	// Routes devuelve la ruta de cada uno de esos REQ: la de su CHG o, si no tiene, la de su sistema.
+	Routes(ctx context.Context, requirementCodes []string) ([]string, error)
 }
 
 // Transition es una transición del flujo del PKG con sus reglas activas.

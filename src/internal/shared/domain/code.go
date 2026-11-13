@@ -25,6 +25,10 @@ const (
 	PrefixPackage        = "PKG"
 	PrefixEnvironment    = "ENV"
 	PrefixDeployment     = "DEP"
+	PrefixChecklist      = "CHK"
+	PrefixDiagnostic     = "DIAG"
+	PrefixSmokeTest      = "SMOKE"
+	PrefixReport         = "RPT"
 )
 
 // Code es el ID legible e inmutable de una entidad: prefijo, año y secuencia (REQ-2026-0042).

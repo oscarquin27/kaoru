@@ -32,6 +32,8 @@ Los usuarios son locales de Keycloak. La consola de administración **no está p
 
 Entra con el administrador de `.env`, elige el realm `kaoru`, crea cada usuario con nombre, apellido y contraseña, y asígnale uno de los roles: `change-manager`, `qa-admin`, `qa`, `dev`, `ops` o `auditor`. El procedimiento de acceso de emergencia está en [keycloak.md](keycloak.md).
 
+Antes del primer pase a producción, change management publica la **plantilla del checklist** de cada sistema en *Producción → Plantillas*: la instalación no trae pasos, y sin plantilla no se abre ningún checklist.
+
 ## Actualizar
 
 Descomprime el paquete nuevo sobre la carpeta (conserva tu `.env` y tu `tls/`) y ejecuta `./install.sh` otra vez. Los datos viven en volúmenes de Docker y no se tocan; las migraciones nuevas se aplican al arrancar. Haz un [respaldo](respaldo.md) antes.

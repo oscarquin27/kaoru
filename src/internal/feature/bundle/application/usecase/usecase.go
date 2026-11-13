@@ -94,6 +94,8 @@ type TransitionReadiness struct {
 // PackageOutput es un PKG tal como lo devuelven los casos de uso.
 type PackageOutput struct {
 	Package domain.Snapshot
+	// Route es la ruta del PKG: la más exigente de las de sus REQ. En la lista va vacía, como Missing.
+	Route string
 	// Missing es «qué falta para avanzar», por cada transición que sale del estado actual.
 	// En la lista va vacío: se calcula solo en la ficha.
 	Missing []TransitionReadiness
@@ -146,6 +148,14 @@ func gatherFacts(ctx context.Context, d Deps, pkg domain.Package) (domain.Facts,
 	if facts.DeployedToProduction, err = d.Facts.DeployedToProduction(ctx, s.Code); err != nil {
 		return domain.Facts{}, err
 	}
+	if facts.Production, err = d.Facts.Production(ctx, s.Code); err != nil {
+		return domain.Facts{}, err
+	}
+	routes, err := d.Facts.Routes(ctx, codes)
+	if err != nil {
+		return domain.Facts{}, err
+	}
+	facts.Route = domain.MostDemandingRoute(routes, s.System.DefaultRoute)
 	return facts, nil
 }
 
@@ -164,7 +174,7 @@ func readPackage(ctx context.Context, d Deps, raw string) (PackageOutput, error)
 	if err != nil {
 		return PackageOutput{}, err
 	}
-	out := PackageOutput{Package: s, Missing: make([]TransitionReadiness, len(transitions))}
+	out := PackageOutput{Package: s, Route: facts.Route, Missing: make([]TransitionReadiness, len(transitions))}
 	for i, t := range transitions {
 		out.Missing[i] = TransitionReadiness{To: t.To, Conditions: domain.Unmet(t.Rules, facts)}
 	}

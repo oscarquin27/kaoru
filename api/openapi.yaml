@@ -3,7 +3,7 @@ info:
   title: Kaoru API
   version: 0.1.0
   description: |
-    Contrato HTTP entre `kaoru-api` y el front (reglas §A.16.1). Cubre el MVP (fase 2).
+    Contrato HTTP entre `kaoru-api` y el front (reglas §A.16.1). Cubre el MVP y las fases 3 y 4.
 
     - Todo vive bajo `/api/`, sin versión.
     - La sesión es la cookie de oauth2-proxy; el navegador no maneja tokens.
@@ -50,6 +50,12 @@ tags:
     description: Paquetes (PKG)
   - name: regression
     description: Selección de regresión por impacto
+  - name: production
+    description: Checklist de producción con firmas (CHK), diagnóstico (DIAG) y prueba de humo (SMOKE)
+  - name: report
+    description: Informe de conformidad (RPT)
+  - name: planning
+    description: Hitos, ventanas de cambio y alertas de atraso
   - name: savedview
     description: Vistas guardadas (filtros de una lista con nombre, personales)
   - name: traceability
@@ -1892,6 +1898,438 @@ paths:
               schema: { $ref: '#/components/schemas/Regression' }
         default: { $ref: '#/components/responses/Problem' }
 
+  /api/checklist-templates:
+    get:
+      tags: [production]
+      operationId: listChecklistTemplates
+      summary: Versiones de la plantilla del checklist de producción, la más reciente primero
+      parameters:
+        - $ref: '#/components/parameters/SystemKey'
+      responses:
+        '200':
+          description: Versiones de la plantilla
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/ChecklistTemplate' }
+        default: { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [production]
+      operationId: publishChecklistTemplate
+      summary: Publica una versión nueva de la plantilla del checklist de un sistema
+      description: >-
+        Exige `chk.manage_template`. Una versión publicada no se edita: los checklists ya abiertos
+        conservan la suya.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChecklistTemplateInput' }
+      responses:
+        '201':
+          description: Versión publicada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChecklistTemplate' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/checklists:
+    get:
+      tags: [production]
+      operationId: listChecklists
+      summary: Checklists de producción, del más reciente al más antiguo
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/PackageFilter'
+      responses:
+        '200':
+          description: Página de CHK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageInfo'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/Checklist' }
+        default: { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [production]
+      operationId: startChecklist
+      summary: Abre el checklist de producción de un PKG con la última versión de la plantilla de su sistema
+      description: Exige `chk.start`. El ambiente debe ser de producción y del sistema del PKG.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChecklistInput' }
+      responses:
+        '201':
+          description: CHK abierto
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Checklist' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/checklists/{code}:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    get:
+      tags: [production]
+      operationId: getChecklist
+      summary: Ficha de un checklist con sus pasos y firmas
+      responses:
+        '200':
+          description: CHK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Checklist' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/checklists/{code}/steps/{position}/signature:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+      - name: position
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1 }
+    post:
+      tags: [production]
+      operationId: signChecklistStep
+      summary: Firma un paso del checklist
+      description: >-
+        Exige `chk.sign`. La firma es el usuario de la sesión, la fecha del servidor y el comentario;
+        un paso se firma una sola vez y no se desfirma (reglas §A.13).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment: { type: string }
+      responses:
+        '200':
+          description: CHK con el paso firmado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Checklist' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/diagnostics:
+    get:
+      tags: [production]
+      operationId: listDiagnostics
+      summary: Diagnósticos posteriores al despliegue, del más reciente al más antiguo
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/PackageFilter'
+      responses:
+        '200':
+          description: Página de DIAG
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageInfo'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/Diagnostic' }
+        default: { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [production]
+      operationId: submitDiagnostic
+      summary: Entrega el diagnóstico posterior a un despliegue de un PKG en producción
+      description: Exige `diag.submit` (dev u ops, regla de negocio 7). Su salida se adjunta como DOC.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DiagnosticInput' }
+      responses:
+        '201':
+          description: DIAG entregado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Diagnostic' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/diagnostics/{code}:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    get:
+      tags: [production]
+      operationId: getDiagnostic
+      summary: Ficha de un diagnóstico
+      responses:
+        '200':
+          description: DIAG
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Diagnostic' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/diagnostics/{code}/review:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    post:
+      tags: [production]
+      operationId: reviewDiagnostic
+      summary: Revisa un diagnóstico y marca su resultado
+      description: Exige `diag.review` (QA, regla de negocio 7). Un DIAG se revisa una sola vez.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DiagnosticReviewInput' }
+      responses:
+        '200':
+          description: DIAG revisado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Diagnostic' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/smoke-tests:
+    get:
+      tags: [production]
+      operationId: listSmokeTests
+      summary: Pruebas de humo posteriores al despliegue, de la más reciente a la más antigua
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/PackageFilter'
+      responses:
+        '200':
+          description: Página de SMOKE
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageInfo'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/SmokeTest' }
+        default: { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [production]
+      operationId: registerSmokeTest
+      summary: Registra la prueba de humo posterior a un despliegue de un PKG en producción
+      description: Exige `smoke.create` (QA, regla de negocio 7). No se edita ni se borra.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SmokeTestInput' }
+      responses:
+        '201':
+          description: SMOKE registrado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SmokeTest' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/smoke-tests/{code}:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    get:
+      tags: [production]
+      operationId: getSmokeTest
+      summary: Ficha de una prueba de humo
+      responses:
+        '200':
+          description: SMOKE
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SmokeTest' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/reports:
+    get:
+      tags: [report]
+      operationId: listReports
+      summary: Informes de conformidad, del más reciente al más antiguo
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/PackageFilter'
+      responses:
+        '200':
+          description: Página de RPT, sin su contenido
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageInfo'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/Report' }
+        default: { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [report]
+      operationId: issueReport
+      summary: Emite el informe de conformidad de un PKG con lo que hay en ese momento
+      description: >-
+        Exige `rpt.issue`. Un informe emitido no cambia (regla de negocio 11): si el PKG ya tiene uno,
+        se emite la versión siguiente, que referencia a la anterior.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [package]
+              properties:
+                package: { $ref: '#/components/schemas/Code' }
+      responses:
+        '201':
+          description: RPT emitido
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Report' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/reports/{code}:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    get:
+      tags: [report]
+      operationId: getReport
+      summary: Ficha de un informe con su contenido en Markdown
+      responses:
+        '200':
+          description: RPT
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Report' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/reports/{code}/export:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    get:
+      tags: [report]
+      operationId: exportReport
+      summary: Descarga el informe en Markdown o en PDF
+      description: >-
+        El Markdown es el contenido tal como se emitió: su SHA-256 es el hash del informe.
+        El PDF se genera de ese mismo contenido, sin salir del servidor, y lleva el hash en el pie.
+      parameters:
+        - name: format
+          in: query
+          required: true
+          schema: { type: string, enum: [markdown, pdf] }
+      responses:
+        '200':
+          description: Archivo
+          content:
+            text/markdown:
+              schema: { type: string }
+            application/pdf:
+              schema: { type: string, format: binary }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/milestones:
+    get:
+      tags: [planning]
+      operationId: listMilestones
+      summary: Hitos del calendario, por fecha
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - name: status
+          in: query
+          description: Sin valor devuelve todos.
+          schema: { type: string, enum: [pending, completed] }
+      responses:
+        '200':
+          description: Página de hitos
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageInfo'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/Milestone' }
+        default: { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [planning]
+      operationId: createMilestone
+      summary: Registra un hito
+      description: Exige `milestone.manage`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MilestoneInput' }
+      responses:
+        '201':
+          description: Hito registrado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Milestone' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/milestones/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    patch:
+      tags: [planning]
+      operationId: updateMilestone
+      summary: Edita un hito, lo marca cumplido o lo vuelve a dejar pendiente
+      description: Exige `milestone.manage`. Un hito no se borra.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MilestonePatch' }
+      responses:
+        '200':
+          description: Hito actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Milestone' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/calendar:
+    get:
+      tags: [planning]
+      operationId: getCalendar
+      summary: Ventanas de cambio vigentes y alertas de atraso
+      description: >-
+        Las ventanas se leen de los CHG que no están cerrados ni rechazados. El atraso se calcula al leer:
+        un hito pendiente con la fecha vencida, o un CHG cuya ventana terminó sin estar liberado.
+      responses:
+        '200':
+          description: Calendario
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Calendar' }
+        default: { $ref: '#/components/responses/Problem' }
+
   /api/saved-views:
     get:
       tags: [savedview]
@@ -2209,6 +2647,11 @@ components:
       in: query
       description: Código de un COMP que toca el REQ
       schema: { $ref: '#/components/schemas/Code' }
+    PackageFilter:
+      name: package
+      in: query
+      description: Código del PKG
+      schema: { $ref: '#/components/schemas/Code' }
     MatrixFrom:
       name: from
       in: query
@@ -2275,7 +2718,7 @@ components:
         - portability
     EntityType:
       type: string
-      enum: [requirement, change, functional_case, test_case, test_run, exploratory_session, defect, package, deployment]
+      enum: [requirement, change, functional_case, test_case, test_run, exploratory_session, defect, package, deployment, checklist, diagnostic, smoke_test]
     DocumentKind:
       type: string
       enum: [specification, manual, evidence, minutes, snapshot, other]
@@ -2553,6 +2996,12 @@ components:
         description: { type: string }
         system: { $ref: '#/components/schemas/System' }
         state: { $ref: '#/components/schemas/StateRef' }
+        route:
+          allOf:
+            - $ref: '#/components/schemas/Route'
+          description: >-
+            La ruta más exigente de las de sus REQ; sin REQ, la del sistema. Decide qué reglas de
+            bloqueo aplican. Solo viene en la ficha.
         builds:
           type: array
           items: { $ref: '#/components/schemas/BuildRef' }
@@ -2638,6 +3087,250 @@ components:
                 allOf:
                   - $ref: '#/components/schemas/RunSummary'
                 description: Último RUN del TC sobre un BUILD del PKG.
+
+    ChecklistStepInput:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        description: { type: string }
+    ChecklistTemplateInput:
+      type: object
+      required: [system, steps]
+      properties:
+        system:
+          type: string
+          description: Clave del sistema
+        steps:
+          type: array
+          minItems: 1
+          description: En el orden en que se ejecutan.
+          items: { $ref: '#/components/schemas/ChecklistStepInput' }
+    ChecklistTemplate:
+      type: object
+      required: [system, version, steps, createdBy, createdAt]
+      properties:
+        system: { $ref: '#/components/schemas/System' }
+        version: { type: integer, minimum: 1 }
+        steps:
+          type: array
+          items:
+            type: object
+            required: [position, title, description]
+            properties:
+              position: { type: integer, minimum: 1 }
+              title: { type: string }
+              description: { type: string }
+        createdBy: { $ref: '#/components/schemas/UserRef' }
+        createdAt: { type: string, format: date-time }
+    ChecklistInput:
+      type: object
+      required: [package, environment]
+      properties:
+        package: { $ref: '#/components/schemas/Code' }
+        environment:
+          allOf:
+            - $ref: '#/components/schemas/Code'
+          description: Código del ENV de producción
+    Checklist:
+      type: object
+      required: [code, package, environment, templateVersion, steps, signedSteps, complete, startedBy, createdAt]
+      properties:
+        code: { $ref: '#/components/schemas/Code' }
+        package: { $ref: '#/components/schemas/CodeTitle' }
+        environment: { $ref: '#/components/schemas/EnvironmentRef' }
+        templateVersion:
+          type: integer
+          description: Versión de la plantilla con la que se abrió.
+        steps:
+          type: array
+          items:
+            type: object
+            required: [position, title, description]
+            properties:
+              position: { type: integer, minimum: 1 }
+              title: { type: string }
+              description: { type: string }
+              signature:
+                type: object
+                description: Ausente mientras el paso no esté firmado.
+                required: [signedBy, signedAt, comment]
+                properties:
+                  signedBy: { $ref: '#/components/schemas/UserRef' }
+                  signedAt: { type: string, format: date-time }
+                  comment: { type: string }
+        signedSteps: { type: integer }
+        complete:
+          type: boolean
+          description: Todos los pasos están firmados.
+        startedBy: { $ref: '#/components/schemas/UserRef' }
+        createdAt: { type: string, format: date-time }
+
+    DeploymentRef:
+      type: object
+      required: [code, environment, executedAt]
+      properties:
+        code: { $ref: '#/components/schemas/Code' }
+        environment: { $ref: '#/components/schemas/EnvironmentRef' }
+        executedAt: { type: string, format: date-time }
+    DiagnosticResult:
+      type: string
+      description: "`conforming` conforme, `non_conforming` no conforme."
+      enum: [conforming, non_conforming]
+    DiagnosticInput:
+      type: object
+      required: [deployment]
+      properties:
+        deployment:
+          allOf:
+            - $ref: '#/components/schemas/Code'
+          description: Código del DEP de un PKG en producción
+        notes: { type: string }
+    DiagnosticReviewInput:
+      type: object
+      required: [result]
+      properties:
+        result: { $ref: '#/components/schemas/DiagnosticResult' }
+        notes: { type: string }
+    Diagnostic:
+      type: object
+      required: [code, package, deployment, notes, submittedBy, createdAt]
+      properties:
+        code: { $ref: '#/components/schemas/Code' }
+        package: { $ref: '#/components/schemas/CodeTitle' }
+        deployment: { $ref: '#/components/schemas/DeploymentRef' }
+        notes: { type: string }
+        submittedBy: { $ref: '#/components/schemas/UserRef' }
+        createdAt: { type: string, format: date-time }
+        review:
+          type: object
+          description: Ausente mientras QA no lo revise.
+          required: [result, notes, reviewedBy, reviewedAt]
+          properties:
+            result: { $ref: '#/components/schemas/DiagnosticResult' }
+            notes: { type: string }
+            reviewedBy: { $ref: '#/components/schemas/UserRef' }
+            reviewedAt: { type: string, format: date-time }
+    SmokeTestInput:
+      type: object
+      required: [deployment, result]
+      properties:
+        deployment:
+          allOf:
+            - $ref: '#/components/schemas/Code'
+          description: Código del DEP de un PKG en producción
+        result: { type: string, enum: [passed, failed] }
+        notes: { type: string }
+    SmokeTest:
+      type: object
+      required: [code, package, deployment, result, notes, executedBy, createdAt]
+      properties:
+        code: { $ref: '#/components/schemas/Code' }
+        package: { $ref: '#/components/schemas/CodeTitle' }
+        deployment: { $ref: '#/components/schemas/DeploymentRef' }
+        result: { type: string, enum: [passed, failed] }
+        notes: { type: string }
+        executedBy: { $ref: '#/components/schemas/UserRef' }
+        createdAt: { type: string, format: date-time }
+
+    Report:
+      type: object
+      required: [code, package, version, checksum, issuedBy, createdAt]
+      properties:
+        code: { $ref: '#/components/schemas/Code' }
+        package: { $ref: '#/components/schemas/CodeTitle' }
+        version: { type: integer, minimum: 1 }
+        previous:
+          allOf:
+            - $ref: '#/components/schemas/Code'
+          description: El informe al que reemplaza. Ausente en la primera versión.
+        supersededBy:
+          allOf:
+            - $ref: '#/components/schemas/Code'
+          description: El informe que lo reemplazó. Ausente en la versión vigente.
+        checksum: { $ref: '#/components/schemas/Checksum' }
+        issuedBy: { $ref: '#/components/schemas/UserRef' }
+        createdAt: { type: string, format: date-time }
+        content:
+          type: string
+          description: El Markdown tal como se emitió. Solo viene en la ficha.
+
+    MilestoneInput:
+      type: object
+      required: [title, dueDate]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        dueDate: { type: string, format: date }
+        owner:
+          type: string
+          description: Id del usuario responsable. Vacío si nadie lo tiene.
+        notes: { type: string }
+    MilestonePatch:
+      type: object
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        dueDate: { type: string, format: date }
+        owner:
+          type: string
+          description: Id del usuario responsable. Vacío lo deja sin responsable.
+        notes: { type: string }
+        completed: { type: boolean }
+    Milestone:
+      type: object
+      required: [id, title, dueDate, notes, completed, daysLate, createdBy, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        dueDate: { type: string, format: date }
+        notes: { type: string }
+        owner: { $ref: '#/components/schemas/UserRef' }
+        completed: { type: boolean }
+        completedAt: { type: string, format: date-time }
+        daysLate:
+          type: integer
+          description: Días de atraso de un hito pendiente; cero si no está atrasado o ya se cumplió.
+        createdBy: { $ref: '#/components/schemas/UserRef' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    Calendar:
+      type: object
+      required: [windows, alerts]
+      properties:
+        windows:
+          type: array
+          description: Ventanas de los CHG vigentes, por fecha de inicio.
+          items:
+            type: object
+            required: [change, system, route, state, start, end, daysLate]
+            properties:
+              change: { $ref: '#/components/schemas/CodeTitle' }
+              system: { type: string }
+              route: { $ref: '#/components/schemas/Route' }
+              state: { $ref: '#/components/schemas/StateRef' }
+              start: { type: string, format: date-time }
+              end: { type: string, format: date-time }
+              daysLate:
+                type: integer
+                description: Días desde que terminó la ventana sin que el CHG esté liberado; cero si no hay atraso.
+        alerts:
+          type: array
+          description: Lo atrasado, lo más atrasado primero.
+          items:
+            type: object
+            required: [kind, title, dueAt, daysLate]
+            properties:
+              kind: { type: string, enum: [milestone, change_window] }
+              title: { type: string }
+              change:
+                allOf:
+                  - $ref: '#/components/schemas/Code'
+                description: El CHG, si la alerta es de una ventana.
+              milestone:
+                type: string
+                format: uuid
+                description: El hito, si la alerta es de un hito.
+              dueAt: { type: string, format: date-time }
+              daysLate: { type: integer, minimum: 1 }
 
     SavedViewScreen:
       type: string
@@ -3167,7 +3860,7 @@ components:
       properties:
         type:
           type: string
-          enum: [requirement, change, risk_assessment, functional_case, test_case, test_run, exploratory_session, defect, document, component, build, package, environment, deployment]
+          enum: [requirement, change, risk_assessment, functional_case, test_case, test_run, exploratory_session, defect, document, component, build, package, environment, deployment, checklist, diagnostic, smoke_test, report]
         code: { $ref: '#/components/schemas/Code' }
         title: { type: string }
         state: { $ref: '#/components/schemas/StateRef' }
@@ -3299,7 +3992,7 @@ components:
               description: Una fila por REQ y TC. Un REQ sin TC aparece en una fila sin `testCase`.
               items:
                 type: object
-                required: [requirement, system, state, packages, functionalCases, defects]
+                required: [requirement, system, state, packages, reports, functionalCases, defects]
                 properties:
                   requirement: { $ref: '#/components/schemas/CodeTitle' }
                   system: { type: string }
@@ -3311,6 +4004,10 @@ components:
                   packages:
                     type: array
                     description: Los PKG que incluyen el REQ.
+                    items: { $ref: '#/components/schemas/Code' }
+                  reports:
+                    type: array
+                    description: El informe de conformidad vigente de cada uno de esos PKG.
                     items: { $ref: '#/components/schemas/Code' }
                   functionalCases:
                     type: array

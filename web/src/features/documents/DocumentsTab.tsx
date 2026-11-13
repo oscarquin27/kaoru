@@ -10,7 +10,7 @@ import { Dialog } from '../../shared/ui/Modal.tsx'
 import { type DocumentOwner, useEntityDocuments } from './api.ts'
 import { UploadForm } from './UploadForm.tsx'
 
-const NOUNS: Record<DocumentOwner, string> = { requirement: 'requerimiento', package: 'paquete' }
+const NOUNS: Record<DocumentOwner, string> = { requirement: 'requerimiento', package: 'paquete', checklist: 'checklist', diagnostic: 'diagnóstico', smoke_test: 'registro de prueba de humo' }
 
 export function DocumentsTab({ entityType, entityCode, canUpload }: { entityType: DocumentOwner; entityCode: string; canUpload: boolean }) {
   const documents = useEntityDocuments(entityType, entityCode)

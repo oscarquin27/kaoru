@@ -291,6 +291,13 @@ SELECT r.code AS requirement_code, r.title AS requirement_title, s.key AS system
                       JOIN package_requirement pr ON pr.package_id = p.id
              WHERE pr.requirement_id = r.id
              ORDER BY p.code)::text[] AS packages,
+       -- El RPT vigente de cada PKG del REQ: el que ninguna versión posterior reemplazó.
+       ARRAY(SELECT cr.code
+             FROM conformance_report cr
+                      JOIN package_requirement pr ON pr.package_id = cr.package_id
+             WHERE pr.requirement_id = r.id
+               AND NOT EXISTS (SELECT 1 FROM conformance_report n WHERE n.previous_id = cr.id)
+             ORDER BY cr.code)::text[] AS reports,
        ARRAY(SELECT f.code
              FROM functional_case f
                       JOIN test_case_functional_case l ON l.functional_case_id = f.id
@@ -374,6 +381,7 @@ type ListMatrixRow struct {
 	RunEnvironmentName string
 	RunExecutedAt      string
 	Packages           []string
+	Reports            []string
 	FunctionalCases    []string
 	Defects            []byte
 }
@@ -420,6 +428,219 @@ func (q *Queries) ListMatrix(ctx context.Context, arg ListMatrixParams) ([]ListM
 			&i.RunEnvironmentName,
 			&i.RunExecutedAt,
 			&i.Packages,
+			&i.Reports,
+			&i.FunctionalCases,
+			&i.Defects,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPackageDefects = `-- name: ListPackageDefects :many
+SELECT d.code, d.title, d.severity, st.key AS state_key, st.name AS state_name, r.code AS requirement_code,
+       coalesce(dv.actor_name, '') AS deferred_by_name,
+       coalesce(to_char(dv.occurred_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'), '')::text AS deferred_at, coalesce(dv.reason, '') AS deferred_reason
+FROM package p
+         JOIN package_requirement pr ON pr.package_id = p.id
+         JOIN requirement r ON r.id = pr.requirement_id
+         JOIN defect d ON d.requirement_id = r.id
+         JOIN workflow_state st ON st.id = d.state_id
+         LEFT JOIN LATERAL (SELECT u.display_name AS actor_name, a.occurred_at, a.reason
+                            FROM audit_entry a
+                                     JOIN app_user u ON u.id = a.actor_id
+                            WHERE a.entity_id = d.id
+                              AND a.action = 'transition'
+                              AND a.new_value = 'deferred'
+                            ORDER BY a.seq DESC
+                            LIMIT 1) dv ON st.key = 'deferred'
+WHERE p.code = $1
+  AND NOT st.is_final
+ORDER BY CASE d.severity WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END, d.code
+`
+
+type ListPackageDefectsRow struct {
+	Code            string
+	Title           string
+	Severity        string
+	StateKey        string
+	StateName       string
+	RequirementCode string
+	DeferredByName  string
+	DeferredAt      string
+	DeferredReason  string
+}
+
+// Los DEF no cerrados de los REQ del PKG. Para los diferidos, quién los difirió, cuándo y por qué,
+// leído de la última transición a «Diferido» en la auditoría.
+func (q *Queries) ListPackageDefects(ctx context.Context, code string) ([]ListPackageDefectsRow, error) {
+	rows, err := q.db.Query(ctx, listPackageDefects, code)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListPackageDefectsRow
+	for rows.Next() {
+		var i ListPackageDefectsRow
+		if err := rows.Scan(
+			&i.Code,
+			&i.Title,
+			&i.Severity,
+			&i.StateKey,
+			&i.StateName,
+			&i.RequirementCode,
+			&i.DeferredByName,
+			&i.DeferredAt,
+			&i.DeferredReason,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPackageRuns = `-- name: ListPackageRuns :many
+SELECT x.code, t.code AS test_case_code, x.result, b.code AS build_code, x.build_version, x.environment_name,
+       x.executed_at, u.display_name AS executed_by_name
+FROM package p
+         JOIN package_build pb ON pb.package_id = p.id
+         JOIN build b ON b.id = pb.build_id
+         JOIN test_run x ON x.build_id = b.id
+         JOIN test_case t ON t.id = x.test_case_id
+         JOIN app_user u ON u.id = x.executed_by
+WHERE p.code = $1
+ORDER BY x.executed_at, x.code
+`
+
+type ListPackageRunsRow struct {
+	Code            string
+	TestCaseCode    string
+	Result          string
+	BuildCode       string
+	BuildVersion    string
+	EnvironmentName string
+	ExecutedAt      time.Time
+	ExecutedByName  string
+}
+
+// Todos los RUN sobre un BUILD del PKG, en el orden en que se ejecutaron.
+func (q *Queries) ListPackageRuns(ctx context.Context, code string) ([]ListPackageRunsRow, error) {
+	rows, err := q.db.Query(ctx, listPackageRuns, code)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListPackageRunsRow
+	for rows.Next() {
+		var i ListPackageRunsRow
+		if err := rows.Scan(
+			&i.Code,
+			&i.TestCaseCode,
+			&i.Result,
+			&i.BuildCode,
+			&i.BuildVersion,
+			&i.EnvironmentName,
+			&i.ExecutedAt,
+			&i.ExecutedByName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPackageTrace = `-- name: ListPackageTrace :many
+SELECT r.code AS requirement_code, r.title AS requirement_title, st.name AS state_name,
+       coalesce(c.code, '') AS change_code, coalesce(c.route, s.default_route) AS route,
+       coalesce(ra.code, '') AS risk_code, coalesce(ra.level, '') AS risk_level,
+       coalesce(t.code, '') AS test_case_code, coalesce(t.is_critical, false) AS test_case_critical,
+       coalesce(lr.code, '') AS run_code, coalesce(lr.result, '') AS run_result,
+       ARRAY(SELECT f.code
+             FROM functional_case f
+                      JOIN test_case_functional_case l ON l.functional_case_id = f.id
+             WHERE f.requirement_id = r.id
+               AND l.test_case_id = t.id
+             ORDER BY f.code)::text[] AS functional_cases,
+       ARRAY(SELECT d.code
+             FROM defect d
+                      JOIN test_run dr ON dr.id = d.test_run_id
+             WHERE d.requirement_id = r.id
+               AND dr.test_case_id = t.id
+             ORDER BY d.code)::text[] AS defects
+FROM package p
+         JOIN package_requirement pr ON pr.package_id = p.id
+         JOIN requirement r ON r.id = pr.requirement_id
+         JOIN system_under_test s ON s.id = r.system_id
+         JOIN workflow_state st ON st.id = r.state_id
+         LEFT JOIN change c ON c.id = r.change_id
+         LEFT JOIN risk_assessment ra ON ra.requirement_id = r.id
+         LEFT JOIN (SELECT DISTINCT f.requirement_id, l.test_case_id
+                    FROM functional_case f
+                             JOIN test_case_functional_case l ON l.functional_case_id = f.id) rt ON rt.requirement_id = r.id
+         LEFT JOIN test_case t ON t.id = rt.test_case_id
+         LEFT JOIN LATERAL (SELECT x.code, x.result
+                            FROM test_run x
+                                     JOIN package_build pb ON pb.build_id = x.build_id
+                            WHERE x.test_case_id = t.id
+                              AND pb.package_id = p.id
+                            ORDER BY x.executed_at DESC, x.created_at DESC, x.code DESC
+                            LIMIT 1) lr ON true
+WHERE p.code = $1
+ORDER BY r.code, t.code
+`
+
+type ListPackageTraceRow struct {
+	RequirementCode  string
+	RequirementTitle string
+	StateName        string
+	ChangeCode       string
+	Route            string
+	RiskCode         string
+	RiskLevel        string
+	TestCaseCode     string
+	TestCaseCritical bool
+	RunCode          string
+	RunResult        string
+	FunctionalCases  []string
+	Defects          []string
+}
+
+// La trazabilidad de un PKG para su informe: una fila por REQ del PKG y TC; un REQ sin TC aparece una vez.
+// El RUN es el último del TC sobre un BUILD del PKG: lo que se ejecutó sobre lo que se despliega.
+func (q *Queries) ListPackageTrace(ctx context.Context, code string) ([]ListPackageTraceRow, error) {
+	rows, err := q.db.Query(ctx, listPackageTrace, code)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListPackageTraceRow
+	for rows.Next() {
+		var i ListPackageTraceRow
+		if err := rows.Scan(
+			&i.RequirementCode,
+			&i.RequirementTitle,
+			&i.StateName,
+			&i.ChangeCode,
+			&i.Route,
+			&i.RiskCode,
+			&i.RiskLevel,
+			&i.TestCaseCode,
+			&i.TestCaseCritical,
+			&i.RunCode,
+			&i.RunResult,
 			&i.FunctionalCases,
 			&i.Defects,
 		); err != nil {
@@ -687,7 +908,25 @@ FROM (SELECT 'requirement' AS kind, r.code, r.title, st.key AS state_key, st.nam
       UNION ALL
       SELECT 'deployment', d.code, e.name, '', ''
       FROM deployment d
-               JOIN environment e ON e.id = d.environment_id) x
+               JOIN environment e ON e.id = d.environment_id
+      UNION ALL
+      SELECT 'checklist', k.code, p.title, '', ''
+      FROM checklist k
+               JOIN package p ON p.id = k.package_id
+      UNION ALL
+      SELECT 'diagnostic', g.code, coalesce(p.title, d.code), '', ''
+      FROM diagnostic g
+               JOIN deployment d ON d.id = g.deployment_id
+               LEFT JOIN package p ON p.id = d.package_id
+      UNION ALL
+      SELECT 'smoke_test', m.code, coalesce(p.title, d.code), '', ''
+      FROM smoke_test m
+               JOIN deployment d ON d.id = m.deployment_id
+               LEFT JOIN package p ON p.id = d.package_id
+      UNION ALL
+      SELECT 'report', cr.code, p.title, '', ''
+      FROM conformance_report cr
+               JOIN package p ON p.id = cr.package_id) x
 WHERE x.code = upper($1::text)
    OR x.code ILIKE $2::text || '%'
    OR x.title ILIKE '%' || $2::text || '%'

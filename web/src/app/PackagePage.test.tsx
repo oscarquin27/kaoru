@@ -3,7 +3,22 @@ import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import type { Package, Regression } from '../shared/api/types.ts'
-import { BUILD, BUILD_2, PACKAGE, PACKAGE_IN_TESTING, PACKAGE_WORKFLOW, REGRESSION, REGRESSION_CONFIRMED } from '../test-data.ts'
+import {
+  BUILD,
+  BUILD_2,
+  CHECKLIST,
+  DIAGNOSTIC,
+  PACKAGE,
+  PACKAGE_DEPLOYED,
+  PACKAGE_IN_TESTING,
+  PACKAGE_WORKFLOW,
+  PRODUCTION,
+  PRODUCTION_DEPLOYMENT,
+  REGRESSION,
+  REGRESSION_CONFIRMED,
+  REPORT,
+  REPORT_V1,
+} from '../test-data.ts'
 import { pageOf, problemResponse, renderApp, routes } from '../test-utils.tsx'
 
 const PATH = '/paquetes/PKG-2026-0001'
@@ -16,6 +31,7 @@ function api(bundle: Package, regression?: Regression, extra: Parameters<typeof 
     'GET /api/packages/PKG-2026-0001/regression': regression ?? notProposed,
     'GET /api/documents': { items: [] },
     'GET /api/builds': pageOf([BUILD, BUILD_2]),
+    'GET /api/reports': pageOf([]),
     ...extra,
   })
 }
@@ -234,5 +250,79 @@ describe('regresión del PKG', () => {
     const table = await screen.findByRole('table', { name: 'TC de la regresión' })
     expect(within(table).queryByRole('button', { name: /Quitar|Incluir/ })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Confirmar' })).toBeNull()
+  })
+})
+
+describe('producción del PKG', () => {
+  const TAB = `${PATH}#produccion`
+  const production = {
+    'GET /api/checklists': pageOf([CHECKLIST]),
+    'GET /api/diagnostics': pageOf([DIAGNOSTIC]),
+    'GET /api/smoke-tests': pageOf([]),
+    'GET /api/environments': pageOf([PRODUCTION]),
+    'GET /api/deployments': pageOf([PRODUCTION_DEPLOYMENT]),
+  }
+
+  it('la regla que falta lleva a la pestaña de producción, que explica qué exige la ruta', async () => {
+    const user = userEvent.setup()
+    renderApp(PATH, [], api(PACKAGE_DEPLOYED, undefined, production))
+
+    const missing = await screen.findByRole('region', { name: 'Qué falta para avanzar a «Verificado»' })
+    expect(screen.getByText('Alta')).toBeInTheDocument()
+    await user.click(within(missing).getByRole('link', { name: 'Ver diagnósticos' }))
+    expect(await screen.findByText(/Ruta alta: el PKG pasa a desplegado/)).toBeInTheDocument()
+    expect(within(screen.getByRole('table', { name: 'Checklists de producción' })).getByText('1 de 2 firmados')).toBeInTheDocument()
+    expect(within(screen.getByRole('table', { name: 'Diagnósticos' })).getByText('Sin revisar')).toBeInTheDocument()
+    expect(screen.getByText('El PKG no tiene pruebas de humo.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Abrir checklist' })).toBeNull()
+  })
+
+  it('cada acción sale con su permiso: abrir el CHK en producción y entregar un DIAG de un despliegue', async () => {
+    const user = userEvent.setup()
+    const calls = renderApp(TAB, ['chk.start', 'diag.submit'], api(PACKAGE_DEPLOYED, undefined, { ...production, 'POST /api/checklists': CHECKLIST, 'POST /api/diagnostics': DIAGNOSTIC }))
+
+    expect(await screen.findByRole('button', { name: 'Entregar DIAG' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Registrar SMOKE' })).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: 'Abrir checklist' }))
+    let dialog = screen.getByRole('dialog', { name: 'Abrir checklist de PKG-2026-0001' })
+    await user.selectOptions(within(dialog).getByRole('combobox', { name: 'Ambiente de producción' }), await within(dialog).findByRole('option', { name: /PROD/ }))
+    await user.click(within(dialog).getByRole('button', { name: 'Abrir CHK' }))
+    expect(calls.find((call) => call.url === '/api/checklists' && call.method === 'POST')?.body).toEqual({ package: 'PKG-2026-0001', environment: 'ENV-2026-0002' })
+
+    await user.click(await screen.findByRole('button', { name: 'Entregar DIAG' }))
+    dialog = screen.getByRole('dialog', { name: 'Entregar diagnóstico de PKG-2026-0001' })
+    await user.selectOptions(within(dialog).getByRole('combobox', { name: 'Despliegue' }), await within(dialog).findByRole('option', { name: /DEP-2026-0002/ }))
+    await user.type(within(dialog).getByRole('textbox', { name: 'Notas' }), 'Sin errores')
+    await user.click(within(dialog).getByRole('button', { name: 'Entregar DIAG' }))
+    expect(calls.find((call) => call.url === '/api/diagnostics' && call.method === 'POST')?.body).toEqual({ deployment: 'DEP-2026-0002', notes: 'Sin errores' })
+  })
+})
+
+describe('informes del PKG', () => {
+  const TAB = `${PATH}#informes`
+
+  it('lista las versiones y, con rpt.issue, emite otra y abre su ficha', async () => {
+    const user = userEvent.setup()
+    const calls = renderApp(
+      TAB,
+      ['rpt.issue'],
+      api(PACKAGE_DEPLOYED, undefined, { 'GET /api/reports': pageOf([REPORT, REPORT_V1]), 'POST /api/reports': REPORT, 'GET /api/reports/RPT-2026-0002': REPORT }),
+    )
+
+    const rows = within(await screen.findByRole('table', { name: 'Informes de conformidad' })).getAllByRole('row')
+    expect(rows[1]).toHaveTextContent('Vigente')
+    expect(rows[2]).toHaveTextContent('Reemplazado')
+    expect(within(rows[2]!).getByRole('link', { name: 'RPT-2026-0002' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Emitir nueva versión' }))
+    expect(calls.find((call) => call.method === 'POST')?.body).toEqual({ package: 'PKG-2026-0001' })
+    expect(await screen.findByRole('heading', { level: 1, name: 'Informe de conformidad de PKG-2026-0001' })).toBeInTheDocument()
+  })
+
+  it('sin rpt.issue no se emite', async () => {
+    renderApp(TAB, [], api(PACKAGE_DEPLOYED))
+    expect(await screen.findByText('El PKG no tiene informes de conformidad.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Emitir informe' })).toBeNull()
   })
 })

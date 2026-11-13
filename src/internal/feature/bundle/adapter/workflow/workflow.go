@@ -80,7 +80,7 @@ func toState(s workflowdomain.State) domain.State {
 func toRules(rules []workflowdomain.Rule) []domain.Rule {
 	out := make([]domain.Rule, len(rules))
 	for i, r := range rules {
-		out[i] = domain.Rule{Key: r.Key, Params: r.Params, Blocks: r.Blocks}
+		out[i] = domain.Rule{Key: r.Key, Params: r.Params, Route: r.Route, Blocks: r.Blocks}
 	}
 	return out
 }

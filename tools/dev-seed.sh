@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Siembra datos de EJEMPLO (ficticios) en el Kaoru de desarrollo, usando la API con sesión real:
 # dos CHG, cuatro REQ en distintos estados, RISK, UC, TC, un BUILD desplegado en un ambiente, RUN, DEF,
-# enlaces, un documento y comentarios.
+# enlaces, un documento y comentarios; y un PKG de SyPago llevado hasta verificado con su checklist,
+# su DIAG, sus SMOKE y dos versiones de su informe, más hitos del calendario.
 # Requiere tools/dev-up.sh. Cada corrida agrega otro juego de datos.
 set -euo pipefail
 
@@ -16,7 +17,7 @@ lab_password="$(cat "$root/infra/.lab-password")"
 # shellcheck disable=SC1091
 . "$root/tools/e2e-lib.sh"
 
-for user in lab-manager lab-qa lab-dev; do login "$user"; done
+for user in lab-manager lab-qa lab-dev lab-ops; do login "$user"; done
 
 post() { # usuario ruta cuerpo → imprime la respuesta; falla si no es 2xx
     api "$1" POST "$2" "$3"
@@ -28,6 +29,7 @@ move() { post "$1" "/api/$2/$3/transitions" "{\"to\":\"$4\",\"reason\":\"${5:-}\
 # El checksum de un BUILD no se repite: cada corrida registra el suyo.
 checksum="$(printf 'build-de-ejemplo-%s' "$(date -u +%Y%m%dT%H%M%S)-$$" | shasum -a 256 | cut -d' ' -f1)"
 ago() { date -u -v-"$1"H +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d "$1 hours ago" +%Y-%m-%dT%H:%M:%SZ; }
+day() { date -u -v"$1"d +%Y-%m-%d 2>/dev/null || date -u -d "$1 days" +%Y-%m-%d; } # day -10 → hace 10 días
 run() { # tc resultado horas-atrás → código del RUN, sobre el BUILD y el ambiente de SyPago
     post lab-qa /api/runs "{\"testCase\":\"$1\",\"build\":\"$build\",\"environment\":\"$env\",\"result\":\"$2\",\"executedAt\":\"$(ago "$3")\"}" | json_code RUN
 }
@@ -123,4 +125,38 @@ req4="$(post lab-manager /api/requirements "{\"title\":\"Validación de firma en
 put lab-qa "/api/requirements/$req4/risk" '{"level":"high","justification":"Alcance nacional; afecta la seguridad de los mensajes.","characteristics":["security","reliability","compatibility"]}'
 move lab-qa requirements "$req4" risk_assessed
 
-echo "Datos de ejemplo: $chg ($req1 bloqueado por $def, $req2 aprobado), $chg2 ($req4), $build en $env, $pkg con su regresión propuesta, documento $doc"
+# --- Fase 4: el PKG de SyPago (ruta ligera) hasta verificado, con checklist, DIAG, SMOKE e informe ---
+# Cada TC de la regresión necesita un RUN aprobado sobre el BUILD del PKG.
+for case in $(api lab-qa GET "/api/packages/$pkg/regression" | grep -o 'TC-[0-9]*-[0-9]*' | sort -u); do run "$case" passed 8 >/dev/null; done
+post lab-qa "/api/packages/$pkg/regression/confirmation" '' >/dev/null
+move lab-qa packages "$pkg" in_testing
+move lab-qa packages "$pkg" ready_to_release
+move lab-manager packages "$pkg" approved_for_production
+post lab-manager /api/checklist-templates '{"system":"SYPAGO","steps":[{"title":"Respaldar la base de pagos","description":"pg_dump antes de migrar."},{"title":"Aplicar migraciones"},{"title":"Desplegar los servicios"},{"title":"Avisar a soporte","description":"Canal de soporte de pagos."}]}' >/dev/null
+prod="$(api lab-qa GET '/api/environments?system=SYPAGO&kind=production' | json_code ENV || true)"
+[ -n "$prod" ] || prod="$(post lab-qa /api/environments '{"system":"SYPAGO","name":"PROD","kind":"production","os":"linux","notes":"Datos de ejemplo."}' | json_code ENV)"
+chk="$(post lab-manager /api/checklists "{\"package\":\"$pkg\",\"environment\":\"$prod\"}" | json_code CHK)"
+post lab-manager "/api/checklists/$chk/steps/1/signature" '{"comment":"Respaldo en /respaldos/pagos."}' >/dev/null
+post lab-ops "/api/checklists/$chk/steps/2/signature" '{"comment":""}' >/dev/null
+post lab-ops "/api/checklists/$chk/steps/3/signature" '{"comment":"Servicios arriba a las 02:40."}' >/dev/null
+printf 'Salida de EJEMPLO de las migraciones.\n0042_limite_diario.sql OK\n' >"$work/migraciones.txt"
+curl -sk -b "$work/lab-ops.jar" -H "Origin: $base" -o /dev/null -F 'title=Salida de las migraciones' -F kind=evidence \
+    -F entityType=checklist -F "entityCode=$chk" -F "file=@$work/migraciones.txt;type=text/plain" "$base/api/documents"
+dep2="$(post lab-manager /api/deployments "{\"environment\":\"$prod\",\"package\":\"$pkg\",\"result\":\"success\",\"notes\":\"Datos de ejemplo.\",\"executedAt\":\"$(ago 6)\"}" | json_code DEP)"
+move lab-manager packages "$pkg" deployed
+diag="$(post lab-ops /api/diagnostics "{\"deployment\":\"$dep2\",\"notes\":\"Logs sin errores durante la primera hora.\"}" | json_code DIAG)"
+post lab-qa "/api/diagnostics/$diag/review" '{"result":"conforming","notes":"Sin hallazgos."}' >/dev/null
+post lab-qa /api/smoke-tests "{\"deployment\":\"$dep2\",\"result\":\"failed\",\"notes\":\"El comprobante tarda 9 s.\"}" >/dev/null
+post lab-qa /api/smoke-tests "{\"deployment\":\"$dep2\",\"result\":\"passed\",\"notes\":\"\"}" >/dev/null
+move lab-qa packages "$pkg" verified
+post lab-qa /api/reports "{\"package\":\"$pkg\"}" >/dev/null
+rpt="$(post lab-qa /api/reports "{\"package\":\"$pkg\"}" | json_code RPT)"
+
+# Calendario: un hito atrasado, uno por venir y uno cumplido; la ventana del CHG de SIMF ya pasó sin liberarlo.
+post lab-manager /api/milestones "{\"title\":\"Congelar el alcance de SyPago 2.15\",\"dueDate\":\"$(day -3)\",\"notes\":\"Con el comité de cambios.\"}" >/dev/null
+post lab-manager /api/milestones "{\"title\":\"Certificación SIMF ante el regulador\",\"dueDate\":\"$(day +20)\"}" >/dev/null
+done_id="$(post lab-manager /api/milestones "{\"title\":\"Plan de pruebas de SyPago 2.14\",\"dueDate\":\"$(day -12)\"}" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)"
+patch lab-manager "/api/milestones/$done_id" '{"completed":true}'
+patch lab-manager "/api/changes/$chg2" "{\"windowStart\":\"$(ago 60)\",\"windowEnd\":\"$(ago 56)\"}"
+
+echo "Datos de ejemplo: $chg ($req1 bloqueado por $def, $req2 aprobado), $chg2 ($req4), $build en $env, $pkg verificado con $chk, $diag e informe $rpt, documento $doc"

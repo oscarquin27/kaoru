@@ -295,6 +295,12 @@ func TestQueriesOnlyWriteTheirOwnTables(t *testing.T) {
 		"environment": {"environment", "deployment", "code_sequence"},
 		"bundle":      {"package", "package_build", "package_requirement", "code_sequence"},
 		"regression":  {"regression_selection", "regression_item"},
+		"production": {
+			"checklist_template", "checklist_template_step", "checklist", "checklist_signature",
+			"diagnostic", "diagnostic_review", "smoke_test", "code_sequence",
+		},
+		"report":   {"conformance_report", "code_sequence"},
+		"planning": {"milestone"},
 		// traceability es de solo lectura: no puede escribir en ninguna tabla.
 		"traceability": {},
 	}

@@ -189,17 +189,17 @@ func TestTraceabilityReturnsTheWholeChain(t *testing.T) {
 	// Exportación: CSV y XLSX con las mismas filas, sin fórmulas ejecutables.
 	rec := a.download("auditor", "/api/traceability/matrix/export?format=csv&change="+chg.Code, 200)
 	records, err := csv.NewReader(bytes.NewReader(bytes.TrimPrefix(rec.Body.Bytes(), []byte("\xEF\xBB\xBF")))).ReadAll()
-	if err != nil || len(records) != 4 || records[0][0] != "REQ" || len(records[1]) != 19 {
+	if err != nil || len(records) != 4 || records[0][0] != "REQ" || len(records[1]) != 20 {
 		t.Fatalf("CSV: %v, %d filas", err, len(records))
 	}
 	var csvRow []string
 	for _, r := range records[1:] {
-		if r[10] == tc2.Code {
+		if r[11] == tc2.Code {
 			csvRow = r
 		}
 	}
 	if csvRow == nil || csvRow[0] != req.Code || csvRow[1] != "Conciliación =SUMA(A1)" || csvRow[6] != "Alto" ||
-		csvRow[14] != "Fallido" || !strings.Contains(csvRow[18], def.Code+" (alta, Abierto)") {
+		csvRow[15] != "Fallido" || !strings.Contains(csvRow[19], def.Code+" (alta, Abierto)") {
 		t.Errorf("fila del CSV: %v", csvRow)
 	}
 	a.call("manager", "PATCH", path, map[string]any{"title": "=SUMA(A1) conciliación"}, 200, nil)

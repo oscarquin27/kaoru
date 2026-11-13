@@ -114,6 +114,13 @@ curl -sk -b "$work/lab-qa.jar" -o /dev/null -D - "$base/api/documents/$doc" | tr
     || fail "sin conversor, la vista previa debe responder 415"
 overview="$(api lab-qa GET "/api/requirements/$req/overview")"
 case "$overview" in *'"status":"current"'*'"missing"'*) ;; *) fail "ficha consolidada inesperada: $overview" ;; esac
+# Fase 4: el calendario responde por el perímetro y un hito lo mantiene change management.
+api lab-manager POST /api/milestones '{"title":"Hito e2e","dueDate":"2026-01-01"}' >/dev/null
+[ "$(code)" = 201 ] || fail "crear un hito respondió $(code)"
+api lab-qa POST /api/milestones '{"title":"Hito e2e","dueDate":"2026-01-01"}' >/dev/null
+[ "$(code)" = 403 ] || fail "QA no mantiene hitos: respondió $(code)"
+calendar="$(api lab-qa GET /api/calendar)"
+case "$calendar" in *'"kind":"milestone"'*'"title":"Hito e2e"'*) ;; *) fail "el hito vencido debe salir en las alertas: $calendar" ;; esac
 api lab-qa GET /api/audit/verification | grep -q '"intact":true' || fail "la cadena de auditoría debe estar íntegra"
 
 # El id de traza que genera Nginx vuelve en la respuesta.

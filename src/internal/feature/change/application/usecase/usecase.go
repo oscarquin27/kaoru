@@ -32,6 +32,7 @@ type UseCases struct {
 	CreateChange     *CreateChange
 	GetChange        *GetChange
 	ListChanges      *ListChanges
+	ListWindows      *ListWindows
 	UpdateChange     *UpdateChange
 	TransitionChange *TransitionChange
 }
@@ -46,6 +47,7 @@ func New(d Deps) (*UseCases, error) {
 		CreateChange:     &CreateChange{d: d},
 		GetChange:        &GetChange{d: d},
 		ListChanges:      &ListChanges{d: d},
+		ListWindows:      &ListWindows{d: d},
 		UpdateChange:     &UpdateChange{d: d},
 		TransitionChange: &TransitionChange{d: d},
 	}, nil

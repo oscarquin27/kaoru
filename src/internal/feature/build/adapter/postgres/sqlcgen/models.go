@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type AppUser struct {
@@ -81,6 +82,39 @@ type Change struct {
 	UpdatedAt   time.Time
 }
 
+type Checklist struct {
+	ID            uuid.UUID
+	Code          string
+	PackageID     uuid.UUID
+	EnvironmentID uuid.UUID
+	TemplateID    uuid.UUID
+	StartedBy     string
+	CreatedAt     time.Time
+}
+
+type ChecklistSignature struct {
+	ChecklistID uuid.UUID
+	Position    int32
+	Comment     string
+	SignedBy    string
+	SignedAt    time.Time
+}
+
+type ChecklistTemplate struct {
+	ID        uuid.UUID
+	SystemID  uuid.UUID
+	Version   int32
+	CreatedBy string
+	CreatedAt time.Time
+}
+
+type ChecklistTemplateStep struct {
+	TemplateID  uuid.UUID
+	Position    int32
+	Title       string
+	Description string
+}
+
 type CodeSequence struct {
 	Prefix    string
 	Year      int32
@@ -109,6 +143,18 @@ type Component struct {
 	UpdatedAt   time.Time
 }
 
+type ConformanceReport struct {
+	ID         uuid.UUID
+	Code       string
+	PackageID  uuid.UUID
+	Version    int32
+	PreviousID uuid.NullUUID
+	Content    string
+	Checksum   string
+	IssuedBy   string
+	CreatedAt  time.Time
+}
+
 type Defect struct {
 	ID            uuid.UUID
 	Code          string
@@ -135,6 +181,23 @@ type Deployment struct {
 	ExecutedBy    string
 	ExecutedAt    time.Time
 	CreatedAt     time.Time
+}
+
+type Diagnostic struct {
+	ID           uuid.UUID
+	Code         string
+	DeploymentID uuid.UUID
+	Notes        string
+	SubmittedBy  string
+	CreatedAt    time.Time
+}
+
+type DiagnosticReview struct {
+	DiagnosticID uuid.UUID
+	Result       string
+	Notes        string
+	ReviewedBy   string
+	ReviewedAt   time.Time
 }
 
 type Document struct {
@@ -216,6 +279,18 @@ type FunctionalCase struct {
 	CreatedBy     string
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
+}
+
+type Milestone struct {
+	ID          uuid.UUID
+	Title       string
+	DueDate     pgtype.Date
+	Notes       string
+	OwnerID     *string
+	CompletedAt *time.Time
+	CreatedBy   string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 type Package struct {
@@ -340,6 +415,16 @@ type SavedView struct {
 	Name      string
 	Query     string
 	CreatedAt time.Time
+}
+
+type SmokeTest struct {
+	ID           uuid.UUID
+	Code         string
+	DeploymentID uuid.UUID
+	Result       string
+	Notes        string
+	ExecutedBy   string
+	CreatedAt    time.Time
 }
 
 type SystemUnderTest struct {

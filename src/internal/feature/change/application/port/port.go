@@ -35,6 +35,8 @@ type Repository interface {
 	Lock(ctx context.Context, code shared.Code) error
 	FindByCode(ctx context.Context, code shared.Code) (ChangeView, error)
 	List(ctx context.Context, filter Filter) (changes []ChangeView, total int, err error)
+	// ListWindows devuelve los CHG con ventana que no están cerrados ni rechazados, por inicio de la ventana.
+	ListWindows(ctx context.Context) ([]ChangeView, error)
 }
 
 // Transition es una transición que el flujo permite a un actor.

@@ -81,9 +81,30 @@ export const SECTIONS: Section[] = [
       { path: '/ambientes/:code', page: lazy(() => import('../features/environments/EnvironmentPage.tsx')) },
     ],
   },
-  { id: 'produccion', label: 'Producción', icon: 'flag', screens: [] },
-  { id: 'informes', label: 'Informes', icon: 'chart', screens: [] },
-  { id: 'calendario', label: 'Calendario', icon: 'calendar', screens: [] },
+  {
+    id: 'produccion',
+    label: 'Producción',
+    icon: 'flag',
+    screens: [
+      { path: '/produccion', label: 'Checklists', page: lazy(() => import('../features/production/ChecklistsPage.tsx')) },
+      { path: '/produccion/diagnosticos', label: 'Diagnósticos', page: lazy(() => import('../features/production/DiagnosticsPage.tsx')) },
+      { path: '/produccion/humo', label: 'Pruebas de humo', page: lazy(() => import('../features/production/SmokeTestsPage.tsx')) },
+      { path: '/produccion/plantillas', label: 'Plantillas', page: lazy(() => import('../features/production/TemplatesPage.tsx')) },
+      { path: '/produccion/diagnosticos/:code', page: lazy(() => import('./DiagnosticPage.tsx')) },
+      { path: '/produccion/humo/:code', page: lazy(() => import('./SmokeTestPage.tsx')) },
+      { path: '/produccion/:code', page: lazy(() => import('./ChecklistPage.tsx')) },
+    ],
+  },
+  {
+    id: 'informes',
+    label: 'Informes',
+    icon: 'chart',
+    screens: [
+      { path: '/informes', label: 'Informes de conformidad', page: lazy(() => import('../features/report/ReportsPage.tsx')) },
+      { path: '/informes/:code', page: lazy(() => import('./ReportPage.tsx')) },
+    ],
+  },
+  { id: 'calendario', label: 'Calendario', icon: 'calendar', screens: [{ path: '/calendario', label: 'Calendario', page: lazy(() => import('../features/planning/CalendarPage.tsx')) }] },
   {
     id: 'administracion',
     label: 'Administración',

@@ -10,11 +10,19 @@ import { describeEntry } from '../features/audit/describe.ts'
 import { useComments } from '../features/comments/api.ts'
 import { CommentForm } from '../features/comments/CommentForm.tsx'
 
-export function Activity({ entityType, entityCode }: { entityType: 'requirement' | 'defect' | 'package'; entityCode: string }) {
+// Las que tienen flujo admiten comentarios; las de producción y el informe solo traen su auditoría.
+const COMMENTED = ['requirement', 'defect', 'package'] as const
+type Commented = (typeof COMMENTED)[number]
+type ActivityEntity = Commented | 'checklist' | 'diagnostic' | 'smoke_test' | 'conformance_report'
+
+const isCommented = (entityType: ActivityEntity): entityType is Commented => (COMMENTED as readonly string[]).includes(entityType)
+
+export function Activity({ entityType, entityCode }: { entityType: ActivityEntity; entityCode: string }) {
   const can = useCan()
+  const commented = isCommented(entityType)
   const audit = useAudit({ entityCode })
-  const comments = useComments(entityType as EntityType, entityCode)
-  const states = useWorkflow(entityType).data?.states ?? []
+  const comments = useComments(entityType as EntityType, entityCode, commented)
+  const states = useWorkflow(commented ? entityType : 'package', commented).data?.states ?? []
   // La auditoría guarda claves de estado; aquí se muestran con su nombre.
   const named = (value: string | undefined) => states.find((state) => state.key === value)?.name ?? value
 
@@ -31,7 +39,7 @@ export function Activity({ entityType, entityCode }: { entityType: 'requirement'
 
   return (
     <div className="stack">
-      {can('comment.create') && (
+      {commented && can('comment.create') && (
         <div className="surface pad">
           <CommentForm entityType={entityType as EntityType} entityCode={entityCode} />
         </div>

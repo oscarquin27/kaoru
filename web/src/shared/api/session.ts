@@ -16,8 +16,8 @@ export function useSystems() {
   return useApiQuery<Items<System>>('/api/systems')
 }
 
-export function useWorkflow(entityType: WorkflowEntityType) {
-  return useApiQuery<Workflow>(`/api/workflows/${entityType}`)
+export function useWorkflow(entityType: WorkflowEntityType, enabled = true) {
+  return useApiQuery<Workflow>(`/api/workflows/${entityType}`, undefined, enabled)
 }
 
 /** Quienes ya entraron a Kaoru, para elegir responsables. El directorio vive en Keycloak. */

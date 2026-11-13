@@ -610,6 +610,26 @@ func TestPackageLifecycleWithRegressionByImpact(t *testing.T) {
 	}
 	move("manager", "deployed", "", 200)
 	move("manager", "verified", "", 403)
+
+	// --- A «Verificado» por la ruta ligera: hace falta una prueba de humo aprobada, la última que registró QA.
+	// El DIAG solo lo exige la ruta alta. ---
+	if got := read().rules("verified"); !slices.Equal(got, []string{"smoke_passed"}) {
+		t.Errorf("qué falta para verificado en la ruta ligera: %v", got)
+	}
+	if p = move("qa", "verified", "", 409); !strings.Contains(p.Detail, "Falta la prueba de humo posterior al despliegue.") {
+		t.Errorf("a verificado sin SMOKE: %+v", p)
+	}
+	smoke := func(user, result, notes string, wantStatus int) {
+		t.Helper()
+		a.call(user, "POST", "/api/smoke-tests", map[string]any{"deployment": dep.Code, "result": result, "notes": notes}, wantStatus, nil)
+	}
+	smoke("manager", "passed", "", 403)
+	smoke("qa", "failed", "", 422) // una prueba fallida dice qué falló
+	smoke("qa", "failed", "El login tarda 9 s", 201)
+	if p = move("qa", "verified", "", 409); !strings.Contains(p.Detail, "La última prueba de humo falló.") {
+		t.Errorf("a verificado con el SMOKE fallido: %+v", p)
+	}
+	smoke("qa", "passed", "", 201)
 	pkg = packageBody{}
 	a.call("qa", "POST", path+"/transitions", map[string]any{"to": "verified"}, 200, &pkg)
 	if pkg.State.Key != "verified" || pkg.Missing == nil || len(pkg.Missing) != 0 {

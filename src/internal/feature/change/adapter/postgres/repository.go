@@ -116,6 +116,21 @@ func (r *Repository) List(ctx context.Context, f port.Filter) ([]port.ChangeView
 	return views, int(total), nil
 }
 
+// ListWindows devuelve los CHG con ventana vigente, por inicio de la ventana.
+func (r *Repository) ListWindows(ctx context.Context) ([]port.ChangeView, error) {
+	rows, err := r.queries(ctx).ListWindows(ctx)
+	if err != nil {
+		return nil, corepg.TranslateError(err)
+	}
+	views := make([]port.ChangeView, len(rows))
+	for i, row := range rows {
+		if views[i], err = toView(sqlcgen.ListChangesRow(row)); err != nil {
+			return nil, err
+		}
+	}
+	return views, nil
+}
+
 func toView(row sqlcgen.ListChangesRow) (port.ChangeView, error) {
 	code, err := shared.ParseCode(row.Code)
 	if err != nil {
