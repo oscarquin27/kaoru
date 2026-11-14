@@ -5,6 +5,7 @@ import { useMe } from '../shared/api/session.ts'
 import { ROLE_LABELS } from '../shared/lib/labels.ts'
 import { PageSkeleton } from '../shared/ui/feedback.tsx'
 import { Icon } from '../shared/ui/Icon.tsx'
+import { Kana } from '../shared/ui/Kana.tsx'
 import { CrumbsSlotContext, SubNav } from '../shared/ui/layout.tsx'
 import { EntityPanel } from './EntityPanel.tsx'
 import { ErrorBoundary } from './ErrorBoundary.tsx'
@@ -82,7 +83,10 @@ export function Layout() {
       <aside className="sidebar glass">
         <Link className="brand" to="/" aria-label="Kaoru, inicio">
           <Icon name="kaoru" className="icon brand__mark" />
-          <span className="wordmark">kaoru</span>
+          <span className="brand__name">
+            <Kana />
+            <span className="wordmark">kaoru</span>
+          </span>
         </Link>
         <nav aria-label="Áreas">
           <ul className="nav">

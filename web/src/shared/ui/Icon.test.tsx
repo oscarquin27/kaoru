@@ -11,7 +11,7 @@ it('cada icono del boceto existe aquí con el mismo trazo', () => {
   for (const [name, paths] of sketch) {
     const ours = ICONS[name as keyof typeof ICONS]
     // React cierra con </path>; el boceto, con />. El trazo es lo que se compara.
-    const markup = renderToStaticMarkup(<>{ours}</>).replace(/><\/(path|circle)>/g, '/>')
+    const markup = renderToStaticMarkup(<>{ours}</>).replace(/><\/(path|circle|rect)>/g, '/>')
     expect(markup, name).toBe(paths)
   }
 })

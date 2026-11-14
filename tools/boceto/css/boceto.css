@@ -102,7 +102,15 @@ button.id:hover { text-decoration: underline; }
   padding: 0 var(--s-3); color: var(--text);
 }
 .brand:hover { text-decoration: none; }
-.brand__mark { width: 24px; height: 24px; color: var(--accent-text); }
+.brand__mark { width: 24px; height: 24px; color: var(--accent); }
+/* かおる encima de «kaoru», como furigana: alineada al wordmark y en el color del acento en texto. */
+.brand__name { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; line-height: 1; }
+.brand__kana {
+  height: 9px; width: auto; aspect-ratio: 88 / 24; margin-left: 1px;
+  fill: none; stroke: var(--accent-text); stroke-width: 2.8;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.brand__kana--xl { height: 15px; stroke-width: 2.4; margin-left: 3px; }
 .wordmark {
   font-size: var(--text-l); font-weight: 300;
   letter-spacing: var(--tracking-wordmark); text-transform: lowercase;
