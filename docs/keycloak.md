@@ -23,7 +23,7 @@ El tema de login propio todavía no está en el realm: se agrega cuando exista, 
 
 ## Tema de login
 
-El login usa el tema `kaoru` (`infra/keycloak/themes/kaoru`), que viaja completo en el paquete. Una instalación nueva lo trae activo. En una que ya existía se activa una vez en la consola: **Realm settings → Themes → Login theme → kaoru**. Si se cambian archivos del tema, hay que recrear el contenedor: `docker compose up -d --force-recreate keycloak`.
+El login usa el tema `kaoru` (`infra/keycloak/themes/kaoru`), que viaja completo en el paquete. Una instalación nueva lo trae activo. En una que ya existía se activa una vez en la consola: **Realm settings → Themes → Login theme → kaoru**. Keycloak guarda una copia comprimida de cada archivo del tema (`/opt/keycloak/data/tmp/kc-gzip-cache`) y no la renueva si el archivo cambia, ni al reiniciarse: los navegadores, que piden gzip, seguirían recibiendo la versión anterior. `install.sh` y `tools/dev-up.sh` la borran en cada arranque y Keycloak la rehace sola, sin reiniciarse. Si se cambia el tema a mano con todo arriba: `docker compose exec keycloak rm -rf /opt/keycloak/data/tmp/kc-gzip-cache`. Además, Keycloak deja que el navegador guarde esos archivos 30 días en la misma dirección: quien ya había abierto el login ve el cambio tras recargar sin caché (Cmd+Shift+R).
 
 ## Roles y permisos
 

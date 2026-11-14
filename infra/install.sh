@@ -19,4 +19,8 @@ if [ -f "$here/images.tar.gz" ]; then
 fi
 echo "Levantando Kaoru…"
 compose up -d --wait --wait-timeout 300
+# Keycloak guarda una copia comprimida de cada archivo del tema la primera vez que se pide y no la
+# renueva si el archivo cambia: tras actualizar, el login seguiría con la marca anterior. Se borra
+# en cada arranque; Keycloak la rehace sola, sin reiniciarse.
+compose exec -T keycloak rm -rf /opt/keycloak/data/tmp/kc-gzip-cache
 echo "Kaoru está arriba. Ábrelo en Chrome en la dirección de KAORU_PUBLIC_URL."
