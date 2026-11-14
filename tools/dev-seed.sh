@@ -2,7 +2,7 @@
 # Siembra datos de EJEMPLO (ficticios) en el Kaoru de desarrollo, usando la API con sesión real:
 # dos CHG, cuatro REQ en distintos estados, RISK, UC, TC, un BUILD desplegado en un ambiente, RUN, DEF,
 # enlaces, un documento y comentarios; y un PKG de SyPago llevado hasta verificado con su checklist,
-# su DIAG, sus SMOKE y dos versiones de su informe, más hitos del calendario.
+# su DIAG, sus SMOKE y dos versiones de su informe, más hitos del calendario y un DEF que escapa a producción.
 # Requiere tools/dev-up.sh. Cada corrida agrega otro juego de datos.
 set -euo pipefail
 
@@ -152,6 +152,11 @@ move lab-qa packages "$pkg" verified
 post lab-qa /api/reports "{\"package\":\"$pkg\"}" >/dev/null
 rpt="$(post lab-qa /api/reports "{\"package\":\"$pkg\"}" | json_code RPT)"
 
+# --- Fase 5: un DEF que escapa a producción. REQ 2 llegó con el PKG hace 6 horas; su TC falla ahora. ---
+escape_run="$(run "$tc4" failed 1)"
+escaped="$(post lab-qa /api/defects "{\"title\":\"El aviso del 80 % no sale en la app\",\"description\":\"Reportado en producción; reproducido en QA-1.\",\"requirement\":\"$req2\",\"run\":\"$escape_run\",\"severity\":\"medium\"}" | json_code DEF)"
+move lab-qa defects "$escaped" triaged
+
 # Calendario: un hito atrasado, uno por venir y uno cumplido; la ventana del CHG de SIMF ya pasó sin liberarlo.
 post lab-manager /api/milestones "{\"title\":\"Congelar el alcance de SyPago 2.15\",\"dueDate\":\"$(day -3)\",\"notes\":\"Con el comité de cambios.\"}" >/dev/null
 post lab-manager /api/milestones "{\"title\":\"Certificación SIMF ante el regulador\",\"dueDate\":\"$(day +20)\"}" >/dev/null
@@ -159,4 +164,4 @@ done_id="$(post lab-manager /api/milestones "{\"title\":\"Plan de pruebas de SyP
 patch lab-manager "/api/milestones/$done_id" '{"completed":true}'
 patch lab-manager "/api/changes/$chg2" "{\"windowStart\":\"$(ago 60)\",\"windowEnd\":\"$(ago 56)\"}"
 
-echo "Datos de ejemplo: $chg ($req1 bloqueado por $def, $req2 aprobado), $chg2 ($req4), $build en $env, $pkg verificado con $chk, $diag e informe $rpt, documento $doc"
+echo "Datos de ejemplo: $chg ($req1 bloqueado por $def, $req2 aprobado), $chg2 ($req4), $build en $env, $pkg verificado con $chk, $diag e informe $rpt, $escaped escapado a producción, documento $doc"

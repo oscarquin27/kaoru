@@ -105,6 +105,13 @@ export type MilestonePatch = Schemas['MilestonePatch']
 export type Calendar = Schemas['Calendar']
 export type CalendarWindow = Calendar['windows'][number]
 export type CalendarAlert = Calendar['alerts'][number]
+export type MetricsPeriod = Schemas['MetricsPeriod']
+export type CoverageStatus = Schemas['CoverageStatus']
+export type CoverageMetrics = Schemas['CoverageMetrics']
+export type CoverageRow = CoverageMetrics['items'][number]
+export type DefectStateMetrics = Schemas['DefectStateMetrics']
+export type RegressionMetrics = Schemas['RegressionMetrics']
+export type EscapedDefectMetrics = Schemas['EscapedDefectMetrics']
 /** Los flujos configurables. */
 export type WorkflowEntityType = 'requirement' | 'change' | 'defect' | 'package'
 export type PageInfo = Schemas['PageInfo']

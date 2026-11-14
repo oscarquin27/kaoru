@@ -121,6 +121,11 @@ api lab-qa POST /api/milestones '{"title":"Hito e2e","dueDate":"2026-01-01"}' >/
 [ "$(code)" = 403 ] || fail "QA no mantiene hitos: respondió $(code)"
 calendar="$(api lab-qa GET /api/calendar)"
 case "$calendar" in *'"kind":"milestone"'*'"title":"Hito e2e"'*) ;; *) fail "el hito vencido debe salir en las alertas: $calendar" ;; esac
+# Fase 5: las métricas responden por el perímetro; leerlas no exige permiso, y un filtro inválido es un 422.
+coverage="$(api lab-qa GET "/api/metrics/coverage?system=SYPAGO")"
+case "$coverage" in *'"summary"'*'"requirements"'*) ;; *) fail "cobertura por REQ inesperada: $coverage" ;; esac
+api lab-manager GET '/api/metrics/escaped-defects?from=2026-11-14&to=2026-11-01' >/dev/null
+[ "$(code)" = 422 ] || fail "un período al revés debe responder 422: respondió $(code)"
 api lab-qa GET /api/audit/verification | grep -q '"intact":true' || fail "la cadena de auditoría debe estar íntegra"
 
 # El id de traza que genera Nginx vuelve en la respuesta.

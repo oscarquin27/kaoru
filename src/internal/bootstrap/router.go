@@ -26,6 +26,7 @@ import (
 	"kaoru/internal/feature/document/adapter/entities"
 	"kaoru/internal/feature/environment"
 	"kaoru/internal/feature/execution"
+	"kaoru/internal/feature/metrics"
 	"kaoru/internal/feature/planning"
 	"kaoru/internal/feature/production"
 	"kaoru/internal/feature/regression"
@@ -206,6 +207,10 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 	if err != nil {
 		return nil, err
 	}
+	metricsModule, err := metrics.New(metrics.Deps{Database: d.Database, Clock: d.Clock})
+	if err != nil {
+		return nil, err
+	}
 	// Las reglas de bloqueo del REQ necesitan hechos de features que dependen de él:
 	// se conectan después de armar todos (reglas §A.7, decisión D36).
 	requirementModule.ConnectRisk(riskModule.UseCases)
@@ -255,5 +260,6 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 	traceabilityModule.RegisterAPI(api)
 	reportModule.RegisterAPI(api)
 	planningModule.RegisterAPI(api)
+	metricsModule.RegisterAPI(api)
 	return engine, nil
 }

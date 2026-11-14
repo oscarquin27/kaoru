@@ -104,6 +104,17 @@ export const SECTIONS: Section[] = [
       { path: '/informes/:code', page: lazy(() => import('./ReportPage.tsx')) },
     ],
   },
+  {
+    id: 'metricas',
+    label: 'Métricas',
+    icon: 'gauge',
+    screens: [
+      { path: '/metricas', label: 'Cobertura', page: lazy(() => import('../features/metrics/CoveragePage.tsx')) },
+      { path: '/metricas/defectos', label: 'Tiempo en estado', page: lazy(() => import('../features/metrics/DefectStatesPage.tsx')) },
+      { path: '/metricas/regresion', label: 'Regresión', page: lazy(() => import('../features/metrics/RegressionPage.tsx')) },
+      { path: '/metricas/escapados', label: 'Defectos escapados', page: lazy(() => import('../features/metrics/EscapedDefectsPage.tsx')) },
+    ],
+  },
   { id: 'calendario', label: 'Calendario', icon: 'calendar', screens: [{ path: '/calendario', label: 'Calendario', page: lazy(() => import('../features/planning/CalendarPage.tsx')) }] },
   {
     id: 'administracion',

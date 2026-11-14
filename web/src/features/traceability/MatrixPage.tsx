@@ -1,7 +1,7 @@
 // Matriz de trazabilidad (boceto: matriz.html). Una fila por REQ y TC; las celdas del REQ se
 // agrupan. Clic en un ID abre su ficha en el panel lateral sin perder la posición.
 import { useState } from 'react'
-import { useComponentOptions, usePackageOptions } from '../../shared/api/catalog.ts'
+import { useChangeOptions, useComponentOptions, usePackageOptions } from '../../shared/api/catalog.ts'
 import { useUserOptions, useSystems, useWorkflow } from '../../shared/api/session.ts'
 import type { Matrix, MatrixRow } from '../../shared/api/types.ts'
 import { RISK_LABELS, options } from '../../shared/lib/labels.ts'
@@ -13,7 +13,7 @@ import { FilterBar, FilterInput, FilterSelect, Pager } from '../../shared/ui/Fil
 import { Icon } from '../../shared/ui/Icon.tsx'
 import { Crumbs, PageHead } from '../../shared/ui/layout.tsx'
 import { RunTarget } from '../../shared/ui/RunTarget.tsx'
-import { matrixExportUrl, useChangeOptions, useMatrix } from './api.ts'
+import { matrixExportUrl, useMatrix } from './api.ts'
 
 const FILTERS = ['change', 'system', 'state', 'risk', 'owner', 'package', 'component', 'from', 'to']
 

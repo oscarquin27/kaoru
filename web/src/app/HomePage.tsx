@@ -1,6 +1,7 @@
 // Inicio: tablero por rol (boceto: index.html). Se arma con las listas que ya da la API y con el
 // calendario, que trae las ventanas de cambio y las alertas de atraso.
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { useChanges } from '../features/changes/api.ts'
 import { useDefects } from '../features/defects/api.ts'
 import { useRequirements } from '../features/requirements/api.ts'
@@ -272,7 +273,9 @@ export default function HomePage() {
           <h2 className="h2" id="h-defectos">
             Defectos por estado
           </h2>
-          <p className="subtitle">Tiempo en estado, sin SLA.</p>
+          <p className="subtitle">
+            Tiempo en el estado actual de los abiertos, sin SLA. <Link to="/metricas/defectos">Ver el histórico, con los cerrados</Link>
+          </p>
         </div>
         <Async query={defects}>{(data) => <DefectsByState defects={data.items} />}</Async>
       </section>

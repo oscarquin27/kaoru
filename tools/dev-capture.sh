@@ -63,6 +63,7 @@ paths=(
     "/api/deployments?package=$pkg" "/api/environments?system=SYPAGO"
     /api/reports "/api/reports/$rpt" "/api/reports?package=$pkg" "/api/audit?entityCode=$rpt"
     /api/calendar /api/milestones '/api/milestones?status=pending'
+    /api/metrics/coverage /api/metrics/defect-states /api/metrics/regression /api/metrics/escaped-defects
 )
 {
     printf '{\n  "_nota": "Respuestas reales de la API con datos de EJEMPLO. Se regeneran con tools/dev-capture.sh.",\n'

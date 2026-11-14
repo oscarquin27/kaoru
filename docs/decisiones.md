@@ -464,3 +464,51 @@ Tomadas el 11 nov 2026 al construir el core y el primer corte vertical (`workflo
   - El criterio de salida: un informe emitido para un PKG de ruta alta en una ventana real que defina change management. No depende del código.
   - Correo de alertas, si aparece un SMTP interno.
   - El pie de la aplicación dice «Servidor de datos de ejemplo» en cualquier servidor de desarrollo, también cuando habla con la API real (`tools/dev-front.sh`). Es de una fase anterior y no afecta a producción.
+
+### D52 — Fase 5: métricas de cobertura, tiempo en estado, regresión y defectos escapados
+- **Fecha:** 14 nov 2026
+- **Estado:** `[SUPUESTO]` hasta que QA y change management lo revisen. Parte de la propuesta de `docs/fase-5.md`; aquí queda lo que se decidió al construirla y lo que cambió respecto de esa propuesta. Las preguntas de esa guía (§5) siguen sin respuesta: cada supuesto dice a cuál responde.
+- **Alcance:** solo métricas (requerimiento §10). YouTrack, la importación de la hoja y JUnit XML quedan fuera (pregunta 8).
+- **Contrato:** `api/openapi.yaml`, etiqueta `metrics`: `GET /api/metrics/coverage`, `/defect-states`, `/regression` y `/escaped-defects`. 86 rutas y 126 de 126 operaciones implementadas.
+- **Esquema:** sin cambios. Ninguna tabla ni índice nuevos.
+- **`metrics` es un feature de solo lectura, la segunda excepción de reglas §A.7** (la primera es `traceability`). Cambia respecto de la propuesta, que repartía cada cálculo entre los features dueños de los datos y los juntaba por puertos. Se descartó porque cada métrica es una agregación sobre varias tablas (REQ, UC, TC, RUN, RISK y reglas; DEF y auditoría; PKG, regresión, RUN y BUILD; DEF, PKG, despliegues y ambientes): repartirla obliga a traer filas por puerto y agregarlas en memoria, o a escribir en cada feature una consulta que solo sirve a la pantalla de métricas. `metrics` no tiene tablas ni escribe; lee con una consulta por métrica (no una por fila) y los cálculos (medianas, percentiles, tramos por estado, quién escapó) viven en su dominio con pruebas de tabla. `archtest` lo declara sin tablas propias.
+  - **Costo:** la regla de cobertura mínima (`min_coverage`, que evalúa `requirement` en Go) está repetida en el SQL de la métrica. Si la regla cambia, cambian las dos; la prueba de integración la ancla (un REQ de riesgo bajo con 1 de 2 TC aprobados queda bajo el mínimo del 100 %).
+- **Cobertura por REQ.**
+  - TC requeridos: los TC no retirados enlazados al REQ por sus UC. Aprobados: los que tienen su **último RUN** aprobado (por fecha de ejecución, luego de registro). Porcentaje truncado hacia abajo, para no mostrar 100 % con uno pendiente.
+  - **El mínimo** sale de la regla `min_coverage` activa del REQ: la de su nivel de RISK, filtrada por la ruta del REQ como el resto de las reglas; si la regla no dice porcentaje para ese nivel, es 100 %. Sin RISK o sin regla activa no hay mínimo.
+  - Cada REQ cae en un resultado: **bajo el mínimo**, **sin TC**, **sin riesgo** (sin RISK evaluado: no es 0 %) o **cumple**. Se ordena por ese orden, después por menor cobertura y por más TC pendientes. El resumen cuenta todo el filtro; el filtro por resultado solo recorta la tabla.
+  - Filtros: sistema, CHG, PKG, estado del REQ y resultado. Sin período: la cobertura es la de hoy.
+- **Tiempo en estado (histórico de DEF).**
+  - La historia sale de `audit_entry` (transiciones de `defect`, con el estado anterior y el nuevo). El índice existente `(entity_type, entity_id, seq)` alcanza: la consulta trae las transiciones de los DEF del filtro por su ID. La propuesta preveía un índice por fecha; no hizo falta (`make check-perf`).
+  - Cada DEF se parte en tramos: el primero va de su creación a la primera transición; el último, hasta hoy si sigue abierto. Por estado: DEF que pasaron, **entradas** (un DEF que vuelve a un estado suma otra: así se ven las reaperturas, que no tienen contador propio), mediana y percentil 90 del tiempo **total** de cada DEF en el estado. En los estados finales no se mide la estadía.
+  - **De abierto a resuelto:** de la creación a la última transición, para los DEF que hoy están en un estado final.
+  - **Días naturales** (pregunta 2), con un decimal. Mediana común; percentil 90 por rango más cercano.
+  - Filtros: sistema, severidad y período (DEF **creados** en el período).
+  - Inicio no cambia (sigue mostrando el tiempo en el estado actual de los abiertos) y gana un enlace a esta métrica.
+- **Tamaño de regresión** (pregunta 3: en TC, el RUN no registra duración).
+  - Una fila por PKG con la regresión confirmada: propuestos, finales, agregados y quitados por QA, finales por origen (impacto, crítico, manual), finales con su último RUN sobre un BUILD del PKG aprobado, y los TC activos del sistema hoy para comparar.
+  - Resumen: PKG, totales y la mediana de TC finales por PKG. Filtros: sistema y período (fecha de confirmación).
+- **Defecto escapado** (pregunta 1): **calculado**, no marcado a mano. Un DEF escapó si se creó después del primer despliegue **exitoso**, en un ambiente de `kind = 'production'`, de un PKG que contiene su REQ. Vale para los DEF ya registrados. Tasa: escapados / DEF creados en el período, con un decimal. Se muestra por mes y la lista de escapados con su REQ, el PKG que lo llevó a producción, esa fecha y los días que pasaron.
+- **Período** (pregunta 4): por omisión, desde el primer día del mes de hace 11 meses (UTC), es decir, los últimos 12 meses calendario con el actual, sin fecha final. `from` y `to` son días en UTC y `to` se incluye. `to` antes de `from` es error de validación del campo `to`.
+- **Sin metas ni SLA** (pregunta 5, regla 3): nada se pinta en rojo por un umbral. La única comparación es la cobertura frente al mínimo que ya fija la regla de bloqueo del REQ.
+- **Lo ve todo el mundo** (pregunta 6): leer no exige permiso. Sin permisos ni auditoría nuevos.
+- **Cambia respecto de la propuesta, además:**
+  - **Sin exportación CSV** en esta entrega: ninguna pregunta la pide y la tabla se puede copiar. Se agrega si change management o QA la piden.
+  - **Sin vistas guardadas** en métricas: los filtros quedan en la URL y se comparte el enlace.
+- **Front.** Sección «Métricas» en la barra lateral con cuatro pantallas (Cobertura, Tiempo en estado, Regresión y Defectos escapados), filtros en la URL, `kpis` y tablas. Las barras son el `meter` que ya existía, siempre con su número escrito. Sin librería de gráficos ni estilos nuevos.
+- **Semilla:** `tools/dev-seed.sh` registra un RUN fallido de TC-4 y abre un DEF sobre REQ-2 después del despliegue en producción del PKG de SyPago: es el DEF escapado del laboratorio, y deja a REQ-2 bajo el mínimo.
+
+### D53 — Fase 5: cómo se verificó y qué falta
+- **Fecha:** 14 nov 2026
+- **Cómo se verificó.**
+  - Pruebas de tabla del dominio (tramos por estado con reaperturas y estados desconocidos, mediana y percentil, resultado y orden de la cobertura, escapados por mes y período); casos de uso con dobles escritos a mano; integración contra Postgres (`metrics_integration_test.go`) que arma con los casos de uso de los otros features un CHG con REQ, RISK y RUN, transiciones de un DEF, una regresión confirmada y despliegues en producción (uno fallido, que no cuenta) y comprueba cada métrica y sus validaciones.
+  - `make check-perf` con volumen: cobertura 139 ms, cobertura filtrada por resultado 121 ms, tiempo en estado 7 ms, regresión 1 ms y escapados 6 ms (umbral 200 ms).
+  - `make check` y `make check-offline`. 136 pruebas del front.
+  - En el navegador, contra la API real y los datos de `tools/dev-seed.sh`: las cuatro pantallas; el filtro por resultado de la cobertura; el filtro por severidad y período de los escapados; el error de un período al revés; el enlace desde Inicio.
+- **Lo que no se verificó en el navegador:** los filtros por CHG, PKG y estado de la cobertura, el tema claro y el ancho de teléfono. Los filtros tienen pruebas del front que comprueban que viajan en la consulta.
+- **Límite de la demostración:** la semilla ocurre en segundos y la auditoría no se puede fechar hacia atrás, así que los tiempos en estado del laboratorio son todos «< 0,1 d». Las pruebas del front usan datos armados para los valores grandes.
+- **Pendiente de la fase 5:**
+  - Respuestas a las preguntas 1 a 8 de `docs/fase-5.md` §5; sobre todo la definición de DEF escapado.
+  - El criterio de salida: change management y QA ven las métricas con los datos del laboratorio y aprueban las definiciones. No depende del código.
+  - Exportación CSV, si se pide.
+  - La deuda heredada que lista `docs/fase-5.md` §6 sigue igual.

@@ -40,6 +40,7 @@ export const ICONS = {
   user: <><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></>,
   pencil: <><path d="M4 20l1-5L16 4l4 4L9 19z"/><path d="M14 6l4 4"/></>,
   trash: <path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/>,
+  gauge: <><path d="M4 17a8 8 0 1 1 16 0"/><path d="M12 17l4-5"/></>,
 } satisfies Record<string, ReactNode>
 
 export type IconName = keyof typeof ICONS
