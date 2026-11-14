@@ -35,8 +35,9 @@ export const ICONS = {
   info: <><circle cx="12" cy="12" r="8"/><path d="M12 11v5M12 8h.01"/></>,
   minus: <path d="M6 12h12"/>,
   plus: <path d="M12 5v14M5 12h14"/>,
-  /* Símbolo de marca: K de una línea continua que une cuatro puntos (REQ → TC → RUN → PKG). */
-  kaoru: <><path d="M7 4v16V12l10-8L7 12l10 8"/><circle cx="7" cy="4" r="1.6" fill="currentColor"/><circle cx="7" cy="20" r="1.6" fill="currentColor"/><circle cx="17" cy="4" r="1.6" fill="currentColor"/><circle cx="17" cy="20" r="1.6" fill="currentColor"/></>,
+  /* Símbolo de marca: sello índigo con la K de una línea continua que une cuatro puntos
+     (REQ → TC → RUN → PKG). Se pinta con el color del texto (el acento) y la K en on-accent. */
+  kaoru: <><rect x="2" y="2" width="20" height="20" rx="5" fill="currentColor" stroke="none"/><g transform="translate(3.92 3.92) scale(0.66)" stroke="var(--on-accent)" strokeWidth="2.6"><path d="M7 4v16V12l10-8L7 12l10 8"/><circle cx="7" cy="4" r="2.2" fill="var(--on-accent)" stroke="none"/><circle cx="7" cy="20" r="2.2" fill="var(--on-accent)" stroke="none"/><circle cx="17" cy="4" r="2.2" fill="var(--on-accent)" stroke="none"/><circle cx="17" cy="20" r="2.2" fill="var(--on-accent)" stroke="none"/></g></>,
   user: <><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></>,
   pencil: <><path d="M4 20l1-5L16 4l4 4L9 19z"/><path d="M14 6l4 4"/></>,
   trash: <path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/>,

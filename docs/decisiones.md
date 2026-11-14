@@ -555,3 +555,10 @@ Tomadas el 11 nov 2026 al construir el core y el primer corte vertical (`workflo
   - **El ancho de teléfono no funciona en ninguna pantalla**, tampoco en las de esta fase: la barra lateral ocupa 232 px fijos y el contenido se desborda. Viene del armazón de la aplicación (fase 2); la línea de tiempo ya se desplaza sola, pero hace falta que el armazón se adapte.
   - Vistas guardadas en *Actividades*, si se piden (cambio en `savedview`).
   - Lo que la guía dejó fuera (§3).
+
+### D56 — Marca: sello con la K y かおる como furigana
+- **Fecha:** 14 nov 2026
+- **Decisión:** el símbolo pasa a ser un sello índigo (el token `accent`) con la K de línea continua en blanco (`on-accent`). Sobre el wordmark *kaoru* va かおる, su lectura en hiragana, pequeña y en `accent-text`, como furigana. Se descartó el kanji 馨: se mantiene la K y la referencia japonesa va en kana.
+- **Por qué en trazos:** かおる está dibujada a mano como trazos SVG del mismo grosor y remate que la K (`KANA` en `tools/boceto/js/boceto.js`, `web/src/shared/ui/Kana.tsx`), no como texto: Kaoru se instala sin conexión y no puede contar con una fuente japonesa en el equipo.
+- **Dónde:** barra lateral y *Acerca de* (boceto y front), favicon (`tools/boceto/img/kaoru.svg`, copiado al tema de Keycloak) y `favicon.ico` del login, que `tools/make-favicon.py` dibuja ahora como sello. El login de Keycloak muestra el sello por `kaoru.svg`; la kana no se agregó allí.
+- **Verificación:** `npm run check` (la prueba de íconos compara también el `rect` del sello con el boceto), `make check-generated` y el navegador en tema oscuro y claro. El tema de Keycloak no se miró en el navegador.

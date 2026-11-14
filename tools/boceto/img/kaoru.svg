@@ -1,13 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-  <!-- Símbolo de Kaoru: K de una línea continua que une cuatro puntos. Un solo color.
-       Los dos valores repiten los tokens accent-text (oscuro) y accent (claro) de css/tokens.css.
+  <!-- Símbolo de Kaoru: sello índigo con la K de una línea continua que une cuatro puntos, en blanco.
+       Los dos índigos repiten el token accent de css/tokens.css (oscuro y claro).
        (Un comentario XML no admite dos guiones seguidos: con ellos el navegador no pinta la imagen.) -->
   <style>
-    .k { stroke: #a9b2ff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-    .p { fill: #a9b2ff; }
-    @media (prefers-color-scheme: light) { .k { stroke: #3d48b5; } .p { fill: #3d48b5; } }
+    .s { fill: #4f5bd6; }
+    .k { stroke: #ffffff; fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+    .p { fill: #ffffff; }
+    @media (prefers-color-scheme: light) { .s { fill: #3d48b5; } }
   </style>
-  <path class="k" d="M7 4v16V12l10-8L7 12l10 8"/>
-  <circle class="p" cx="7" cy="4" r="1.8"/><circle class="p" cx="7" cy="20" r="1.8"/>
-  <circle class="p" cx="17" cy="4" r="1.8"/><circle class="p" cx="17" cy="20" r="1.8"/>
+  <rect class="s" x="2" y="2" width="20" height="20" rx="5"/>
+  <g transform="translate(3.92 3.92) scale(0.66)">
+    <path class="k" d="M7 4v16V12l10-8L7 12l10 8"/>
+    <circle class="p" cx="7" cy="4" r="2.2"/><circle class="p" cx="7" cy="20" r="2.2"/>
+    <circle class="p" cx="17" cy="4" r="2.2"/><circle class="p" cx="17" cy="20" r="2.2"/>
+  </g>
 </svg>
