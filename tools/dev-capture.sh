@@ -33,6 +33,7 @@ chk="$(first /api/checklists CHK)"
 diag="$(first /api/diagnostics DIAG)"
 smoke="$(first /api/smoke-tests SMOKE)"
 rpt="$(first /api/reports RPT)"
+act="$(first '/api/activities?kind=certification' ACT)"
 
 paths=(
     /api/me /api/users /api/systems
@@ -64,10 +65,11 @@ paths=(
     /api/reports "/api/reports/$rpt" "/api/reports?package=$pkg" "/api/audit?entityCode=$rpt"
     /api/calendar /api/milestones '/api/milestones?status=pending'
     /api/metrics/coverage /api/metrics/defect-states /api/metrics/regression /api/metrics/escaped-defects
+    /api/planning/schedule /api/activities "/api/activities/$act" "/api/activities?change=$chg&size=100" "/api/audit?entityCode=$act"
 )
 {
     printf '{\n  "_nota": "Respuestas reales de la API con datos de EJEMPLO. Se regeneran con tools/dev-capture.sh.",\n'
-    printf '  "_ids": {"change": "%s", "requirement": "%s", "defect": "%s", "document": "%s", "testCase": "%s", "run": "%s", "package": "%s", "build": "%s", "environment": "%s", "deployment": "%s", "component": "%s", "checklist": "%s", "diagnostic": "%s", "smokeTest": "%s", "report": "%s"},\n' "$chg" "$req" "$def" "$doc" "$tc" "$run" "$pkg" "$build" "$env" "$dep" "$comp" "$chk" "$diag" "$smoke" "$rpt"
+    printf '  "_ids": {"change": "%s", "requirement": "%s", "defect": "%s", "document": "%s", "testCase": "%s", "run": "%s", "package": "%s", "build": "%s", "environment": "%s", "deployment": "%s", "component": "%s", "checklist": "%s", "diagnostic": "%s", "smokeTest": "%s", "report": "%s", "activity": "%s"},\n' "$chg" "$req" "$def" "$doc" "$tc" "$run" "$pkg" "$build" "$env" "$dep" "$comp" "$chk" "$diag" "$smoke" "$rpt" "$act"
     sep=''
     for path in "${paths[@]}"; do
         body="$(get "$path")"

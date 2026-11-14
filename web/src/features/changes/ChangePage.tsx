@@ -1,7 +1,8 @@
 // Ficha de un CHG: datos, transiciones según flujo y permisos, y sus requerimientos.
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useParams } from 'react-router'
 import { useCan, useWorkflow } from '../../shared/api/session.ts'
+import type { Change } from '../../shared/api/types.ts'
 import { formatDate, formatDateTime } from '../../shared/lib/format.ts'
 import { ROUTE_LABELS } from '../../shared/lib/labels.ts'
 import { StateChip } from '../../shared/ui/chips.tsx'
@@ -14,7 +15,8 @@ import { Transitions } from '../../shared/ui/Transitions.tsx'
 import { useChange, useChangeRequirements, useTransitionChange } from './api.ts'
 import { ChangeForm } from './ChangeForm.tsx'
 
-export default function ChangePage() {
+/** `planning` agrega la sección de certificación; la arma app/ porque vive en otro feature. */
+export default function ChangePage({ planning }: { planning?: (change: Change) => ReactNode }) {
   const { code = '' } = useParams()
   const can = useCan()
   const change = useChange(code)
@@ -67,6 +69,8 @@ export default function ChangePage() {
               <h2 className="h3">Descripción</h2>
               <p className="wrap">{data.description || <span className="muted">Sin descripción.</span>}</p>
             </section>
+
+            {planning?.(data)}
 
             <section className="stack" aria-labelledby="h-reqs">
               <h2 className="h2" id="h-reqs">

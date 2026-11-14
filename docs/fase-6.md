@@ -2,6 +2,7 @@
 
 Este documento es el punto de partida de la fase 6. Dice qué se pide, cómo encaja con lo que existe, el diseño y lo que falta decidir. Lo propuesto va marcado `[SUPUESTO]`; no es una decisión hasta que el coordinador de QA y change management lo revisen.
 
+- **Estado (14 nov 2026):** construida en la rama `feature/fase-6`. Lo que se decidió al construirla está en D54 y cómo se verificó, en D55; las preguntas del §4 siguen abiertas.
 - **Requerimiento:** [kaoru-requerimiento-v2.md](kaoru-requerimiento-v2.md). Kaoru es un «Sistema de Planificación, Trazabilidad y Pruebas QA» (título y §1): hasta la fase 5 la planificación se limitaba a ventanas de CHG e hitos.
 - **Reglas del repositorio:** [reglas.md](reglas.md). **Decisiones:** [decisiones.md](decisiones.md) (D1 a D53).
 - **Cómo se trabaja, comandos y tropiezos:** los de [fase-5.md](fase-5.md) §3 siguen valiendo. Para levantar todo: `make demo` (ver [README](../README.md)).

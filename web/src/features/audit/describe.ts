@@ -10,6 +10,18 @@ export const ACTION_LABELS: Record<AuditEntry['action'], string> = {
   delete: 'Eliminación',
 }
 
+// Campos de la planificación (fase 6); los de fases anteriores se muestran con su clave.
+const FIELD_NAMES: Record<string, string> = {
+  startDate: 'la fecha de inicio',
+  endDate: 'la fecha final',
+  operators: 'los operadores',
+  cancelled: 'la cancelación',
+  kind: 'la clase',
+  title: 'el título',
+  notes: 'las notas',
+  change: 'el CHG',
+}
+
 /** Nombre legible del campo que registra la auditoría. Uno desconocido sale tal cual. */
 function fieldName(field: string | undefined): string {
   if (!field) return 'un dato'
@@ -18,7 +30,7 @@ function fieldName(field: string | undefined): string {
   if (field.startsWith('entryContract.')) return `el ítem «${field.slice('entryContract.'.length)}» del contrato de entrada`
   if (field.startsWith('step.')) return `el paso ${field.slice('step.'.length)}`
   if (field === 'review') return 'la revisión'
-  return field
+  return FIELD_NAMES[field] ?? field
 }
 
 // Lo que se agrega a una entidad que ya existe. Con otro campo, el registro de creación solo dice

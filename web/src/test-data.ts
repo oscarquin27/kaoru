@@ -1,6 +1,10 @@
 // Ejemplos de las fases 3, 4 y 5 para las pruebas de las pantallas nuevas, tipados contra el contrato.
 // Las grabaciones de mocks/fixtures.json no traen todos los casos que las pruebas necesitan.
+import fixtures from '../mocks/fixtures.json' with { type: 'json' }
 import type {
+  Activity,
+  ActivityOverlap,
+  ActivitySummary,
   Build,
   Calendar,
   Checklist,
@@ -17,6 +21,7 @@ import type {
   Regression,
   RegressionMetrics,
   Report,
+  Schedule,
   SmokeTest,
   System,
   UserRef,
@@ -404,4 +409,85 @@ export const ESCAPED_METRICS: EscapedDefectMetrics = {
   page: 1,
   size: 25,
   total: 2,
+}
+
+// Fase 6: planificación. Ana y Luis son usuarios de las grabaciones (GET /api/users).
+// Sus ids cambian cada vez que se regraban: se leen de ahí.
+const recordedUser = (username: string): UserRef => {
+  const user = fixtures['GET /api/users'].items.find((item) => item.username === username)
+  if (!user) throw new Error(`falta ${username} en las grabaciones`)
+  return { id: user.id, displayName: user.displayName }
+}
+export const OP_ANA = recordedUser('lab-qa')
+export const OP_LUIS = recordedUser('lab-ops')
+const chg1 = { code: 'CHG-2026-0001', title: 'Tope diario', system: 'SyPago' }
+
+export const CERTIFICATION: Activity = {
+  code: 'ACT-2026-0001',
+  kind: 'certification',
+  title: 'Certificación de CHG-2026-0001',
+  change: chg1,
+  startDate: '2026-11-10',
+  endDate: '2026-11-20',
+  status: 'active',
+  operators: [OP_ANA, OP_LUIS],
+  notes: 'Con el banco en paralelo',
+  overlaps: [],
+  createdBy: JUAN,
+  createdAt: AT,
+  updatedAt: AT,
+}
+
+export const REGRESSION_ACT: Activity = {
+  ...CERTIFICATION,
+  code: 'ACT-2026-0002',
+  kind: 'regression',
+  title: 'Regresión SIMF',
+  change: undefined,
+  startDate: '2026-11-18',
+  endDate: '2026-11-24',
+  status: 'planned',
+  operators: [OP_LUIS],
+  notes: '',
+}
+
+/** Luis tiene la certificación y la regresión del 18 al 20. */
+export const OVERLAP: ActivityOverlap = {
+  operator: OP_LUIS,
+  activity: { code: CERTIFICATION.code, title: CERTIFICATION.title, kind: 'certification' },
+  other: { code: REGRESSION_ACT.code, title: REGRESSION_ACT.title, kind: 'regression' },
+  from: '2026-11-18',
+  to: '2026-11-20',
+  days: 3,
+}
+
+export const PRODUCTION_ACT: Activity = {
+  ...CERTIFICATION,
+  code: 'ACT-2026-0003',
+  kind: 'production',
+  title: 'Pase de CHG-2026-0002',
+  change: { code: 'CHG-2026-0002', title: 'Reverso', system: 'SyPago' },
+  startDate: '2026-11-21',
+  endDate: '2026-11-21',
+  status: 'planned',
+  operators: [],
+}
+
+const summary = ({ code, kind, title, change, startDate, endDate, status, operators }: Activity): ActivitySummary => ({ code, kind, title, change, startDate, endDate, status, operators })
+export const CERTIFICATION_SUMMARY = summary(CERTIFICATION)
+export const REGRESSION_SUMMARY = summary(REGRESSION_ACT)
+export const PRODUCTION_SUMMARY = summary(PRODUCTION_ACT)
+
+export const SCHEDULE: Schedule = {
+  from: '2026-11-09',
+  to: '2026-11-22',
+  summary: { activities: 3, operators: 2, overlaps: 1 },
+  operators: [
+    { operator: OP_ANA, activities: [CERTIFICATION_SUMMARY], overlaps: [] },
+    { operator: OP_LUIS, activities: [CERTIFICATION_SUMMARY, REGRESSION_SUMMARY], overlaps: [OVERLAP] },
+  ],
+  unassigned: [PRODUCTION_SUMMARY],
+  projects: [{ change: chg1, certifications: [CERTIFICATION_SUMMARY] }],
+  windows: [{ change: { code: 'CHG-2026-0003', title: 'Cobro QR' }, system: 'SIMF', start: '2026-11-19T22:00:00Z', end: '2026-11-20T04:00:00Z' }],
+  milestones: [],
 }

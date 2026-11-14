@@ -169,7 +169,7 @@ export default function CalendarPage() {
 
   return (
     <>
-      <Crumbs items={[{ label: 'Calendario' }]} />
+      <Crumbs items={[{ label: 'Planificación', to: '/planificacion' }, { label: 'Calendario' }]} />
       <PageHead
         title="Calendario"
         subtitle="Hitos y ventanas de cambio por fecha. Lo atrasado sale arriba: un hito pendiente con la fecha vencida o una ventana que terminó sin liberar el CHG."

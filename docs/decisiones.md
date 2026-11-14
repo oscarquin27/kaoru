@@ -512,3 +512,46 @@ Tomadas el 11 nov 2026 al construir el core y el primer corte vertical (`workflo
   - El criterio de salida: change management y QA ven las métricas con los datos del laboratorio y aprueban las definiciones. No depende del código.
   - Exportación CSV, si se pide.
   - La deuda heredada que lista `docs/fase-5.md` §6 sigue igual.
+
+### D54 — Fase 6: planificación de actividades por operador, solapes y período de certificación
+- **Fecha:** 14 nov 2026
+- **Estado:** `[SUPUESTO]` hasta que el coordinador de QA y change management lo revisen. Parte de `docs/fase-6.md`. Las tres decisiones del coordinador de esa guía (§1) sí están tomadas: el proyecto es el CHG, solape es compartir al menos un día y la regla solo avisa. Las preguntas 1 a 4 de su §4 siguen abiertas; cada supuesto dice a cuál responde.
+- **Contrato:** `api/openapi.yaml`, etiqueta `planning`: `GET` y `POST /api/activities`, `GET` y `PATCH /api/activities/{code}`, `GET /api/planning/schedule`. 89 rutas y 131 de 131 operaciones implementadas.
+- **Esquema:** migración `00018`. Tablas `activity` y `activity_operator`, dueño `planning` (ver `modelo-datos.md`). Prefijo `ACT` en `code_sequence`. `blocking_rule.rule_key` admite `certification_planned`. Permiso `activity.manage` para `qa-admin` y `change-manager`.
+- **Actividad.**
+  - Clase (`certification`, `regression`, `production`, `other`; pregunta 1), título, notas, CHG opcional (obligatorio en la certificación, por `CHECK` y en el dominio), fecha de inicio y de fin en días UTC, las dos incluidas, y cero o más operadores.
+  - **Largo máximo de un año** (366 días incluidos). No lo pedía la guía: evita que una fecha mal escrita (2062 en vez de 2026) deje a un operador ocupado décadas y ensucie todos los solapes.
+  - **El estado no se guarda:** sale de las fechas al leer (*planificada*, *en curso*, *terminada*); *cancelada* es la única marca guardada (`cancelled_at`). Cancelar no borra y se puede revertir. Editar los operadores reemplaza la lista. `kaoru_app` tiene sobre las dos tablas los permisos por omisión, como `milestone`: la base no impide borrar una actividad, solo la aplicación (no hay ruta para hacerlo).
+  - **Operadores:** usuarios que ya entraron una vez (`app_user`, D34). Uno que no existe es error del campo `operators`.
+  - **Auditoría:** el alta registra las fechas; cada campo editado, su valor anterior y nuevo; los operadores, como la lista de ids anterior y la nueva (la ficha los muestra con su nombre).
+- **Solape** (decisión del coordinador). Dos actividades no canceladas con un operador en común que comparten al menos un día. Se informa por operador, con las dos actividades y los días que se cruzan. **No bloquea:** guardar responde 201 o 200 con los solapes que produce, y la ficha y la planificación los muestran. Lo calcula el dominio, con pruebas de tabla; no hay tabla de solapes.
+- **Planificación de un rango** (`GET /api/planning/schedule`). Por omisión, seis semanas desde el lunes de la semana actual; con `from` o `to` solo, seis semanas desde o hasta esa fecha; como máximo 92 días (`to` es el campo del error). Trae: por operador, sus actividades del rango y sus solapes; las actividades sin operador; los CHG con certificación en el rango; las ventanas de cambio de los CHG vigentes que tocan el rango (por el caso de uso de `change`, como el calendario); y los hitos con fecha en el rango. El filtro por operador recorta las filas de operadores; los proyectos, las ventanas y los hitos se siguen viendo enteros.
+- **Regla `certification_planned`** (decisión del coordinador). En la transición del REQ *Entregado a QA → En pruebas*, en «solo avisa» (`blocks = false`), editable en *Administración → Reglas de bloqueo*. Se cumple si el CHG del REQ tiene una certificación no cancelada, con operadores, que cubre hoy (UTC). Si no, dice cuál de las tres cosas falta; cuando hoy está fuera, cita el período con operadores más cercano. Un REQ sin CHG la cumple. `requirement` lee el estado por un puerto conectado en `bootstrap` (D36).
+- **La guía no valida el período contra la ventana del CHG** (pregunta 2): se ven juntos en la planificación, uno al lado del otro.
+- **Quién planifica** (pregunta 3): `qa-admin` y `change-manager`. **Quién ve** (pregunta 4): todos, como el resto de Kaoru.
+- **Front.**
+  - La sección *Calendario* pasa a *Planificación*: *Por operador* (`/planificacion`), *Actividades* (`/planificacion/actividades`) y *Calendario*, que conserva su ruta `/calendario` de la fase 4.
+  - **Por operador:** grilla CSS, una columna por día y una fila por operador, con desplazamiento horizontal. Las actividades que se pisan van en carriles distintos de la misma fila. Cada barra lleva su código escrito y, para lectores de pantalla y al pasar el ratón, título, clase y fechas. Un solape se ve de tres maneras, para que el color no sea la única señal: la franja rayada detrás de los días que se cruzan con el ícono de aviso y el número de actividades arriba, el chip *N solapes* junto al nombre del operador y la lista de solapes en palabras sobre la grilla. Debajo, los CHG del rango con su certificación y su ventana: un CHG con ventana y sin certificación queda marcado *Sin certificación*. El rango (desde, 2, 6 o 12 semanas) y el operador viven en la URL.
+  - **Ficha del CHG:** sección *Certificación* con el mismo criterio que la regla y *Planificar certificación* con la clase y el CHG puestos. La ficha pasa a `web/src/app/ChangePage.tsx`, que envuelve la de `changes` (un feature no importa a otro).
+  - **Inicio:** *Tus actividades* (las que terminan hoy o después) y, con `activity.manage`, el número de solapes de las próximas seis semanas.
+  - Sin librería de gráficos ni de fechas nueva.
+- **Sin vistas guardadas** en *Actividades*: las vistas guardadas solo admiten las pantallas que lista `savedview` y agregar una es un cambio del dominio de ese feature. Los filtros quedan en la URL.
+- **Fuera de esta entrega** (guía §3): horas o porcentaje de dedicación, feriados y días hábiles, correo, arrastrar barras, la regla en el PKG y fechas planificadas en REQ, PKG o DEF.
+- **Semilla:** `tools/dev-seed.sh` planifica la certificación del CHG de SyPago desde hace dos días hasta dentro de ocho, con Ana Rojas y Luis Paz; una regresión de SIMF de Luis que se le cruza tres días; y el pase a producción del CHG de SIMF sin operador.
+
+### D55 — Fase 6: cómo se verificó y qué falta
+- **Fecha:** 14 nov 2026
+- **Cómo se verificó.**
+  - Pruebas de tabla del dominio (validación, operadores, estado por fechas, edición y cancelación, solapes, criterio de la certificación, rango de la planificación); casos de uso con dobles escritos a mano; integración contra Postgres (`planning_integration_test.go`): el aviso de la regla en sus tres variantes y sin aviso con todo en orden, permisos, CHG obligatorio, operador inexistente, solape de dos días, planificación filtrada por operador, rango al revés, cancelar que quita el solape, filtros de la lista y auditoría.
+  - `make check-perf` con 30 operadores y 3 000 actividades: planificación de seis semanas 6 ms, de 92 días 8 ms, actividades de un operador 2 ms, ficha 1 ms (umbral 200 ms).
+  - `tools/e2e-compose.sh`: QA no planifica (403), change management crea, la planificación la lee QA por el perímetro y más de 92 días es 422. `tools/e2e-front.sh` entrega `/planificacion` y `/planificacion/actividades`.
+  - `make check` y `make check-offline`. 149 pruebas del front.
+  - En el navegador, contra la API real (`make demo` y `tools/dev-front.sh` como `lab-admin`): la línea de tiempo con el solape de Luis en la lista, en la franja con su ícono y en el chip; el CHG de SIMF marcado *Sin certificación*; abrir una actividad desde su barra; reajustar sus fechas y ver desaparecer el solape, con la auditoría; planificar la certificación desde la ficha del CHG (estado *Certifica del … al …*), una segunda ronda y una tercera que se cruza, con el aviso en la misma ficha; cancelarla; la lista filtrada por *Cancelada*; *Tus actividades* y el aviso de solapes en Inicio; la regla con su nombre en *Reglas de bloqueo*; el tema claro.
+- **Lo que no se verificó en el navegador:** el aviso de la regla al pasar un REQ a pruebas (ningún REQ de la semilla está en *Entregado a QA*; lo cubre la integración) y el filtro por operador y el cambio de largo de la planificación (los cubren las pruebas del front).
+- **Corregido al probar:** planificar desde la ficha del CHG no mostraba el solape que producía la actividad nueva, porque se queda en la ficha en vez de ir a la de la actividad; ahora lo avisa ahí. La cuenta de reglas del REQ en `api_integration_test.go` pasó de 6 a 7.
+- **Pendiente de la fase 6:**
+  - Respuestas a las preguntas 1 a 4 de `docs/fase-6.md` §4.
+  - El criterio de salida: el coordinador planifica una certificación real con sus operadores y la revisa con change management. No depende del código.
+  - **El ancho de teléfono no funciona en ninguna pantalla**, tampoco en las de esta fase: la barra lateral ocupa 232 px fijos y el contenido se desborda. Viene del armazón de la aplicación (fase 2); la línea de tiempo ya se desplaza sola, pero hace falta que el armazón se adapte.
+  - Vistas guardadas en *Actividades*, si se piden (cambio en `savedview`).
+  - Lo que la guía dejó fuera (§3).

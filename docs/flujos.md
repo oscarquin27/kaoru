@@ -178,13 +178,21 @@ Solo miden: no hay metas ni SLA, y ninguna cambia un estado. Leerlas no exige pe
 - **Tamaño de regresión.** Por PKG con la regresión confirmada en el período: TC propuestos, finales, agregados y quitados por QA, finales por origen, y finales con su último RUN sobre un BUILD del PKG aprobado.
 - **Defecto escapado** `[SUPUESTO]`. Un DEF escapó si se creó después del primer despliegue exitoso, en un ambiente de producción, de un PKG que contiene su REQ. Se calcula; nadie lo marca. Tasa: escapados / DEF creados en el período.
 
+### Planificación (fase 6, decisión D54)
+
+Una **actividad** (ACT) ocupa a cero o más operadores de un día a otro, los dos incluidos (días UTC). Su clase es certificación, regresión, pase a producción u otra; la certificación es siempre de un CHG. Su estado sale de las fechas: *planificada*, *en curso* o *terminada*; *cancelada* es la única marca y se revierte. Nada se borra.
+
+- **Solape:** el mismo operador en dos actividades no canceladas que comparten al menos un día. No impide guardar: se avisa en la respuesta, en la ficha, en la planificación y en Inicio.
+- **Período de certificación de un CHG:** sus actividades de certificación no canceladas. Puede haber varias rondas.
+- **Regla `certification_planned`** `[SUPUESTO]`, en *Entregado a QA → En pruebas* del REQ, en «solo avisa»: el CHG del REQ tiene una certificación no cancelada, con operadores, que cubre hoy. Si no, el aviso dice qué falta: el período, los operadores, o que hoy está fuera de él. Un REQ sin CHG la cumple.
+
 ## Permisos por rol (predeterminados)
 
 | Rol | Permisos |
 |---|---|
-| `change-manager` | `chg.*`, `req.create`, `req.edit`, `req.release`, `req.close`, `req.reject`, `req.defer`, `def.defer`, `pkg.approve_production`, `pkg.deploy`, `dep.create_production`, `chk.manage_template`, `chk.start`, `chk.sign`, `milestone.manage`, `link.manage`, `doc.upload`, `comment.create`, `audit.read` |
+| `change-manager` | `chg.*`, `req.create`, `req.edit`, `req.release`, `req.close`, `req.reject`, `req.defer`, `def.defer`, `pkg.approve_production`, `pkg.deploy`, `dep.create_production`, `chk.manage_template`, `chk.start`, `chk.sign`, `milestone.manage`, `activity.manage`, `link.manage`, `doc.upload`, `comment.create`, `audit.read` |
 | `qa` | `req.edit`, `risk.assess`, `req.start_design`, `req.start_testing`, `req.report_defects`, `req.approve_qa`, `req.verify`, `testdesign.manage`, `run.create`, `exp.create`, `def.create`, `def.edit`, `def.triage`, `def.close`, `def.reopen`, `comp.manage`, `pkg.start_testing`, `pkg.reopen`, `pkg.mark_ready`, `pkg.verify`, `regression.manage`, `env.manage`, `dep.create`, `diag.review`, `smoke.create`, `rpt.issue`, `link.manage`, `doc.upload`, `comment.create`, `audit.read` |
-| `qa-admin` | Todo lo de `qa`, más `admin.configure` e `import.run` |
+| `qa-admin` | Todo lo de `qa`, más `admin.configure`, `import.run` y `activity.manage` |
 | `dev` | `req.edit`, `req.start_development`, `req.deliver`, `req.package`, `entry_contract.check`, `def.fix`, `comp.manage`, `build.register`, `pkg.build`, `diag.submit`, `link.manage`, `doc.upload`, `comment.create` |
 | `ops` | `chk.sign`, `diag.submit`, `doc.upload`, `comment.create` |
 | `auditor` | `audit.read` |

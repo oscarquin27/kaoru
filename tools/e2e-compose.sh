@@ -126,6 +126,15 @@ coverage="$(api lab-qa GET "/api/metrics/coverage?system=SYPAGO")"
 case "$coverage" in *'"summary"'*'"requirements"'*) ;; *) fail "cobertura por REQ inesperada: $coverage" ;; esac
 api lab-manager GET '/api/metrics/escaped-defects?from=2026-11-14&to=2026-11-01' >/dev/null
 [ "$(code)" = 422 ] || fail "un período al revés debe responder 422: respondió $(code)"
+# Fase 6: la planificación responde por el perímetro; QA la lee, la mantienen qa-admin y change management.
+api lab-qa POST /api/activities '{"kind":"other","title":"Actividad e2e","startDate":"2026-01-05","endDate":"2026-01-09"}' >/dev/null
+[ "$(code)" = 403 ] || fail "QA no planifica actividades: respondió $(code)"
+act="$(api lab-manager POST /api/activities '{"kind":"other","title":"Actividad e2e","startDate":"2026-01-05","endDate":"2026-01-09"}' | json_code ACT)"
+[ "$(code)" = 201 ] && [ -n "$act" ] || fail "crear una actividad respondió $(code)"
+schedule="$(api lab-qa GET '/api/planning/schedule?from=2026-01-05&to=2026-01-18')"
+case "$schedule" in *'"summary"'*"\"code\":\"$act\""*) ;; *) fail "la actividad sin operador debe salir en la planificación: $schedule" ;; esac
+api lab-qa GET '/api/planning/schedule?from=2026-01-01&to=2026-06-01' >/dev/null
+[ "$(code)" = 422 ] || fail "más de 92 días debe responder 422: respondió $(code)"
 api lab-qa GET /api/audit/verification | grep -q '"intact":true' || fail "la cadena de auditoría debe estar íntegra"
 
 # El id de traza que genera Nginx vuelve en la respuesta.
