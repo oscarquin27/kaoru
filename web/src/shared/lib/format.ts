@@ -30,6 +30,12 @@ export function formatDays(days: number): string {
   return days < 1 ? '< 1 d' : `${Math.round(days)} d`
 }
 
+/** Días con un decimal, para medianas y percentiles: «2,5 d». Menos de una décima (unas 2 horas), «< 0,1 d». */
+export function formatDecimalDays(days: number): string {
+  if (days < 0.1) return '< 0,1 d'
+  return `${days.toLocaleString('es', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} d`
+}
+
 /** Tiempo en un estado, con palabras: «3 días». */
 export function formatDaysLong(days: number): string {
   if (days < 1) return 'menos de 1 día'

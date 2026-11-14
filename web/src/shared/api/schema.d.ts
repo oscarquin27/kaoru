@@ -1522,6 +1522,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/metrics/coverage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Cobertura REQ por REQ
+         * @description Por cada REQ, los TC que exige (activos, que validan algún UC del REQ) y cuántos tienen su último RUN aprobado, frente al mínimo que fija la regla `min_coverage` para su nivel de riesgo. El resumen cuenta todo lo filtrado sin mirar `status`. Orden: por debajo del mínimo, sin TC, sin riesgo y al final los que cumplen; dentro de cada grupo, menor cobertura primero.
+         */
+        get: operations["getCoverageMetrics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/metrics/defect-states": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tiempo que pasan los DEF en cada estado
+         * @description Sobre los DEF creados en el período, con su historia de transiciones de la auditoría. Para cada estado no final: cuántos DEF pasaron por él, cuántas veces se entró, y la mediana y el percentil 90 del tiempo total que cada DEF pasó ahí (lo que sigue abierto cuenta hasta ahora). Además, el tiempo de punta a punta de los DEF que están en un estado final. Sin período, los últimos 12 meses.
+         */
+        get: operations["getDefectStateMetrics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/metrics/regression": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tamaño de la regresión de cada PKG
+         * @description Una fila por PKG con la regresión confirmada en el período, la más reciente primero: TC propuestos, finales, agregados y quitados por QA, los finales por origen y cuántos tienen su último RUN sobre un BUILD del PKG aprobado. Sin período, los últimos 12 meses.
+         */
+        get: operations["getRegressionMetrics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/metrics/escaped-defects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Defectos escapados a producción
+         * @description Un DEF escapó si se abrió después de que su REQ llegó a producción: después del primer despliegue exitoso, en un ambiente de producción, de un PKG que contiene el REQ. Se calcula sobre los DEF creados en el período; la lista trae solo los escapados, el más reciente primero. Sin período, los últimos 12 meses.
+         */
+        get: operations["getEscapedDefectMetrics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/saved-views": {
         parameters: {
             query?: never;
@@ -2168,6 +2248,140 @@ export interface components {
                 daysLate: number;
             }[];
         };
+        MetricsPeriod: {
+            /** Format: date */
+            from: string;
+            /**
+             * Format: date
+             * @description Inclusive. Falta si el período no tiene fin.
+             */
+            to?: string;
+        };
+        /** @description Días naturales, con un decimal. */
+        Days: number;
+        /**
+         * @description `below`, por debajo del mínimo de su riesgo; `no_test_cases`, sin TC; `unassessed`, sin riesgo evaluado; `meets`, cumple (o ninguna regla activa le exige un mínimo).
+         * @enum {string}
+         */
+        CoverageStatus: "below" | "no_test_cases" | "unassessed" | "meets";
+        CoverageMetrics: components["schemas"]["PageInfo"] & {
+            summary: {
+                requirements: number;
+                below: number;
+                noTestCases: number;
+                unassessed: number;
+                meets: number;
+                requiredTestCases: number;
+                passedTestCases: number;
+            };
+            items: {
+                requirement: components["schemas"]["CodeTitle"];
+                system: string;
+                state: components["schemas"]["StateRef"];
+                riskLevel?: components["schemas"]["RiskLevel"];
+                /** @description TC activos que exige el REQ. */
+                required: number;
+                /** @description De esos, los que tienen su último RUN aprobado. */
+                passed: number;
+                /** @description Cobertura, redondeada hacia abajo; 0 sin TC. */
+                percent: number;
+                /** @description El mínimo que exige la regla para su riesgo. Falta sin riesgo o sin regla activa. */
+                minimumPercent?: number;
+                status: components["schemas"]["CoverageStatus"];
+            }[];
+        };
+        DefectStateMetrics: {
+            period: components["schemas"]["MetricsPeriod"];
+            /** @description DEF creados en el período. */
+            total: number;
+            /** @description Los estados del flujo del DEF, en el orden de su línea de vida. */
+            states: {
+                state: components["schemas"]["StateRef"];
+                isFinal: boolean;
+                /** @description DEF que están hoy en el estado. */
+                current: number;
+                /** @description DEF que pasaron por el estado. */
+                defects: number;
+                /** @description Veces que se entró al estado. */
+                visits: number;
+                /** @description Falta en un estado final o si nadie pasó por él. */
+                medianDays?: components["schemas"]["Days"];
+                p90Days?: components["schemas"]["Days"];
+            }[];
+            /** @description De la creación a la entrada en el estado final en que están hoy. */
+            resolution: {
+                defects: number;
+                medianDays?: components["schemas"]["Days"];
+                p90Days?: components["schemas"]["Days"];
+            };
+        };
+        RegressionMetrics: components["schemas"]["PageInfo"] & {
+            period: components["schemas"]["MetricsPeriod"];
+            summary: {
+                packages: number;
+                /** @description TC propuestos, sumados. */
+                proposed: number;
+                /** @description TC de las selecciones finales, sumados. */
+                final: number;
+                added: number;
+                removed: number;
+                /** @description Mediana de TC finales por PKG. Falta sin PKG. */
+                medianFinal?: number;
+            };
+            items: {
+                package: components["schemas"]["CodeTitle"];
+                system: string;
+                state: components["schemas"]["StateRef"];
+                /** Format: date-time */
+                confirmedAt: string;
+                proposed: number;
+                final: number;
+                /** @description TC que QA agregó a lo propuesto. */
+                added: number;
+                /** @description TC propuestos que QA quitó. */
+                removed: number;
+                /** @description Los TC finales por origen. */
+                byOrigin: {
+                    impact: number;
+                    critical: number;
+                    manual: number;
+                };
+                /** @description TC finales con su último RUN sobre un BUILD del PKG aprobado. */
+                passed: number;
+                /** @description TC activos del sistema hoy. */
+                systemTestCases: number;
+            }[];
+        };
+        EscapedDefectMetrics: components["schemas"]["PageInfo"] & {
+            period: components["schemas"]["MetricsPeriod"];
+            summary: {
+                /** @description DEF creados en el período. */
+                defects: number;
+                escaped: number;
+                /** @description Escapados / DEF, en %, con un decimal; 0 sin DEF. */
+                ratePercent: number;
+            };
+            /** @description Cada mes del período, en UTC, el más antiguo primero. */
+            months: {
+                /** @example 2026-11 */
+                month: string;
+                defects: number;
+                escaped: number;
+            }[];
+            items: {
+                defect: components["schemas"]["CodeTitle"];
+                severity: components["schemas"]["Severity"];
+                state: components["schemas"]["StateRef"];
+                requirement: components["schemas"]["Code"];
+                /** @description El PKG con el que el REQ llegó a producción. */
+                package: components["schemas"]["Code"];
+                /** Format: date-time */
+                releasedAt: string;
+                /** Format: date-time */
+                createdAt: string;
+                daysAfterRelease: components["schemas"]["Days"];
+            }[];
+        };
         /** @enum {string} */
         SavedViewScreen: "requirements" | "changes" | "defects" | "matrix" | "test-cases" | "audit";
         SavedView: {
@@ -2717,6 +2931,11 @@ export interface components {
         MatrixFrom: string;
         /** @description REQ creados hasta esta fecha */
         MatrixTo: string;
+        MetricsSeverity: components["schemas"]["Severity"];
+        /** @description Desde esta fecha (UTC). Sin ella, el primer día del mes de hace 11 meses. */
+        MetricsFrom: string;
+        /** @description Hasta esta fecha, inclusive (UTC). Sin ella, sin límite. */
+        MetricsTo: string;
     };
     requestBodies: {
         Transition: {
@@ -5670,6 +5889,129 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Calendar"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getCoverageMetrics: {
+        parameters: {
+            query?: {
+                /** @description Clave del sistema (`SIMF`, `SGLPAR`, `SYPAGO`) */
+                system?: components["parameters"]["SystemKey"];
+                /** @description Código del CHG */
+                change?: components["parameters"]["MatrixChange"];
+                /** @description Código de un PKG que incluye el REQ */
+                package?: components["parameters"]["MatrixPackage"];
+                /** @description Clave del estado en su flujo */
+                state?: components["parameters"]["StateKey"];
+                status?: components["schemas"]["CoverageStatus"];
+                page?: components["parameters"]["Page"];
+                size?: components["parameters"]["Size"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cobertura por REQ */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoverageMetrics"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getDefectStateMetrics: {
+        parameters: {
+            query?: {
+                /** @description Clave del sistema (`SIMF`, `SGLPAR`, `SYPAGO`) */
+                system?: components["parameters"]["SystemKey"];
+                severity?: components["parameters"]["MetricsSeverity"];
+                /** @description Desde esta fecha (UTC). Sin ella, el primer día del mes de hace 11 meses. */
+                from?: components["parameters"]["MetricsFrom"];
+                /** @description Hasta esta fecha, inclusive (UTC). Sin ella, sin límite. */
+                to?: components["parameters"]["MetricsTo"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tiempo en estado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DefectStateMetrics"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getRegressionMetrics: {
+        parameters: {
+            query?: {
+                /** @description Clave del sistema (`SIMF`, `SGLPAR`, `SYPAGO`) */
+                system?: components["parameters"]["SystemKey"];
+                /** @description Desde esta fecha (UTC). Sin ella, el primer día del mes de hace 11 meses. */
+                from?: components["parameters"]["MetricsFrom"];
+                /** @description Hasta esta fecha, inclusive (UTC). Sin ella, sin límite. */
+                to?: components["parameters"]["MetricsTo"];
+                page?: components["parameters"]["Page"];
+                size?: components["parameters"]["Size"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tamaño de regresión */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegressionMetrics"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getEscapedDefectMetrics: {
+        parameters: {
+            query?: {
+                /** @description Clave del sistema (`SIMF`, `SGLPAR`, `SYPAGO`) */
+                system?: components["parameters"]["SystemKey"];
+                severity?: components["parameters"]["MetricsSeverity"];
+                /** @description Desde esta fecha (UTC). Sin ella, el primer día del mes de hace 11 meses. */
+                from?: components["parameters"]["MetricsFrom"];
+                /** @description Hasta esta fecha, inclusive (UTC). Sin ella, sin límite. */
+                to?: components["parameters"]["MetricsTo"];
+                page?: components["parameters"]["Page"];
+                size?: components["parameters"]["Size"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Defectos escapados */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EscapedDefectMetrics"];
                 };
             };
             default: components["responses"]["Problem"];

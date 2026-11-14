@@ -87,6 +87,15 @@ Lo que exige el paso a producción depende de la **ruta del PKG**, que se ve en 
 - *Inicio* muestra las **próximas ventanas de cambio** y las **alertas de atraso**: un hito vencido sin cumplir, o un CHG cuya ventana terminó sin liberarse. *Calendario* las pone arriba y, debajo, hitos y ventanas por fecha. Las fechas de los hitos son días en UTC. No llegan correos.
 - La matriz de trazabilidad tiene la columna **RPT**: el informe vigente del paquete de cada REQ.
 
+## Métricas (fase 5)
+
+*Métricas*, en la barra lateral, tiene cuatro pantallas. Todas miden y ninguna marca metas: no hay SLA. Los filtros quedan en la dirección, así que basta con copiar el enlace para compartir lo que estás viendo. Las fechas *Desde* y *Hasta* son días en UTC; sin fechas se ven los últimos 12 meses.
+
+- **Cobertura:** cada REQ con sus TC aprobados (los que tienen su último RUN aprobado) frente al mínimo que pide su riesgo. Arriba aparece lo que hay que atender: *Bajo el mínimo*, después *Sin TC* y *Sin riesgo* (falta evaluar el RISK), y al final lo que *Cumple*. Se filtra por sistema, CHG, PKG, estado y resultado.
+- **Tiempo en estado:** cuántos defectos pasaron por cada estado y cuánto se quedaron (mediana y percentil 90, en días naturales), con los cerrados incluidos. *Entradas* mayor que *Pasaron* quiere decir que algún DEF volvió a ese estado. Arriba, cuánto tardan en resolverse. *Inicio* sigue mostrando el tiempo en el estado actual de los abiertos y enlaza a esta pantalla.
+- **Regresión:** por paquete, los TC que propuso el sistema, los que QA agregó o quitó, cuántos quedaron por origen y cuántos están aprobados sobre un BUILD del paquete.
+- **Defectos escapados:** los defectos que se abrieron después de que su REQ llegó a producción (el primer despliegue exitoso en producción de un PKG que lo contiene), por mes y uno por uno, con el paquete que lo llevó. Nadie los marca: Kaoru los calcula.
+
 ## Operaciones
 
 Consultas el estado de lo que vas a desplegar, comentas y adjuntas documentos (por ejemplo, la evidencia de un despliegue). Ves los paquetes, sus BUILD, los ambientes y sus despliegues. En producción firmas los pasos del checklist y entregas diagnósticos (ver la sección de la fase 4).

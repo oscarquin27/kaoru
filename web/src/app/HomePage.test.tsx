@@ -15,6 +15,8 @@ describe('inicio', () => {
     const alerts = within(screen.getByRole('region', { name: 'Alertas de atraso' }))
     expect(await alerts.findByText('Congelar el alcance de 2.14')).toBeInTheDocument()
     expect(alerts.getByText('10 días de atraso')).toBeInTheDocument()
+    // Los defectos por estado llevan a la métrica histórica, con los cerrados.
+    expect(screen.getByRole('link', { name: 'Ver el histórico, con los cerrados' })).toHaveAttribute('href', '/metricas/defectos')
   })
 
   it('sin atrasos lo dice', async () => {

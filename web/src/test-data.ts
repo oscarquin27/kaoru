@@ -1,4 +1,4 @@
-// Ejemplos de las fases 3 y 4 para las pruebas de las pantallas nuevas, tipados contra el contrato.
+// Ejemplos de las fases 3, 4 y 5 para las pruebas de las pantallas nuevas, tipados contra el contrato.
 // Las grabaciones de mocks/fixtures.json no traen todos los casos que las pruebas necesitan.
 import type {
   Build,
@@ -6,12 +6,16 @@ import type {
   Checklist,
   ChecklistTemplate,
   Component,
+  CoverageMetrics,
+  DefectStateMetrics,
   Deployment,
   Diagnostic,
   Environment,
+  EscapedDefectMetrics,
   Milestone,
   Package,
   Regression,
+  RegressionMetrics,
   Report,
   SmokeTest,
   System,
@@ -302,4 +306,102 @@ export const CALENDAR: Calendar = {
     { kind: 'change_window', title: 'Límite diario', change: 'CHG-2026-0001', dueAt: '2026-11-02T02:00:00Z', daysLate: 10 },
     { kind: 'milestone', title: MILESTONE.title, milestone: MILESTONE.id, dueAt: '2026-11-05T00:00:00Z', daysLate: 7 },
   ],
+}
+
+// --- Métricas (fase 5) ---
+
+export const COVERAGE_METRICS: CoverageMetrics = {
+  summary: { requirements: 4, below: 1, noTestCases: 1, unassessed: 1, meets: 1, requiredTestCases: 7, passedTestCases: 5 },
+  items: [
+    {
+      requirement: { code: 'REQ-2026-0002', title: 'Tope por comercio' },
+      system: 'SYPAGO',
+      state: { key: 'in_testing', name: 'En pruebas' },
+      riskLevel: 'medium',
+      required: 3,
+      passed: 1,
+      percent: 33,
+      minimumPercent: 80,
+      status: 'below',
+    },
+    { requirement: { code: 'REQ-2026-0003', title: 'Sin casos' }, system: 'SYPAGO', state: { key: 'test_design', name: 'Diseño de pruebas' }, riskLevel: 'low', required: 0, passed: 0, percent: 0, minimumPercent: 100, status: 'no_test_cases' },
+    { requirement: { code: 'REQ-2026-0004', title: 'Sin riesgo' }, system: 'SYPAGO', state: { key: 'registered', name: 'Registrado' }, required: 0, passed: 0, percent: 0, status: 'unassessed' },
+    { requirement: { code: 'REQ-2026-0001', title: 'Límite diario' }, system: 'SYPAGO', state: { key: 'approved_qa', name: 'Aprobado QA' }, riskLevel: 'high', required: 4, passed: 4, percent: 100, minimumPercent: 100, status: 'meets' },
+  ],
+  page: 1,
+  size: 25,
+  total: 4,
+}
+
+export const DEFECT_STATE_METRICS: DefectStateMetrics = {
+  period: { from: '2025-12-01' },
+  total: 6,
+  states: [
+    { state: { key: 'open', name: 'Abierto' }, isFinal: false, current: 1, defects: 6, visits: 6, medianDays: 1.5, p90Days: 4 },
+    { state: { key: 'in_fix', name: 'En corrección' }, isFinal: false, current: 2, defects: 4, visits: 5, medianDays: 3.2, p90Days: 9.8 },
+    { state: { key: 'closed', name: 'Cerrado' }, isFinal: true, current: 3, defects: 3, visits: 3 },
+    { state: { key: 'reopened', name: 'Reabierto' }, isFinal: false, current: 0, defects: 0, visits: 0 },
+  ],
+  resolution: { defects: 3, medianDays: 6.5, p90Days: 12 },
+}
+
+export const REGRESSION_METRICS: RegressionMetrics = {
+  period: { from: '2026-01-01', to: '2026-11-30' },
+  summary: { packages: 2, proposed: 14, final: 13, added: 2, removed: 3, medianFinal: 6.5 },
+  items: [
+    {
+      package: { code: 'PKG-2026-0002', title: 'Comprobante' },
+      system: 'SYPAGO',
+      state: { key: 'in_testing', name: 'En pruebas' },
+      confirmedAt: '2026-11-10T15:00:00Z',
+      proposed: 10,
+      final: 8,
+      added: 1,
+      removed: 3,
+      byOrigin: { impact: 5, critical: 2, manual: 1 },
+      passed: 6,
+      systemTestCases: 40,
+    },
+    {
+      package: { code: 'PKG-2026-0001', title: 'Límite diario' },
+      system: 'SYPAGO',
+      state: { key: 'verified', name: 'Verificado' },
+      confirmedAt: '2026-10-02T15:00:00Z',
+      proposed: 4,
+      final: 5,
+      added: 1,
+      removed: 0,
+      byOrigin: { impact: 2, critical: 2, manual: 1 },
+      passed: 5,
+      systemTestCases: 38,
+    },
+  ],
+  page: 1,
+  size: 25,
+  total: 2,
+}
+
+export const ESCAPED_METRICS: EscapedDefectMetrics = {
+  period: { from: '2026-09-01' },
+  summary: { defects: 8, escaped: 2, ratePercent: 25 },
+  months: [
+    { month: '2026-09', defects: 3, escaped: 0 },
+    { month: '2026-10', defects: 4, escaped: 1 },
+    { month: '2026-11', defects: 1, escaped: 1 },
+  ],
+  items: [
+    {
+      defect: { code: 'DEF-2026-0009', title: 'Rechaza el reverso' },
+      severity: 'high',
+      state: { key: 'open', name: 'Abierto' },
+      requirement: 'REQ-2026-0001',
+      package: 'PKG-2026-0001',
+      releasedAt: '2026-10-10T03:00:00Z',
+      createdAt: '2026-11-03T15:00:00Z',
+      daysAfterRelease: 24.5,
+    },
+  ],
+  page: 1,
+  size: 25,
+  total: 2,
 }

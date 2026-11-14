@@ -169,6 +169,15 @@ QA emite el RPT de un PKG cuando lo necesita, en cualquier estado. Emitir congel
 
 Junta las ventanas de los CHG vigentes y los hitos. Una **alerta de atraso** es un hito pendiente con la fecha vencida, o una ventana que terminó sin que el CHG esté «Liberado». Se ven en Inicio y en Calendario; no hay correo.
 
+### Métricas (fase 5, decisión D52)
+
+Solo miden: no hay metas ni SLA, y ninguna cambia un estado. Leerlas no exige permiso. Los períodos son días en UTC y, sin período, cubren los últimos 12 meses calendario con el actual.
+
+- **Cobertura por REQ.** TC requeridos: los TC no retirados enlazados al REQ por sus UC. Aprobados: los que tienen su último RUN aprobado. El mínimo es el de la regla `min_coverage` activa para el riesgo del REQ (100 % si no dice otro). Resultado: *bajo el mínimo*, *sin TC*, *sin riesgo* (no hay RISK, no es 0 %) o *cumple*. Sin período: es la cobertura de hoy.
+- **Tiempo en estado.** Para cada DEF creado en el período, los tramos entre su creación, cada transición y hoy. Por estado: DEF que pasaron, entradas (volver a un estado suma otra), mediana y percentil 90 en días naturales del tiempo total de cada DEF en el estado. De abierto a resuelto: de la creación a la última transición, para los DEF que hoy están en un estado final.
+- **Tamaño de regresión.** Por PKG con la regresión confirmada en el período: TC propuestos, finales, agregados y quitados por QA, finales por origen, y finales con su último RUN sobre un BUILD del PKG aprobado.
+- **Defecto escapado** `[SUPUESTO]`. Un DEF escapó si se creó después del primer despliegue exitoso, en un ambiente de producción, de un PKG que contiene su REQ. Se calcula; nadie lo marca. Tasa: escapados / DEF creados en el período.
+
 ## Permisos por rol (predeterminados)
 
 | Rol | Permisos |
