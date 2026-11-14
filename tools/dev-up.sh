@@ -24,6 +24,10 @@ lab_password="$(cat "$password_file")"
 "$root/tools/make-lab-cert.sh" localhost >/dev/null
 docker build -q -f "$root/infra/api/Dockerfile" -t kaoru-api:dev "$root" >/dev/null
 compose up -d --wait --wait-timeout 300 >/dev/null 2>&1 || fail "el Compose no llegó a estar sano"
+# Keycloak guarda una copia comprimida de cada archivo del tema la primera vez que se pide y no la
+# renueva si el archivo cambia: tras actualizar, el login seguiría con la marca anterior. Se borra
+# en cada arranque; Keycloak la rehace sola, sin reiniciarse.
+compose exec -T keycloak rm -rf /opt/keycloak/data/tmp/kc-gzip-cache || fail "no se pudo vaciar la caché del tema de Keycloak"
 
 kcadm_login
 # Los usuarios se crean una sola vez: los datos se conservan entre corridas.

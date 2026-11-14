@@ -47,6 +47,19 @@ chmod 644 "$app/tls/tls.key"
 compose down -v --remove-orphans >/dev/null 2>&1 || true
 "$app/install.sh" >/dev/null 2>&1 || fail "install.sh no dejó el sistema sano"
 
+# Actualizar el tema se ve en el login aunque Keycloak no se reinicie: install.sh vacía la copia
+# comprimida que Keycloak guarda de cada archivo. Se pide con gzip, como un navegador.
+theme_css() {
+    local css
+    css="$(curl -skL "$base/" | grep -o '/auth/resources/[^"]*/login/kaoru/css/kaoru.css' | head -1)"
+    [ -n "$css" ] || fail "el login no enlaza la hoja de estilos del tema"
+    curl -sk -H 'Accept-Encoding: gzip' "$base$css" | gunzip -c 2>/dev/null || curl -sk "$base$css"
+}
+theme_css >/dev/null
+echo '/* actualizado-en-la-prueba */' >>"$app/keycloak/themes/kaoru/login/resources/css/kaoru.css"
+"$app/install.sh" >/dev/null 2>&1 || fail "actualizar con install.sh no dejó el sistema sano"
+theme_css | grep -q 'actualizado-en-la-prueba' || fail "tras actualizar, el login sigue sirviendo la hoja de estilos anterior"
+
 # Datos reales: un usuario, un CHG y un documento adjunto.
 kcadm_login
 new_user lab-manager Carla Mora change-manager
