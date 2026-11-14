@@ -136,6 +136,13 @@ func gatherFacts(ctx context.Context, d Deps, requirement domain.Requirement) (d
 	if facts.OpenDefects, err = d.Facts.OpenDefects(ctx, s.Code); err != nil {
 		return domain.Facts{}, err
 	}
+	if s.Change != nil {
+		certification, err := d.Facts.Certification(ctx, s.Change.Code)
+		if err != nil {
+			return domain.Facts{}, err
+		}
+		facts.Certification = &certification
+	}
 	return facts, nil
 }
 

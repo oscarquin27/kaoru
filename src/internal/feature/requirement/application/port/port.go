@@ -87,6 +87,8 @@ type Facts interface {
 	Risk(ctx context.Context, code shared.Code) (*domain.RiskFact, error)
 	Coverage(ctx context.Context, code shared.Code) (domain.CoverageFact, error)
 	OpenDefects(ctx context.Context, code shared.Code) ([]domain.DefectFact, error)
+	// Certification dice cómo está planificada hoy la certificación de un CHG.
+	Certification(ctx context.Context, changeCode string) (domain.CertificationFact, error)
 }
 
 // AuditAction es la clase de hecho que se audita.

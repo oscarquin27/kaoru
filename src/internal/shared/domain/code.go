@@ -29,6 +29,8 @@ const (
 	PrefixDiagnostic     = "DIAG"
 	PrefixSmokeTest      = "SMOKE"
 	PrefixReport         = "RPT"
+	// PrefixActivity es el de las actividades planificadas (fase 6).
+	PrefixActivity = "ACT"
 )
 
 // Code es el ID legible e inmutable de una entidad: prefijo, año y secuencia (REQ-2026-0042).

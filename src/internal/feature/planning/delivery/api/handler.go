@@ -1,4 +1,4 @@
-// Package api expone los hitos y el calendario por HTTP.
+// Package api expone los hitos, el calendario, las actividades y la planificación por HTTP.
 package api
 
 import (
@@ -27,6 +27,11 @@ func (h *Handler) Register(r gin.IRouter) {
 	r.POST("/api/milestones", h.create)
 	r.PATCH("/api/milestones/:id", h.update)
 	r.GET("/api/calendar", h.calendar)
+	r.GET("/api/activities", h.listActivities)
+	r.POST("/api/activities", h.createActivity)
+	r.GET("/api/activities/:code", h.getActivity)
+	r.PATCH("/api/activities/:code", h.updateActivity)
+	r.GET("/api/planning/schedule", h.schedule)
 }
 
 func actorOf(c *gin.Context) shared.Actor {

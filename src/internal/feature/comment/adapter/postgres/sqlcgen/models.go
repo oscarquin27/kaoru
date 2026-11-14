@@ -11,6 +11,26 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Activity struct {
+	ID          uuid.UUID
+	Code        string
+	Kind        string
+	Title       string
+	ChangeID    uuid.NullUUID
+	StartDate   pgtype.Date
+	EndDate     pgtype.Date
+	Notes       string
+	CancelledAt *time.Time
+	CreatedBy   string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+type ActivityOperator struct {
+	ActivityID uuid.UUID
+	UserID     string
+}
+
 type AppUser struct {
 	ID          string
 	Username    string

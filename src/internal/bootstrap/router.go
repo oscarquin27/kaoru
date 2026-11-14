@@ -216,6 +216,7 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 	requirementModule.ConnectRisk(riskModule.UseCases)
 	requirementModule.ConnectExecution(executionModule.UseCases)
 	requirementModule.ConnectDefect(defectModule.UseCases)
+	requirementModule.ConnectPlanning(planningModule.UseCases)
 
 	gin.SetMode(gin.ReleaseMode)
 	engine := gin.New()
