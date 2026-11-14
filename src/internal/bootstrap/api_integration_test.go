@@ -233,8 +233,9 @@ func TestWorkflowDefaults(t *testing.T) {
 	for _, tr := range wf.Transitions {
 		rules += len(tr.Rules)
 	}
-	if rules != 6 {
-		t.Errorf("reglas de bloqueo del REQ = %d, quiero 6", rules)
+	// Seis de las fases 1 y 2, más certification_planned (fase 6).
+	if rules != 7 {
+		t.Errorf("reglas de bloqueo del REQ = %d, quiero 7", rules)
 	}
 	a.call("qa", "GET", "/api/workflows/paquete", nil, 404, nil)
 }

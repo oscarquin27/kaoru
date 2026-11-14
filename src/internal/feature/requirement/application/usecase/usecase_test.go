@@ -180,6 +180,10 @@ func (w *world) OpenDefects(context.Context, shared.Code) ([]domain.DefectFact, 
 	return w.defects, nil
 }
 
+func (w *world) Certification(_ context.Context, code string) (domain.CertificationFact, error) {
+	return domain.CertificationFact{ChangeCode: code, State: domain.CertificationReady}, nil
+}
+
 // fakeWorkflow es un flujo corto: Registrado → Riesgo evaluado → Entregado a QA → Aprobado QA,
 // y Registrado → Rechazado con motivo. Cada rol solo puede lo suyo.
 type fakeWorkflow struct{}

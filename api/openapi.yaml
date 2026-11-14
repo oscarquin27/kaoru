@@ -2332,6 +2332,129 @@ paths:
               schema: { $ref: '#/components/schemas/Calendar' }
         default: { $ref: '#/components/responses/Problem' }
 
+  /api/activities:
+    get:
+      tags: [planning]
+      operationId: listActivities
+      summary: Actividades planificadas, por fecha de inicio
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - name: operator
+          in: query
+          description: Id de un operador.
+          schema: { type: string }
+        - name: change
+          in: query
+          description: Código del CHG.
+          schema: { $ref: '#/components/schemas/Code' }
+        - name: kind
+          in: query
+          schema: { $ref: '#/components/schemas/ActivityKind' }
+        - name: status
+          in: query
+          description: Sin valor devuelve todas, también las canceladas.
+          schema: { $ref: '#/components/schemas/ActivityStatus' }
+        - name: from
+          in: query
+          description: Solo las que terminan este día o después.
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          description: Solo las que empiezan este día o antes.
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Página de actividades
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageInfo'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/ActivitySummary' }
+        default: { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [planning]
+      operationId: createActivity
+      summary: Planifica una actividad
+      description: Exige `activity.manage`. Un solape no impide guardar; la respuesta lo trae.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ActivityInput' }
+      responses:
+        '201':
+          description: Actividad planificada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Activity' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/activities/{code}:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    get:
+      tags: [planning]
+      operationId: getActivity
+      summary: Ficha de una actividad con sus solapes
+      responses:
+        '200':
+          description: Actividad
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Activity' }
+        default: { $ref: '#/components/responses/Problem' }
+    patch:
+      tags: [planning]
+      operationId: updateActivity
+      summary: Reajusta una actividad, la cancela o la reactiva
+      description: Exige `activity.manage`. Una actividad no se borra.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ActivityPatch' }
+      responses:
+        '200':
+          description: Actividad actualizada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Activity' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/planning/schedule:
+    get:
+      tags: [planning]
+      operationId: getSchedule
+      summary: Quién hace qué en un rango de días, qué se solapa y qué proyectos coinciden
+      description: >-
+        Sin fechas, seis semanas desde el lunes de esta semana; como máximo 92 días. Las canceladas no cuentan.
+      parameters:
+        - name: from
+          in: query
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          description: Inclusive.
+          schema: { type: string, format: date }
+        - name: operator
+          in: query
+          description: Id de un operador; deja solo su fila.
+          schema: { type: string }
+      responses:
+        '200':
+          description: Planificación
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Schedule' }
+        default: { $ref: '#/components/responses/Problem' }
+
   /api/metrics/coverage:
     get:
       tags: [metrics]
@@ -3446,6 +3569,164 @@ components:
                 description: El hito, si la alerta es de un hito.
               dueAt: { type: string, format: date-time }
               daysLate: { type: integer, minimum: 1 }
+
+    ActivityKind:
+      type: string
+      enum: [certification, regression, production, other]
+    ActivityStatus:
+      type: string
+      description: Se deduce de las fechas, salvo la cancelada.
+      enum: [planned, active, done, cancelled]
+    ActivityInput:
+      type: object
+      required: [kind, title, startDate, endDate]
+      properties:
+        kind: { $ref: '#/components/schemas/ActivityKind' }
+        title: { type: string, minLength: 1, maxLength: 200 }
+        change:
+          allOf:
+            - $ref: '#/components/schemas/Code'
+          description: El CHG. Obligatorio en la certificación.
+        startDate: { type: string, format: date }
+        endDate:
+          type: string
+          format: date
+          description: Inclusive.
+        operators:
+          type: array
+          description: Ids de los operadores.
+          items: { type: string }
+        notes: { type: string }
+    ActivityPatch:
+      type: object
+      properties:
+        kind: { $ref: '#/components/schemas/ActivityKind' }
+        title: { type: string, minLength: 1, maxLength: 200 }
+        change:
+          type: string
+          description: Código del CHG. Vacío deja la actividad sin CHG.
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+        operators:
+          type: array
+          description: Reemplaza la lista de operadores.
+          items: { type: string }
+        notes: { type: string }
+        cancelled: { type: boolean }
+    ActivityChange:
+      type: object
+      required: [code, title, system]
+      properties:
+        code: { $ref: '#/components/schemas/Code' }
+        title: { type: string }
+        system: { type: string }
+    ActivitySummary:
+      type: object
+      required: [code, kind, title, startDate, endDate, status, operators]
+      properties:
+        code: { $ref: '#/components/schemas/Code' }
+        kind: { $ref: '#/components/schemas/ActivityKind' }
+        title: { type: string }
+        change: { $ref: '#/components/schemas/ActivityChange' }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+        status: { $ref: '#/components/schemas/ActivityStatus' }
+        operators:
+          type: array
+          items: { $ref: '#/components/schemas/UserRef' }
+    ActivityOverlap:
+      type: object
+      description: Un operador con dos actividades que comparten días.
+      required: [operator, activity, other, from, to, days]
+      properties:
+        operator: { $ref: '#/components/schemas/UserRef' }
+        activity: { $ref: '#/components/schemas/ActivityRef' }
+        other: { $ref: '#/components/schemas/ActivityRef' }
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+        days: { type: integer, minimum: 1 }
+    ActivityRef:
+      type: object
+      required: [code, title, kind]
+      properties:
+        code: { $ref: '#/components/schemas/Code' }
+        title: { type: string }
+        kind: { $ref: '#/components/schemas/ActivityKind' }
+    Activity:
+      allOf:
+        - $ref: '#/components/schemas/ActivitySummary'
+        - type: object
+          required: [notes, overlaps, createdBy, createdAt, updatedAt]
+          properties:
+            notes: { type: string }
+            cancelledAt: { type: string, format: date-time }
+            overlaps:
+              type: array
+              description: Los solapes de sus operadores con otras actividades no canceladas.
+              items: { $ref: '#/components/schemas/ActivityOverlap' }
+            createdBy: { $ref: '#/components/schemas/UserRef' }
+            createdAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time }
+    Schedule:
+      type: object
+      required: [from, to, summary, operators, unassigned, projects, windows, milestones]
+      properties:
+        from: { type: string, format: date }
+        to:
+          type: string
+          format: date
+          description: Inclusive.
+        summary:
+          type: object
+          required: [activities, operators, overlaps]
+          properties:
+            activities: { type: integer }
+            operators: { type: integer }
+            overlaps: { type: integer }
+        operators:
+          type: array
+          description: Por nombre.
+          items:
+            type: object
+            required: [operator, activities, overlaps]
+            properties:
+              operator: { $ref: '#/components/schemas/UserRef' }
+              activities:
+                type: array
+                items: { $ref: '#/components/schemas/ActivitySummary' }
+              overlaps:
+                type: array
+                items: { $ref: '#/components/schemas/ActivityOverlap' }
+        unassigned:
+          type: array
+          description: Actividades sin operador.
+          items: { $ref: '#/components/schemas/ActivitySummary' }
+        projects:
+          type: array
+          description: Los CHG con sus períodos de certificación en el rango.
+          items:
+            type: object
+            required: [change, certifications]
+            properties:
+              change: { $ref: '#/components/schemas/ActivityChange' }
+              certifications:
+                type: array
+                items: { $ref: '#/components/schemas/ActivitySummary' }
+        windows:
+          type: array
+          description: Ventanas de cambio de los CHG vigentes que tocan el rango.
+          items:
+            type: object
+            required: [change, system, start, end]
+            properties:
+              change: { $ref: '#/components/schemas/CodeTitle' }
+              system: { type: string }
+              start: { type: string, format: date-time }
+              end: { type: string, format: date-time }
+        milestones:
+          type: array
+          description: Hitos con fecha en el rango.
+          items: { $ref: '#/components/schemas/Milestone' }
 
     MetricsPeriod:
       type: object

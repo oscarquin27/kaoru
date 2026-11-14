@@ -19,6 +19,7 @@ const RULE_LABELS: Record<string, string> = {
   regression_confirmed: 'La selección de regresión está confirmada',
   regression_passed: 'Toda la regresión tiene su último RUN aprobado sobre un BUILD del paquete',
   deployed_to_production: 'Hay un despliegue exitoso del paquete en producción',
+  certification_planned: 'El CHG tiene reservado el período de certificación, con operadores, y hoy cae dentro',
 }
 
 function WorkflowRules({ title, workflow, editable }: { title: string; workflow: Workflow; editable: boolean }) {

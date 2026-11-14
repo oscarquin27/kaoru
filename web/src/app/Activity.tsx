@@ -13,11 +13,12 @@ import { CommentForm } from '../features/comments/CommentForm.tsx'
 // Las que tienen flujo admiten comentarios; las de producción y el informe solo traen su auditoría.
 const COMMENTED = ['requirement', 'defect', 'package'] as const
 type Commented = (typeof COMMENTED)[number]
-type ActivityEntity = Commented | 'checklist' | 'diagnostic' | 'smoke_test' | 'conformance_report'
+type ActivityEntity = Commented | 'checklist' | 'diagnostic' | 'smoke_test' | 'conformance_report' | 'activity'
 
 const isCommented = (entityType: ActivityEntity): entityType is Commented => (COMMENTED as readonly string[]).includes(entityType)
 
-export function Activity({ entityType, entityCode }: { entityType: ActivityEntity; entityCode: string }) {
+/** `value` traduce un valor guardado al texto de pantalla (por ejemplo, ids de usuario a nombres). */
+export function Activity({ entityType, entityCode, value }: { entityType: ActivityEntity; entityCode: string; value?: (field: string | undefined, raw: string | undefined) => string | undefined }) {
   const can = useCan()
   const commented = isCommented(entityType)
   const audit = useAudit({ entityCode })
@@ -31,7 +32,13 @@ export function Activity({ entityType, entityCode }: { entityType: ActivityEntit
     ...(audit.data?.items ?? []).filter((entry) => entry.field !== 'comment').map((entry) => ({
       key: `a-${entry.seq}`,
       at: entry.occurredAt,
-      text: describeEntry(entry.action === 'transition' ? { ...entry, oldValue: named(entry.oldValue), newValue: named(entry.newValue) } : entry),
+      text: describeEntry(
+        entry.action === 'transition'
+          ? { ...entry, oldValue: named(entry.oldValue), newValue: named(entry.newValue) }
+          : value
+            ? { ...entry, oldValue: value(entry.field, entry.oldValue), newValue: value(entry.field, entry.newValue) }
+            : entry,
+      ),
       quote: '',
     })),
     ...(comments.data?.items ?? []).map((comment) => ({ key: `c-${comment.id}`, at: comment.createdAt, text: `${comment.author.displayName} comentó:`, quote: comment.body })),

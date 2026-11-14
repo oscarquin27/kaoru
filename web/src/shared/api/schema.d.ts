@@ -1522,6 +1522,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/activities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Actividades planificadas, por fecha de inicio */
+        get: operations["listActivities"];
+        put?: never;
+        /**
+         * Planifica una actividad
+         * @description Exige `activity.manage`. Un solape no impide guardar; la respuesta lo trae.
+         */
+        post: operations["createActivity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/activities/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        /** Ficha de una actividad con sus solapes */
+        get: operations["getActivity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Reajusta una actividad, la cancela o la reactiva
+         * @description Exige `activity.manage`. Una actividad no se borra.
+         */
+        patch: operations["updateActivity"];
+        trace?: never;
+    };
+    "/api/planning/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Quién hace qué en un rango de días, qué se solapa y qué proyectos coinciden
+         * @description Sin fechas, seis semanas desde el lunes de esta semana; como máximo 92 días. Las canceladas no cuentan.
+         */
+        get: operations["getSchedule"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/metrics/coverage": {
         parameters: {
             query?: never;
@@ -2247,6 +2311,126 @@ export interface components {
                 dueAt: string;
                 daysLate: number;
             }[];
+        };
+        /** @enum {string} */
+        ActivityKind: "certification" | "regression" | "production" | "other";
+        /**
+         * @description Se deduce de las fechas, salvo la cancelada.
+         * @enum {string}
+         */
+        ActivityStatus: "planned" | "active" | "done" | "cancelled";
+        ActivityInput: {
+            kind: components["schemas"]["ActivityKind"];
+            title: string;
+            /** @description El CHG. Obligatorio en la certificación. */
+            change?: components["schemas"]["Code"];
+            /** Format: date */
+            startDate: string;
+            /**
+             * Format: date
+             * @description Inclusive.
+             */
+            endDate: string;
+            /** @description Ids de los operadores. */
+            operators?: string[];
+            notes?: string;
+        };
+        ActivityPatch: {
+            kind?: components["schemas"]["ActivityKind"];
+            title?: string;
+            /** @description Código del CHG. Vacío deja la actividad sin CHG. */
+            change?: string;
+            /** Format: date */
+            startDate?: string;
+            /** Format: date */
+            endDate?: string;
+            /** @description Reemplaza la lista de operadores. */
+            operators?: string[];
+            notes?: string;
+            cancelled?: boolean;
+        };
+        ActivityChange: {
+            code: components["schemas"]["Code"];
+            title: string;
+            system: string;
+        };
+        ActivitySummary: {
+            code: components["schemas"]["Code"];
+            kind: components["schemas"]["ActivityKind"];
+            title: string;
+            change?: components["schemas"]["ActivityChange"];
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string;
+            status: components["schemas"]["ActivityStatus"];
+            operators: components["schemas"]["UserRef"][];
+        };
+        /** @description Un operador con dos actividades que comparten días. */
+        ActivityOverlap: {
+            operator: components["schemas"]["UserRef"];
+            activity: components["schemas"]["ActivityRef"];
+            other: components["schemas"]["ActivityRef"];
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            days: number;
+        };
+        ActivityRef: {
+            code: components["schemas"]["Code"];
+            title: string;
+            kind: components["schemas"]["ActivityKind"];
+        };
+        Activity: components["schemas"]["ActivitySummary"] & {
+            notes: string;
+            /** Format: date-time */
+            cancelledAt?: string;
+            /** @description Los solapes de sus operadores con otras actividades no canceladas. */
+            overlaps: components["schemas"]["ActivityOverlap"][];
+            createdBy: components["schemas"]["UserRef"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        Schedule: {
+            /** Format: date */
+            from: string;
+            /**
+             * Format: date
+             * @description Inclusive.
+             */
+            to: string;
+            summary: {
+                activities: number;
+                operators: number;
+                overlaps: number;
+            };
+            /** @description Por nombre. */
+            operators: {
+                operator: components["schemas"]["UserRef"];
+                activities: components["schemas"]["ActivitySummary"][];
+                overlaps: components["schemas"]["ActivityOverlap"][];
+            }[];
+            /** @description Actividades sin operador. */
+            unassigned: components["schemas"]["ActivitySummary"][];
+            /** @description Los CHG con sus períodos de certificación en el rango. */
+            projects: {
+                change: components["schemas"]["ActivityChange"];
+                certifications: components["schemas"]["ActivitySummary"][];
+            }[];
+            /** @description Ventanas de cambio de los CHG vigentes que tocan el rango. */
+            windows: {
+                change: components["schemas"]["CodeTitle"];
+                system: string;
+                /** Format: date-time */
+                start: string;
+                /** Format: date-time */
+                end: string;
+            }[];
+            /** @description Hitos con fecha en el rango. */
+            milestones: components["schemas"]["Milestone"][];
         };
         MetricsPeriod: {
             /** Format: date */
@@ -5889,6 +6073,145 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Calendar"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listActivities: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                size?: components["parameters"]["Size"];
+                /** @description Id de un operador. */
+                operator?: string;
+                /** @description Código del CHG. */
+                change?: components["schemas"]["Code"];
+                kind?: components["schemas"]["ActivityKind"];
+                /** @description Sin valor devuelve todas, también las canceladas. */
+                status?: components["schemas"]["ActivityStatus"];
+                /** @description Solo las que terminan este día o después. */
+                from?: string;
+                /** @description Solo las que empiezan este día o antes. */
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Página de actividades */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageInfo"] & {
+                        items: components["schemas"]["ActivitySummary"][];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    createActivity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActivityInput"];
+            };
+        };
+        responses: {
+            /** @description Actividad planificada */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Activity"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getActivity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Actividad */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Activity"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    updateActivity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["parameters"]["Code"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActivityPatch"];
+            };
+        };
+        responses: {
+            /** @description Actividad actualizada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Activity"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getSchedule: {
+        parameters: {
+            query?: {
+                from?: string;
+                /** @description Inclusive. */
+                to?: string;
+                /** @description Id de un operador; deja solo su fila. */
+                operator?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Planificación */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Schedule"];
                 };
             };
             default: components["responses"]["Problem"];

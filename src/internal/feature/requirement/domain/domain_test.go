@@ -298,6 +298,18 @@ func TestUnmet(t *testing.T) {
 			domain.Facts{OpenDefects: []domain.DefectFact{{Code: "DEF-2026-0092", Severity: "low"}}}, "", nil},
 		{"enlaces sin instantánea", rule(domain.RuleLinksHaveSnapshot, nil), domain.Facts{LinksWithoutSnapshot: 2},
 			"2 enlaces de Google Sheets no tienen instantánea. Para el informe de conformidad cuenta la instantánea, no el enlace.", nil},
+		{"REQ sin CHG cumple la certificación", rule(domain.RuleCertificationPlanned, nil), domain.Facts{}, "", nil},
+		{"certificación lista", rule(domain.RuleCertificationPlanned, nil),
+			domain.Facts{Certification: &domain.CertificationFact{ChangeCode: "CHG-2026-0001", State: domain.CertificationReady}}, "", nil},
+		{"certificación sin reservar", rule(domain.RuleCertificationPlanned, nil),
+			domain.Facts{Certification: &domain.CertificationFact{ChangeCode: "CHG-2026-0001", State: domain.CertificationNone}},
+			"CHG-2026-0001 no tiene reservado el período de certificación. Planifícalo en Planificación.", []string{"CHG-2026-0001"}},
+		{"certificación sin operadores", rule(domain.RuleCertificationPlanned, nil),
+			domain.Facts{Certification: &domain.CertificationFact{ChangeCode: "CHG-2026-0001", State: domain.CertificationNoOperators}},
+			"La certificación de CHG-2026-0001 no tiene operadores asignados.", []string{"CHG-2026-0001"}},
+		{"certificación en otras fechas", rule(domain.RuleCertificationPlanned, nil),
+			domain.Facts{Certification: &domain.CertificationFact{ChangeCode: "CHG-2026-0001", State: domain.CertificationOutside, From: "2026-11-16", To: "2026-11-27"}},
+			"Hoy está fuera del período de certificación de CHG-2026-0001 (del 2026-11-16 al 2026-11-27).", []string{"CHG-2026-0001"}},
 		{"regla desconocida bloquea", rule("inventada", nil), domain.Facts{}, "La regla «inventada» no se puede evaluar. Avisa a QA.", nil},
 	}
 	for _, tc := range cases {

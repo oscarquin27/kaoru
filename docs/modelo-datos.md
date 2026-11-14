@@ -174,7 +174,7 @@ erDiagram
 | `execution` | `test_run`, `exploratory_session` | 00009 |
 | `defect` | `defect` | 00010 |
 | `traceability` | Ninguna: solo lee. | — |
-| Fases 3 y 4 | Ver las secciones de abajo. | 00014 a 00017 |
+| Fases 3, 4 y 6 | Ver las secciones de abajo. | 00014 a 00018 |
 
 ## Cómo responde el modelo a las preguntas del producto
 
@@ -229,6 +229,25 @@ erDiagram
 - **Lo que no se guarda:** la ruta del PKG (se calcula de sus REQ), si un CHK está completo, las alertas de atraso y los días de atraso. Todo se calcula al leer.
 - `blocking_rule.rule_key` admite `checklist_signed`, `diagnostic_reviewed` y `smoke_passed`; `document_link.entity_type` admite `checklist`, `diagnostic` y `smoke_test`.
 - `kaoru_app` no tiene `UPDATE` ni `DELETE` sobre ninguna tabla de la fase salvo `milestone`; `tools/check-migrations.sh` lo comprueba.
+
+## Fase 6 (migración 00018, decisión D54)
+
+| Tabla | Dueño | Qué guarda |
+|---|---|---|
+| `activity` | `planning` | ACT: clase, título, CHG (obligatorio en la certificación), fechas de inicio y fin (días, las dos incluidas), notas y `cancelled_at`. Se edita; no se borra. |
+| `activity_operator` | `planning` | Los operadores de una actividad (`app_user`). Editar los operadores reemplaza la lista. |
+
+```mermaid
+erDiagram
+    change |o--o{ activity : "certificación y otras"
+    activity ||--o{ activity_operator : "la hacen"
+    app_user ||--o{ activity_operator : opera
+```
+
+- **`CHECK`:** `end_date >= start_date`, la clase entre las cuatro y `kind <> 'certification' OR change_id IS NOT NULL`. El largo máximo de un año lo valida el dominio.
+- **Índices:** `(start_date, end_date)` para la planificación de un rango, `change_id` para la certificación de un CHG y `activity_operator(user_id)` para las actividades de un operador. `make check-perf` mide la planificación con 3 000 actividades y 30 operadores.
+- **Lo que no se guarda:** el estado (sale de las fechas), los solapes y si un CHG tiene su certificación lista. Todo se calcula al leer.
+- `kaoru_app` tiene sobre las dos tablas los permisos por omisión (lectura y escritura, como `milestone`). La aplicación no borra actividades: las cancela; solo borra filas de `activity_operator` al reemplazar la lista. `blocking_rule.rule_key` admite `certification_planned`.
 
 ## Pendiente
 

@@ -16,6 +16,7 @@ const ROUTES: Record<string, string> = {
   DIAG: '/produccion/diagnosticos',
   SMOKE: '/produccion/humo',
   RPT: '/informes',
+  ACT: '/planificacion/actividades',
 }
 
 export function prefixOf(code: string): string {

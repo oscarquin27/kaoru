@@ -26,7 +26,7 @@ export const SECTIONS: Section[] = [
     icon: 'swap',
     screens: [
       { path: '/cambios', label: 'Cambios', page: lazy(() => import('../features/changes/ChangesPage.tsx')) },
-      { path: '/cambios/:code', page: lazy(() => import('../features/changes/ChangePage.tsx')) },
+      { path: '/cambios/:code', page: lazy(() => import('./ChangePage.tsx')) },
     ],
   },
   {
@@ -115,7 +115,18 @@ export const SECTIONS: Section[] = [
       { path: '/metricas/escapados', label: 'Defectos escapados', page: lazy(() => import('../features/metrics/EscapedDefectsPage.tsx')) },
     ],
   },
-  { id: 'calendario', label: 'Calendario', icon: 'calendar', screens: [{ path: '/calendario', label: 'Calendario', page: lazy(() => import('../features/planning/CalendarPage.tsx')) }] },
+  {
+    id: 'planificacion',
+    label: 'Planificación',
+    icon: 'calendar',
+    screens: [
+      { path: '/planificacion', label: 'Por operador', page: lazy(() => import('../features/planning/SchedulePage.tsx')) },
+      { path: '/planificacion/actividades', label: 'Actividades', page: lazy(() => import('../features/planning/ActivitiesPage.tsx')) },
+      // El calendario de hitos y ventanas conserva su ruta de la fase 4.
+      { path: '/calendario', label: 'Calendario', page: lazy(() => import('../features/planning/CalendarPage.tsx')) },
+      { path: '/planificacion/actividades/:code', page: lazy(() => import('./ActivityPage.tsx')) },
+    ],
+  },
   {
     id: 'administracion',
     label: 'Administración',

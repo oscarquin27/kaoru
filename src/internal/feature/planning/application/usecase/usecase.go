@@ -38,6 +38,13 @@ type UseCases struct {
 	UpdateMilestone *UpdateMilestone
 	ListMilestones  *ListMilestones
 	GetCalendar     *GetCalendar
+
+	CreateActivity     *CreateActivity
+	UpdateActivity     *UpdateActivity
+	GetActivity        *GetActivity
+	ListActivities     *ListActivities
+	GetSchedule        *GetSchedule
+	CheckCertification *CheckCertification
 }
 
 // New arma los casos de uso; falla si falta una dependencia.
@@ -51,6 +58,13 @@ func New(d Deps) (*UseCases, error) {
 		UpdateMilestone: &UpdateMilestone{d: d},
 		ListMilestones:  &ListMilestones{d: d},
 		GetCalendar:     &GetCalendar{d: d},
+
+		CreateActivity:     &CreateActivity{d: d},
+		UpdateActivity:     &UpdateActivity{d: d},
+		GetActivity:        &GetActivity{d: d},
+		ListActivities:     &ListActivities{d: d},
+		GetSchedule:        &GetSchedule{d: d},
+		CheckCertification: &CheckCertification{d: d},
 	}, nil
 }
 

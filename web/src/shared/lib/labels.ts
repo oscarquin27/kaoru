@@ -1,5 +1,7 @@
 // Nombres en español de los valores fijos del contrato (enums de api/openapi.yaml).
 import type {
+  ActivityKind,
+  ActivityStatus,
   ComponentKind,
   DeploymentResult,
   DiagnosticResult,
@@ -61,6 +63,13 @@ export const OS_LABELS: Record<OperatingSystem, string> = { windows: 'Windows', 
 export const DEPLOYMENT_RESULT_LABELS: Record<DeploymentResult, string> = { success: 'Exitoso', failed: 'Fallido', rolled_back: 'Revertido' }
 export const REGRESSION_ORIGIN_LABELS: Record<RegressionOrigin, string> = { impact: 'Impacto', critical: 'Crítico', manual: 'Manual' }
 export const DIAGNOSTIC_RESULT_LABELS: Record<DiagnosticResult, string> = { conforming: 'Conforme', non_conforming: 'No conforme' }
+export const ACTIVITY_KIND_LABELS: Record<ActivityKind, string> = {
+  certification: 'Certificación',
+  regression: 'Regresión',
+  production: 'Pase a producción',
+  other: 'Otra',
+}
+export const ACTIVITY_STATUS_LABELS: Record<ActivityStatus, string> = { planned: 'Planificada', active: 'En curso', done: 'Terminada', cancelled: 'Cancelada' }
 export const SMOKE_RESULT_LABELS: Record<SmokeResult, string> = { passed: 'Aprobada', failed: 'Fallida' }
 export const ROLE_LABELS: Record<Role, string> = {
   'change-manager': 'Change manager',
@@ -71,7 +80,8 @@ export const ROLE_LABELS: Record<Role, string> = {
   auditor: 'Auditoría',
 }
 // Además de las entidades, la auditoría registra cambios de configuración.
-export const ENTITY_LABELS: Record<EntityType | SearchHit['type'] | 'role_permission' | 'blocking_rule' | 'workflow_state' | 'workflow_transition' | 'regression' | 'checklist_template' | 'conformance_report' | 'milestone', string> = {
+export const ENTITY_LABELS: Record<EntityType | SearchHit['type'] | 'role_permission' | 'blocking_rule' | 'workflow_state' | 'workflow_transition' | 'regression' | 'checklist_template' | 'conformance_report' | 'milestone' | 'activity', string> = {
+  activity: 'Actividad',
   role_permission: 'Permisos de rol',
   blocking_rule: 'Regla de bloqueo',
   workflow_state: 'Estado de flujo',

@@ -68,7 +68,7 @@ Lo que exige el paso a producción depende de la **ruta del PKG**, que se ve en 
 1. **Publica la plantilla del checklist** de cada sistema en *Producción → Plantillas*: un paso por renglón, y la descripción después de una barra («Respaldar la base | Con pg_dump»). Una plantilla no se edita: *Nueva versión* parte de la actual. Sin plantilla no se abre ningún checklist.
 2. **Abre el checklist** desde la pestaña *Producción* del PKG (*Abrir checklist*), en el ambiente de producción. Toma la última versión de la plantilla.
 3. **Firma los pasos** en la ficha del checklist (*Firmar*), con un comentario si hace falta. Firman change management y ops, cada uno el paso que ejecutó, en cualquier orden. Una firma no se quita. La evidencia (salidas, capturas) se adjunta en la pestaña *Evidencia*.
-4. **Mantén los hitos** en *Calendario*: *Nuevo hito* con fecha y responsable; *Marcar cumplido* cuando se cumple.
+4. **Mantén los hitos** en *Planificación → Calendario*: *Nuevo hito* con fecha y responsable; *Marcar cumplido* cuando se cumple.
 
 **Desarrollo y operaciones**
 
@@ -95,6 +95,17 @@ Lo que exige el paso a producción depende de la **ruta del PKG**, que se ve en 
 - **Tiempo en estado:** cuántos defectos pasaron por cada estado y cuánto se quedaron (mediana y percentil 90, en días naturales), con los cerrados incluidos. *Entradas* mayor que *Pasaron* quiere decir que algún DEF volvió a ese estado. Arriba, cuánto tardan en resolverse. *Inicio* sigue mostrando el tiempo en el estado actual de los abiertos y enlaza a esta pantalla.
 - **Regresión:** por paquete, los TC que propuso el sistema, los que QA agregó o quitó, cuántos quedaron por origen y cuántos están aprobados sobre un BUILD del paquete.
 - **Defectos escapados:** los defectos que se abrieron después de que su REQ llegó a producción (el primer despliegue exitoso en producción de un PKG que lo contiene), por mes y uno por uno, con el paquete que lo llevó. Nadie los marca: Kaoru los calcula.
+
+## Planificación (fase 6)
+
+*Planificación*, en la barra lateral, reúne lo que antes era *Calendario* y lo que hace cada persona. Planifican el coordinador de QA (`qa-admin`) y change management; los demás la ven.
+
+- **Por operador:** una fila por persona y una columna por día. Cada actividad es una barra con su código; si dos se pisan, van una debajo de otra. **Los solapes** (la misma persona en dos actividades el mismo día) se ven en la lista de arriba, con el nombre y los días; en la franja rayada con ⚠ 2 sobre esos días; y en el aviso rojo junto al nombre. Más abajo, los CHG del rango con su certificación y su ventana de cambio: *Sin certificación* marca un CHG que tiene ventana y todavía no tiene fechas para QA. Al final, lo que nadie tiene asignado y los hitos. *Semana anterior*, *Esta semana* y *Semana siguiente* mueven el rango; *Largo* lo pone en 2, 6 o 12 semanas; *Operador* deja una sola fila. Copia el enlace para compartir lo que ves.
+- **Actividades:** la lista, filtrable por operador, clase, estado y CHG. *Nueva actividad* pide la clase, el CHG (obligatorio en la certificación), el título, las fechas (*Hasta* se incluye) y los operadores. Solo se puede asignar a quien ya entró una vez a Kaoru.
+- **Ficha de la actividad:** fechas, CHG, operadores, sus solapes y su historial. **Reajustar** es *Editar* (cambiar fechas u operadores) o *Cancelar actividad*; la cancelada deja de contar y se puede *Reactivar*. Guardar una actividad que se cruza con otra no se impide: la ficha muestra el solape y conviene moverla.
+- **Ficha del CHG → Certificación:** dice si el CHG tiene su período reservado, con operadores, y si hoy cae dentro; lista todo lo planificado para ese CHG. *Planificar certificación* abre el formulario con el CHG puesto y, si la nueva se cruza con algo, lo avisa ahí mismo.
+- **Al pasar un REQ a pruebas** sin el período de certificación de su CHG, sin operadores o fuera de fechas, Kaoru **avisa pero deja pasar**. Para que bloquee, `qa-admin` marca *Bloquea* en *Administración → Reglas de bloqueo*.
+- **Inicio:** *Tus actividades* (las que no terminaron) y, si planificas, cuántos solapes hay en las próximas seis semanas.
 
 ## Operaciones
 

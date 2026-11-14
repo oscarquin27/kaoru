@@ -20,6 +20,8 @@ import (
 // world es el estado en memoria de los dobles; lo escrito dentro de Within se descarta si falla.
 type world struct {
 	milestones map[string]domain.Milestone
+	activities map[string]domain.Activity
+	actSeq     int
 	windows    []domain.Window
 	audit      []port.AuditRecord
 	auditErr   error
@@ -29,10 +31,12 @@ type world struct {
 
 func (w *world) Within(ctx context.Context, fn func(context.Context) error) error {
 	milestones, audit, locked := maps.Clone(w.milestones), slices.Clone(w.audit), slices.Clone(w.locked)
+	activities, seq := maps.Clone(w.activities), w.actSeq
 	w.inTx = true
 	defer func() { w.inTx = false }()
 	if err := fn(ctx); err != nil {
 		w.milestones, w.audit, w.locked = milestones, audit, locked
+		w.activities, w.actSeq = activities, seq
 		return err
 	}
 	return nil
@@ -40,7 +44,7 @@ func (w *world) Within(ctx context.Context, fn func(context.Context) error) erro
 
 var notFound = axis.New(axis.NotFoundResource, "No existe.")
 
-var users = map[shared.UserId]string{"u1": "Carla Cambios", "u7": "Omar Ops"}
+var users = map[shared.UserId]string{"u1": "Carla Cambios", "u7": "Omar Ops", "u8": "Ana Rojas", "u9": "Luis Paz"}
 
 func (w *world) Insert(_ context.Context, m domain.Milestone) error {
 	if !w.inTx {
@@ -114,7 +118,10 @@ func (w *world) FindUser(_ context.Context, id shared.UserId) (domain.UserRef, e
 
 func (w *world) Windows(context.Context) ([]domain.Window, error) { return w.windows, nil }
 
-var granted = map[string][]string{"change-manager": {usecase.PermissionManage}}
+var granted = map[string][]string{
+	"change-manager": {usecase.PermissionManage, usecase.PermissionPlan},
+	"qa-admin":       {usecase.PermissionPlan},
+}
 
 func (w *world) Require(_ context.Context, roles []string, permission string) error {
 	for _, role := range roles {
@@ -156,7 +163,7 @@ var (
 
 func setup(t *testing.T) (*usecase.UseCases, *world, *fixedClock) {
 	t.Helper()
-	w := &world{milestones: map[string]domain.Milestone{}}
+	w := &world{milestones: map[string]domain.Milestone{}, activities: map[string]domain.Activity{}}
 	clock := &fixedClock{now: t0}
 	uc, err := usecase.New(usecase.Deps{
 		Repository: w, Changes: w, Permissions: w, AuditTrail: w, UnitOfWork: w, Clock: clock, IdGenerator: &seqIDs{},

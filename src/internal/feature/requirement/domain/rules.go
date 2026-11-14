@@ -34,7 +34,25 @@ const (
 	RuleMinCoverage            = "min_coverage"
 	RuleNoOpenDefect           = "no_open_defect_with_severity"
 	RuleLinksHaveSnapshot      = "links_have_snapshot"
+	RuleCertificationPlanned   = "certification_planned"
 )
+
+// Estados de la certificación del CHG de un REQ, como los calcula planning.
+const (
+	CertificationNone        = "none"
+	CertificationNoOperators = "no_operators"
+	CertificationOutside     = "outside"
+	CertificationReady       = "ready"
+)
+
+// CertificationFact es cómo está planificada hoy la certificación del CHG del REQ. Nil si el REQ no
+// tiene CHG. From y To son el período más próximo, como 2026-11-30.
+type CertificationFact struct {
+	ChangeCode string
+	State      string
+	From       string
+	To         string
+}
 
 // RiskFact es lo que el REQ necesita saber de su RISK.
 type RiskFact struct {
@@ -64,6 +82,7 @@ type Facts struct {
 	Coverage             CoverageFact
 	OpenDefects          []DefectFact
 	LinksWithoutSnapshot int
+	Certification        *CertificationFact
 }
 
 // Condition es una regla que no se cumple: lo que falta para avanzar.
@@ -140,6 +159,8 @@ func evaluate(rule Rule, f Facts) (message string, related []string, ok bool) {
 			return plural(f.LinksWithoutSnapshot, "1 enlace de Google Sheets no tiene", "%d enlaces de Google Sheets no tienen") +
 				" instantánea. Para el informe de conformidad cuenta la instantánea, no el enlace.", nil, false
 		}
+	case RuleCertificationPlanned:
+		return evaluateCertification(f.Certification)
 	default:
 		// Una regla que el dominio no conoce bloquea: mejor parar que dejar pasar sin evaluar.
 		return fmt.Sprintf("La regla «%s» no se puede evaluar. Avisa a QA.", rule.Key), nil, false
@@ -167,6 +188,23 @@ func evaluateCoverage(rule Rule, f Facts) (string, []string, bool) {
 	return fmt.Sprintf("%s sin RUN aprobado: %s. Riesgo %s exige %g %% de cobertura; hay %d de %d.",
 		plural(pending, "Falta 1 TC", "Faltan %d TC"), strings.Join(f.Coverage.Pending, ", "),
 		levelName(f.Risk.Level), minimum, passed, f.Coverage.Required), f.Coverage.Pending, false
+}
+
+// evaluateCertification pide que el CHG del REQ tenga reservado, con operadores, un período de
+// certificación que incluya hoy. Un REQ sin CHG la cumple: no hay proyecto que planificar.
+func evaluateCertification(c *CertificationFact) (string, []string, bool) {
+	if c == nil || c.State == CertificationReady {
+		return "", nil, true
+	}
+	related := []string{c.ChangeCode}
+	switch c.State {
+	case CertificationNoOperators:
+		return fmt.Sprintf("La certificación de %s no tiene operadores asignados.", c.ChangeCode), related, false
+	case CertificationOutside:
+		return fmt.Sprintf("Hoy está fuera del período de certificación de %s (del %s al %s).", c.ChangeCode, c.From, c.To), related, false
+	default:
+		return fmt.Sprintf("%s no tiene reservado el período de certificación. Planifícalo en Planificación.", c.ChangeCode), related, false
+	}
 }
 
 func plural(n int, one, many string) string {

@@ -13,6 +13,49 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countActivities = `-- name: CountActivities :one
+SELECT count(*)
+FROM activity a
+         LEFT JOIN change c ON c.id = a.change_id
+WHERE ($1::text IS NULL
+    OR EXISTS (SELECT 1 FROM activity_operator x WHERE x.activity_id = a.id AND x.user_id = $1))
+  AND ($2::text IS NULL OR c.code = $2)
+  AND ($3::text IS NULL OR a.kind = $3)
+  AND ($4::text IS NULL
+    OR ($4 = 'cancelled' AND a.cancelled_at IS NOT NULL)
+    OR (a.cancelled_at IS NULL AND (
+        ($4 = 'planned' AND a.start_date > $5::date)
+            OR ($4 = 'active' AND a.start_date <= $5::date AND a.end_date >= $5::date)
+            OR ($4 = 'done' AND a.end_date < $5::date))))
+  AND ($6::date IS NULL OR a.end_date >= $6::date)
+  AND ($7::date IS NULL OR a.start_date <= $7::date)
+`
+
+type CountActivitiesParams struct {
+	Operator   *string
+	ChangeCode *string
+	Kind       *string
+	Status     *string
+	Today      pgtype.Date
+	FromDate   pgtype.Date
+	ToDate     pgtype.Date
+}
+
+func (q *Queries) CountActivities(ctx context.Context, arg CountActivitiesParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countActivities,
+		arg.Operator,
+		arg.ChangeCode,
+		arg.Kind,
+		arg.Status,
+		arg.Today,
+		arg.FromDate,
+		arg.ToDate,
+	)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countMilestones = `-- name: CountMilestones :one
 SELECT count(*)
 FROM milestone m
@@ -26,6 +69,107 @@ func (q *Queries) CountMilestones(ctx context.Context, status *string) (int64, e
 	var count int64
 	err := row.Scan(&count)
 	return count, err
+}
+
+const deleteActivityOperators = `-- name: DeleteActivityOperators :exec
+DELETE FROM activity_operator
+WHERE activity_id = $1
+`
+
+func (q *Queries) DeleteActivityOperators(ctx context.Context, activityID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteActivityOperators, activityID)
+	return err
+}
+
+const getActivity = `-- name: GetActivity :one
+SELECT a.id, a.code, a.kind, a.title, a.change_id, c.code AS change_code, c.title AS change_title,
+       s.name AS system_name, a.start_date, a.end_date, a.notes, a.cancelled_at, a.created_by,
+       cb.display_name AS created_by_name, a.created_at, a.updated_at,
+       ops.ids::text[] AS operator_ids, ops.names::text[] AS operator_names
+FROM activity a
+         JOIN app_user cb ON cb.id = a.created_by
+         LEFT JOIN change c ON c.id = a.change_id
+         LEFT JOIN system_under_test s ON s.id = c.system_id
+         CROSS JOIN LATERAL (SELECT coalesce(array_agg(u.id ORDER BY u.display_name, u.id), '{}')           AS ids,
+                                    coalesce(array_agg(u.display_name ORDER BY u.display_name, u.id), '{}') AS names
+                             FROM activity_operator ao
+                                      JOIN app_user u ON u.id = ao.user_id
+                             WHERE ao.activity_id = a.id) ops
+WHERE a.code = $1
+`
+
+type GetActivityRow struct {
+	ID            uuid.UUID
+	Code          string
+	Kind          string
+	Title         string
+	ChangeID      uuid.NullUUID
+	ChangeCode    *string
+	ChangeTitle   *string
+	SystemName    *string
+	StartDate     pgtype.Date
+	EndDate       pgtype.Date
+	Notes         string
+	CancelledAt   *time.Time
+	CreatedBy     string
+	CreatedByName string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	OperatorIds   []string
+	OperatorNames []string
+}
+
+func (q *Queries) GetActivity(ctx context.Context, code string) (GetActivityRow, error) {
+	row := q.db.QueryRow(ctx, getActivity, code)
+	var i GetActivityRow
+	err := row.Scan(
+		&i.ID,
+		&i.Code,
+		&i.Kind,
+		&i.Title,
+		&i.ChangeID,
+		&i.ChangeCode,
+		&i.ChangeTitle,
+		&i.SystemName,
+		&i.StartDate,
+		&i.EndDate,
+		&i.Notes,
+		&i.CancelledAt,
+		&i.CreatedBy,
+		&i.CreatedByName,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.OperatorIds,
+		&i.OperatorNames,
+	)
+	return i, err
+}
+
+const getChange = `-- name: GetChange :one
+SELECT c.id, c.code, c.title, s.name AS system_name
+FROM change c
+         JOIN system_under_test s ON s.id = c.system_id
+WHERE c.code = $1
+`
+
+type GetChangeRow struct {
+	ID         uuid.UUID
+	Code       string
+	Title      string
+	SystemName string
+}
+
+// El CHG de una actividad: es el sentido de la llave foránea activity.change_id.
+func (q *Queries) GetChange(ctx context.Context, code string) (GetChangeRow, error) {
+	row := q.db.QueryRow(ctx, getChange, code)
+	var i GetChangeRow
+	err := row.Scan(
+		&i.ID,
+		&i.Code,
+		&i.Title,
+		&i.SystemName,
+	)
+	return i, err
 }
 
 const getMilestone = `-- name: GetMilestone :one
@@ -89,6 +233,91 @@ func (q *Queries) GetUser(ctx context.Context, id string) (GetUserRow, error) {
 	return i, err
 }
 
+const getUsers = `-- name: GetUsers :many
+SELECT id, display_name
+FROM app_user
+WHERE id = ANY ($1::text[])
+`
+
+type GetUsersRow struct {
+	ID          string
+	DisplayName string
+}
+
+func (q *Queries) GetUsers(ctx context.Context, ids []string) ([]GetUsersRow, error) {
+	rows, err := q.db.Query(ctx, getUsers, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUsersRow
+	for rows.Next() {
+		var i GetUsersRow
+		if err := rows.Scan(&i.ID, &i.DisplayName); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const insertActivity = `-- name: InsertActivity :exec
+INSERT INTO activity (id, code, kind, title, change_id, start_date, end_date, notes, cancelled_at, created_by,
+                      created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+`
+
+type InsertActivityParams struct {
+	ID          uuid.UUID
+	Code        string
+	Kind        string
+	Title       string
+	ChangeID    uuid.NullUUID
+	StartDate   pgtype.Date
+	EndDate     pgtype.Date
+	Notes       string
+	CancelledAt *time.Time
+	CreatedBy   string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+func (q *Queries) InsertActivity(ctx context.Context, arg InsertActivityParams) error {
+	_, err := q.db.Exec(ctx, insertActivity,
+		arg.ID,
+		arg.Code,
+		arg.Kind,
+		arg.Title,
+		arg.ChangeID,
+		arg.StartDate,
+		arg.EndDate,
+		arg.Notes,
+		arg.CancelledAt,
+		arg.CreatedBy,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	return err
+}
+
+const insertActivityOperators = `-- name: InsertActivityOperators :exec
+INSERT INTO activity_operator (activity_id, user_id)
+SELECT $1::uuid, unnest($2::text[])
+`
+
+type InsertActivityOperatorsParams struct {
+	ActivityID uuid.UUID
+	UserIds    []string
+}
+
+func (q *Queries) InsertActivityOperators(ctx context.Context, arg InsertActivityOperatorsParams) error {
+	_, err := q.db.Exec(ctx, insertActivityOperators, arg.ActivityID, arg.UserIds)
+	return err
+}
+
 const insertMilestone = `-- name: InsertMilestone :exec
 INSERT INTO milestone (id, title, due_date, notes, owner_id, completed_at, created_by, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -119,6 +348,289 @@ func (q *Queries) InsertMilestone(ctx context.Context, arg InsertMilestoneParams
 		arg.UpdatedAt,
 	)
 	return err
+}
+
+const listActivities = `-- name: ListActivities :many
+SELECT a.id, a.code, a.kind, a.title, a.change_id, c.code AS change_code, c.title AS change_title,
+       s.name AS system_name, a.start_date, a.end_date, a.notes, a.cancelled_at, a.created_by,
+       cb.display_name AS created_by_name, a.created_at, a.updated_at,
+       ops.ids::text[] AS operator_ids, ops.names::text[] AS operator_names
+FROM activity a
+         JOIN app_user cb ON cb.id = a.created_by
+         LEFT JOIN change c ON c.id = a.change_id
+         LEFT JOIN system_under_test s ON s.id = c.system_id
+         CROSS JOIN LATERAL (SELECT coalesce(array_agg(u.id ORDER BY u.display_name, u.id), '{}')           AS ids,
+                                    coalesce(array_agg(u.display_name ORDER BY u.display_name, u.id), '{}') AS names
+                             FROM activity_operator ao
+                                      JOIN app_user u ON u.id = ao.user_id
+                             WHERE ao.activity_id = a.id) ops
+WHERE ($1::text IS NULL
+    OR EXISTS (SELECT 1 FROM activity_operator x WHERE x.activity_id = a.id AND x.user_id = $1))
+  AND ($2::text IS NULL OR c.code = $2)
+  AND ($3::text IS NULL OR a.kind = $3)
+  AND ($4::text IS NULL
+    OR ($4 = 'cancelled' AND a.cancelled_at IS NOT NULL)
+    OR (a.cancelled_at IS NULL AND (
+        ($4 = 'planned' AND a.start_date > $5::date)
+            OR ($4 = 'active' AND a.start_date <= $5::date AND a.end_date >= $5::date)
+            OR ($4 = 'done' AND a.end_date < $5::date))))
+  AND ($6::date IS NULL OR a.end_date >= $6::date)
+  AND ($7::date IS NULL OR a.start_date <= $7::date)
+ORDER BY a.start_date, a.end_date, a.code
+LIMIT $9 OFFSET $8
+`
+
+type ListActivitiesParams struct {
+	Operator   *string
+	ChangeCode *string
+	Kind       *string
+	Status     *string
+	Today      pgtype.Date
+	FromDate   pgtype.Date
+	ToDate     pgtype.Date
+	PageOffset int32
+	PageSize   int32
+}
+
+type ListActivitiesRow struct {
+	ID            uuid.UUID
+	Code          string
+	Kind          string
+	Title         string
+	ChangeID      uuid.NullUUID
+	ChangeCode    *string
+	ChangeTitle   *string
+	SystemName    *string
+	StartDate     pgtype.Date
+	EndDate       pgtype.Date
+	Notes         string
+	CancelledAt   *time.Time
+	CreatedBy     string
+	CreatedByName string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	OperatorIds   []string
+	OperatorNames []string
+}
+
+// status: planned, active, done o cancelled según today; nulo para todas.
+func (q *Queries) ListActivities(ctx context.Context, arg ListActivitiesParams) ([]ListActivitiesRow, error) {
+	rows, err := q.db.Query(ctx, listActivities,
+		arg.Operator,
+		arg.ChangeCode,
+		arg.Kind,
+		arg.Status,
+		arg.Today,
+		arg.FromDate,
+		arg.ToDate,
+		arg.PageOffset,
+		arg.PageSize,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListActivitiesRow
+	for rows.Next() {
+		var i ListActivitiesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Code,
+			&i.Kind,
+			&i.Title,
+			&i.ChangeID,
+			&i.ChangeCode,
+			&i.ChangeTitle,
+			&i.SystemName,
+			&i.StartDate,
+			&i.EndDate,
+			&i.Notes,
+			&i.CancelledAt,
+			&i.CreatedBy,
+			&i.CreatedByName,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.OperatorIds,
+			&i.OperatorNames,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listActivitiesBetween = `-- name: ListActivitiesBetween :many
+SELECT a.id, a.code, a.kind, a.title, a.change_id, c.code AS change_code, c.title AS change_title,
+       s.name AS system_name, a.start_date, a.end_date, a.notes, a.cancelled_at, a.created_by,
+       cb.display_name AS created_by_name, a.created_at, a.updated_at,
+       ops.ids::text[] AS operator_ids, ops.names::text[] AS operator_names
+FROM activity a
+         JOIN app_user cb ON cb.id = a.created_by
+         LEFT JOIN change c ON c.id = a.change_id
+         LEFT JOIN system_under_test s ON s.id = c.system_id
+         CROSS JOIN LATERAL (SELECT coalesce(array_agg(u.id ORDER BY u.display_name, u.id), '{}')           AS ids,
+                                    coalesce(array_agg(u.display_name ORDER BY u.display_name, u.id), '{}') AS names
+                             FROM activity_operator ao
+                                      JOIN app_user u ON u.id = ao.user_id
+                             WHERE ao.activity_id = a.id) ops
+WHERE a.cancelled_at IS NULL
+  AND a.end_date >= $1::date
+  AND a.start_date <= $2::date
+  AND ($3::text[] IS NULL
+    OR EXISTS (SELECT 1
+               FROM activity_operator x
+               WHERE x.activity_id = a.id AND x.user_id = ANY ($3::text[])))
+ORDER BY a.start_date, a.end_date, a.code
+`
+
+type ListActivitiesBetweenParams struct {
+	FromDate  pgtype.Date
+	ToDate    pgtype.Date
+	Operators []string
+}
+
+type ListActivitiesBetweenRow struct {
+	ID            uuid.UUID
+	Code          string
+	Kind          string
+	Title         string
+	ChangeID      uuid.NullUUID
+	ChangeCode    *string
+	ChangeTitle   *string
+	SystemName    *string
+	StartDate     pgtype.Date
+	EndDate       pgtype.Date
+	Notes         string
+	CancelledAt   *time.Time
+	CreatedBy     string
+	CreatedByName string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	OperatorIds   []string
+	OperatorNames []string
+}
+
+// Las no canceladas que tocan los días; con operators, solo las que tienen alguno de ellos.
+func (q *Queries) ListActivitiesBetween(ctx context.Context, arg ListActivitiesBetweenParams) ([]ListActivitiesBetweenRow, error) {
+	rows, err := q.db.Query(ctx, listActivitiesBetween, arg.FromDate, arg.ToDate, arg.Operators)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListActivitiesBetweenRow
+	for rows.Next() {
+		var i ListActivitiesBetweenRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Code,
+			&i.Kind,
+			&i.Title,
+			&i.ChangeID,
+			&i.ChangeCode,
+			&i.ChangeTitle,
+			&i.SystemName,
+			&i.StartDate,
+			&i.EndDate,
+			&i.Notes,
+			&i.CancelledAt,
+			&i.CreatedBy,
+			&i.CreatedByName,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.OperatorIds,
+			&i.OperatorNames,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listCertifications = `-- name: ListCertifications :many
+SELECT a.id, a.code, a.kind, a.title, a.change_id, c.code AS change_code, c.title AS change_title,
+       s.name AS system_name, a.start_date, a.end_date, a.notes, a.cancelled_at, a.created_by,
+       cb.display_name AS created_by_name, a.created_at, a.updated_at,
+       ops.ids::text[] AS operator_ids, ops.names::text[] AS operator_names
+FROM activity a
+         JOIN app_user cb ON cb.id = a.created_by
+         LEFT JOIN change c ON c.id = a.change_id
+         LEFT JOIN system_under_test s ON s.id = c.system_id
+         CROSS JOIN LATERAL (SELECT coalesce(array_agg(u.id ORDER BY u.display_name, u.id), '{}')           AS ids,
+                                    coalesce(array_agg(u.display_name ORDER BY u.display_name, u.id), '{}') AS names
+                             FROM activity_operator ao
+                                      JOIN app_user u ON u.id = ao.user_id
+                             WHERE ao.activity_id = a.id) ops
+WHERE a.kind = 'certification'
+  AND c.code = $1
+ORDER BY a.start_date, a.end_date, a.code
+`
+
+type ListCertificationsRow struct {
+	ID            uuid.UUID
+	Code          string
+	Kind          string
+	Title         string
+	ChangeID      uuid.NullUUID
+	ChangeCode    *string
+	ChangeTitle   *string
+	SystemName    *string
+	StartDate     pgtype.Date
+	EndDate       pgtype.Date
+	Notes         string
+	CancelledAt   *time.Time
+	CreatedBy     string
+	CreatedByName string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	OperatorIds   []string
+	OperatorNames []string
+}
+
+func (q *Queries) ListCertifications(ctx context.Context, code string) ([]ListCertificationsRow, error) {
+	rows, err := q.db.Query(ctx, listCertifications, code)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListCertificationsRow
+	for rows.Next() {
+		var i ListCertificationsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Code,
+			&i.Kind,
+			&i.Title,
+			&i.ChangeID,
+			&i.ChangeCode,
+			&i.ChangeTitle,
+			&i.SystemName,
+			&i.StartDate,
+			&i.EndDate,
+			&i.Notes,
+			&i.CancelledAt,
+			&i.CreatedBy,
+			&i.CreatedByName,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.OperatorIds,
+			&i.OperatorNames,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listMilestones = `-- name: ListMilestones :many
@@ -164,6 +676,67 @@ func (q *Queries) ListMilestones(ctx context.Context, arg ListMilestonesParams) 
 	var items []ListMilestonesRow
 	for rows.Next() {
 		var i ListMilestonesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.DueDate,
+			&i.Notes,
+			&i.OwnerID,
+			&i.OwnerName,
+			&i.CompletedAt,
+			&i.CreatedBy,
+			&i.CreatedByName,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMilestonesBetween = `-- name: ListMilestonesBetween :many
+SELECT m.id, m.title, m.due_date, m.notes, m.owner_id, o.display_name AS owner_name, m.completed_at,
+       m.created_by, c.display_name AS created_by_name, m.created_at, m.updated_at
+FROM milestone m
+         JOIN app_user c ON c.id = m.created_by
+         LEFT JOIN app_user o ON o.id = m.owner_id
+WHERE m.due_date BETWEEN $1::date AND $2::date
+ORDER BY m.due_date, m.created_at, m.id
+`
+
+type ListMilestonesBetweenParams struct {
+	FromDate pgtype.Date
+	ToDate   pgtype.Date
+}
+
+type ListMilestonesBetweenRow struct {
+	ID            uuid.UUID
+	Title         string
+	DueDate       pgtype.Date
+	Notes         string
+	OwnerID       *string
+	OwnerName     *string
+	CompletedAt   *time.Time
+	CreatedBy     string
+	CreatedByName string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+}
+
+func (q *Queries) ListMilestonesBetween(ctx context.Context, arg ListMilestonesBetweenParams) ([]ListMilestonesBetweenRow, error) {
+	rows, err := q.db.Query(ctx, listMilestonesBetween, arg.FromDate, arg.ToDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListMilestonesBetweenRow
+	for rows.Next() {
+		var i ListMilestonesBetweenRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Title,
@@ -243,6 +816,21 @@ func (q *Queries) ListPendingMilestones(ctx context.Context) ([]ListPendingMiles
 	return items, nil
 }
 
+const lockActivity = `-- name: LockActivity :one
+SELECT id
+FROM activity
+WHERE code = $1
+    FOR UPDATE
+`
+
+// Bloquea la fila hasta el fin de la transacción: dos ediciones de la misma actividad van una tras otra.
+func (q *Queries) LockActivity(ctx context.Context, code string) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, lockActivity, code)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const lockMilestone = `-- name: LockMilestone :one
 SELECT id
 FROM milestone
@@ -256,6 +844,56 @@ func (q *Queries) LockMilestone(ctx context.Context, id uuid.UUID) (uuid.UUID, e
 	var id_2 uuid.UUID
 	err := row.Scan(&id_2)
 	return id_2, err
+}
+
+const nextActivityCode = `-- name: NextActivityCode :one
+
+INSERT INTO code_sequence (prefix, year, last_value)
+VALUES ('ACT', $1, 1)
+ON CONFLICT (prefix, year) DO UPDATE SET last_value = code_sequence.last_value + 1
+RETURNING last_value
+`
+
+// Actividades (fase 6). Los operadores llegan ordenados por nombre en dos arreglos paralelos.
+func (q *Queries) NextActivityCode(ctx context.Context, year int32) (int32, error) {
+	row := q.db.QueryRow(ctx, nextActivityCode, year)
+	var last_value int32
+	err := row.Scan(&last_value)
+	return last_value, err
+}
+
+const updateActivity = `-- name: UpdateActivity :exec
+UPDATE activity
+SET kind = $2, title = $3, change_id = $4, start_date = $5, end_date = $6, notes = $7, cancelled_at = $8,
+    updated_at = $9
+WHERE id = $1
+`
+
+type UpdateActivityParams struct {
+	ID          uuid.UUID
+	Kind        string
+	Title       string
+	ChangeID    uuid.NullUUID
+	StartDate   pgtype.Date
+	EndDate     pgtype.Date
+	Notes       string
+	CancelledAt *time.Time
+	UpdatedAt   time.Time
+}
+
+func (q *Queries) UpdateActivity(ctx context.Context, arg UpdateActivityParams) error {
+	_, err := q.db.Exec(ctx, updateActivity,
+		arg.ID,
+		arg.Kind,
+		arg.Title,
+		arg.ChangeID,
+		arg.StartDate,
+		arg.EndDate,
+		arg.Notes,
+		arg.CancelledAt,
+		arg.UpdatedAt,
+	)
+	return err
 }
 
 const updateMilestone = `-- name: UpdateMilestone :exec

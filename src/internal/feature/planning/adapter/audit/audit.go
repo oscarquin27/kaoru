@@ -9,7 +9,7 @@ import (
 	"kaoru/internal/feature/planning/application/port"
 )
 
-// Trail registra los hechos de los hitos en la auditoría.
+// Trail registra los hechos de los hitos y de las actividades en la auditoría.
 type Trail struct {
 	record *audituc.Record
 }
@@ -21,8 +21,12 @@ func New(record *audituc.Record) *Trail { return &Trail{record: record} }
 
 // Record escribe en la transacción del context; conserva el código de error de audit.
 func (t *Trail) Record(ctx context.Context, r port.AuditRecord) error {
+	entity := r.Entity
+	if entity == "" {
+		entity = port.EntityMilestone
+	}
 	return t.record.Execute(ctx, audituc.RecordInput{
-		ActorId: r.Actor, EntityType: port.EntityMilestone, EntityId: r.EntityId,
+		ActorId: r.Actor, EntityType: entity, EntityId: r.EntityId, EntityCode: r.Code,
 		Action: auditdomain.Action(r.Action), Field: r.Field, OldValue: r.OldValue, NewValue: r.NewValue,
 	})
 }

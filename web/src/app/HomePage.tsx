@@ -6,7 +6,9 @@ import { useChanges } from '../features/changes/api.ts'
 import { useDefects } from '../features/defects/api.ts'
 import { useRequirements } from '../features/requirements/api.ts'
 import { LateAlerts } from '../features/planning/LateAlerts.tsx'
-import { useCalendar } from '../features/planning/api.ts'
+import { ActivityStatusChip } from '../features/planning/ActivityChips.tsx'
+import { useActivities, useCalendar, useSchedule } from '../features/planning/api.ts'
+import { spanText, today } from '../features/planning/days.ts'
 import { useMatrix } from '../features/traceability/api.ts'
 import { useCan, useMe, useWorkflow } from '../shared/api/session.ts'
 import type { CalendarWindow, Change, Defect, Requirement, StateRef, Workflow } from '../shared/api/types.ts'
@@ -92,6 +94,64 @@ function Windows({ windows }: { windows: CalendarWindow[] }) {
         </li>
       ))}
     </ul>
+  )
+}
+
+function MyActivities() {
+  const me = useMe().data
+  const can = useCan()
+  // Lo que no terminó: termina hoy o después. Las canceladas no cuentan.
+  const mine = useActivities({ operator: me?.id, from: today(), size: 20 }, Boolean(me))
+  const planner = can('activity.manage')
+  const schedule = useSchedule(undefined, planner)
+  const overlaps = planner ? (schedule.data?.summary.overlaps ?? 0) : 0
+  return (
+    <section className="surface pad stack" aria-labelledby="h-actividades">
+      <div className="row row--between">
+        <h2 className="h2" id="h-actividades">
+          Tus actividades
+        </h2>
+        <Link to="/planificacion">Ver la planificación</Link>
+      </div>
+      {overlaps > 0 && (
+        <div className="notice" role="status">
+          <Icon name="triangle" />
+          <div className="notice__main">
+            {overlaps === 1 ? 'Hay 1 solape' : `Hay ${overlaps} solapes`} entre operadores en las próximas seis semanas.{' '}
+            <Link to="/planificacion">Revisar los solapes</Link>
+          </div>
+        </div>
+      )}
+      <Async query={mine}>
+        {(page) => {
+          const open = page.items.filter((activity) => activity.status !== 'cancelled')
+          if (open.length === 0) return <Empty>No tienes actividades en curso ni planificadas.</Empty>
+          return (
+            <ul className="list">
+              {open.map((activity) => (
+                <li key={activity.code}>
+                  <span className="list__icon">
+                    <Icon name={activity.kind === 'certification' ? 'target' : 'calendar'} />
+                  </span>
+                  <div className="list__main">
+                    <Code code={activity.code} /> {activity.title}
+                    {activity.change && (
+                      <>
+                        {' '}
+                        · <Code code={activity.change.code} />
+                      </>
+                    )}
+                    <br />
+                    <span className="muted">{spanText(activity.startDate, activity.endDate)}</span>
+                  </div>
+                  <ActivityStatusChip status={activity.status} />
+                </li>
+              ))}
+            </ul>
+          )
+        }}
+      </Async>
+    </section>
   )
 }
 
@@ -253,6 +313,8 @@ export default function HomePage() {
           <Async query={calendar}>{(data) => <Windows windows={data.windows} />}</Async>
         </section>
       </div>
+
+      <MyActivities />
 
       <section className="surface pad stack" aria-labelledby="h-atrasos">
         <h2 className="h2" id="h-atrasos">

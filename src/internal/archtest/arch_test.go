@@ -300,7 +300,7 @@ func TestQueriesOnlyWriteTheirOwnTables(t *testing.T) {
 			"diagnostic", "diagnostic_review", "smoke_test", "code_sequence",
 		},
 		"report":   {"conformance_report", "code_sequence"},
-		"planning": {"milestone"},
+		"planning": {"milestone", "activity", "activity_operator", "code_sequence"},
 		// traceability y metrics son de solo lectura: no pueden escribir en ninguna tabla.
 		"traceability": {},
 		"metrics":      {},

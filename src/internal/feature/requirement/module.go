@@ -11,6 +11,7 @@ import (
 	componentuc "kaoru/internal/feature/component/application/usecase"
 	defectuc "kaoru/internal/feature/defect/application/usecase"
 	executionuc "kaoru/internal/feature/execution/application/usecase"
+	planninguc "kaoru/internal/feature/planning/application/usecase"
 	"kaoru/internal/feature/requirement/adapter/audit"
 	"kaoru/internal/feature/requirement/adapter/component"
 	"kaoru/internal/feature/requirement/adapter/facts"
@@ -67,6 +68,11 @@ func (m *Module) ConnectExecution(uc *executionuc.UseCases) { m.facts.ConnectCov
 
 // ConnectDefect conecta el feature defect como fuente de los defectos abiertos.
 func (m *Module) ConnectDefect(uc *defectuc.UseCases) { m.facts.ConnectDefects(uc.ListOpenDefects) }
+
+// ConnectPlanning conecta el feature planning como fuente del período de certificación del CHG.
+func (m *Module) ConnectPlanning(uc *planninguc.UseCases) {
+	m.facts.ConnectPlanning(uc.CheckCertification)
+}
 
 // RegisterAPI monta las rutas del feature.
 func (m *Module) RegisterAPI(r gin.IRouter) { m.handler.Register(r) }

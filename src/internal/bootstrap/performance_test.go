@@ -87,6 +87,25 @@ SELECT gen_random_uuid(), now() - ((4 - k) || ' days')::interval, 'perf', 'requi
        encode(sha256((r.code || k)::bytea), 'hex')
 FROM requirement r, generate_series(1, 3) k WHERE r.code LIKE 'REQ-2025-%';
 
+-- Planificación: 30 operadores y 3 000 actividades de 1 a 10 días en dos años alrededor de hoy;
+-- una de cada seis es la certificación de un CHG. Cada una con uno a tres operadores.
+INSERT INTO app_user (id, username, display_name, email, created_at, updated_at)
+SELECT 'perf-op-' || n, 'perf-op-' || n, 'Operador ' || lpad(n::text, 2, '0'), NULL, now(), now()
+FROM generate_series(1, 30) n;
+
+INSERT INTO activity (id, code, kind, title, change_id, start_date, end_date, created_by, created_at, updated_at)
+SELECT gen_random_uuid(), 'ACT-2025-' || lpad(n::text, 5, '0'),
+       CASE WHEN n % 6 = 0 THEN 'certification' ELSE (ARRAY['regression', 'production', 'other'])[1 + n % 3] END,
+       'Actividad de volumen ' || n,
+       CASE WHEN n % 6 = 0 THEN (SELECT id FROM change WHERE code = 'CHG-2025-' || lpad((1 + n % 500)::text, 5, '0')) END,
+       current_date - 365 + (n * 730 / 3000), current_date - 365 + (n * 730 / 3000) + n % 10, 'perf', now(), now()
+FROM generate_series(1, 3000) n;
+
+INSERT INTO activity_operator (activity_id, user_id)
+SELECT a.id, 'perf-op-' || (1 + (substring(a.code from 10)::int * 7 + k * 11) % 30)
+FROM activity a, generate_series(0, 2) k
+WHERE a.code LIKE 'ACT-2025-%' AND k <= substring(a.code from 10)::int % 3;
+
 ANALYZE;
 `
 
@@ -147,6 +166,11 @@ func TestPerformanceWithVolume(t *testing.T) {
 		{"métricas: tiempo en estado", "/api/metrics/defect-states", false},
 		{"métricas: regresión", "/api/metrics/regression", false},
 		{"métricas: DEF escapados", "/api/metrics/escaped-defects", false},
+		{"planificación de seis semanas", "/api/planning/schedule", false},
+		{"planificación de 92 días", "/api/planning/schedule?from=" + time.Now().UTC().AddDate(0, 0, -45).Format(time.DateOnly) +
+			"&to=" + time.Now().UTC().AddDate(0, 0, 46).Format(time.DateOnly), false},
+		{"actividades de un operador", "/api/activities?operator=perf-op-7", false},
+		{"ficha de una actividad", "/api/activities/ACT-2025-01500", false},
 	}
 	a.call("auditor", "GET", "/api/me", nil, 200, nil)
 	for _, route := range routes {
