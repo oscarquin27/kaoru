@@ -124,6 +124,7 @@ Se crean solo en la fase que los necesita (sección 12 del requerimiento).
 | `production` | CHK- con firmas, DIAG-, SMOKE- | 4 |
 | `report` | RPT- (informe de conformidad) | 4 |
 | `planning` | Hitos, ventanas de cambio y alertas de atraso | 4 |
+| `metrics` | Cobertura por REQ, tiempo en estado de los DEF, tamaño de regresión y DEF escapados (solo lectura, §A.7) | 5 |
 
 Si un feature crece demasiado, se parte en features hermanos (`defect`, `defecttriage`), no en sub-features anidados.
 
@@ -162,7 +163,7 @@ Los nombres de carpeta son de tecnología o de rol, nunca de patrón genérico: 
 - Un feature puede importar de otro solo **tipos de su `domain` que sean identificadores o value objects de lectura**. Si dos features necesitan el mismo tipo, se promueve a `shared/domain`.
 - Para **usar** a otro feature, el consumidor declara un puerto en su `application/port` y un adaptador en su `adapter/` lo implementa llamando a los casos de uso del otro (que expone su `module.go`). Ejemplo: `defect/application/port.Executions`, implementado por `defect/adapter/executions`, que llama a los casos de uso de `execution` para validar que el RUN existe.
 - **Leer la tabla de otro feature, solo en la dirección de la llave.** Una consulta puede leer columnas de la tabla de otro feature cuando su propia tabla tiene una llave foránea hacia ella; **nunca escribe** en ella. La revisión del PR pregunta: «¿escribe en la tabla de otro feature?».
-- **Excepción declarada: `traceability`.** Es un feature de solo lectura que cruza todas las tablas para armar la matriz, la ficha consolidada y la búsqueda global. No escribe nada, no tiene entidades propias y devuelve lecturas planas. archtest verifica que su adaptador no ejecute `INSERT`, `UPDATE` ni `DELETE`.
+- **Excepción declarada: `traceability`.** Es un feature de solo lectura que cruza todas las tablas para armar la matriz, la ficha consolidada y la búsqueda global. No escribe nada, no tiene entidades propias y devuelve lecturas planas. archtest verifica que su adaptador no ejecute `INSERT`, `UPDATE` ni `DELETE`. `metrics` (fase 5) es la segunda excepción, con las mismas condiciones: cruza las tablas para medir y no escribe nada.
 - **Auditoría:** cada feature declara un puerto `AuditTrail` y su adaptador llama al caso de uso `Record` de `audit` **dentro de la misma transacción** (Within reutiliza la del context). Si la auditoría falla, la operación no se guarda.
 - **Estados y bloqueos:** cada feature con ciclo de vida declara un puerto `Workflow` que su adaptador implementa con los casos de uso de `workflow`. El feature pregunta «¿vale esta transición para este rol?» y aplica la respuesta en su dominio.
 - El adaptador **conserva el código de error** del otro feature. Nunca hace `errors.New(err.Error())`.

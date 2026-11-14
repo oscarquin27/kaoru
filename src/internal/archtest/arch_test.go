@@ -301,8 +301,9 @@ func TestQueriesOnlyWriteTheirOwnTables(t *testing.T) {
 		},
 		"report":   {"conformance_report", "code_sequence"},
 		"planning": {"milestone"},
-		// traceability es de solo lectura: no puede escribir en ninguna tabla.
+		// traceability y metrics son de solo lectura: no pueden escribir en ninguna tabla.
 		"traceability": {},
+		"metrics":      {},
 	}
 	root := filepath.Join("..", "feature")
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {

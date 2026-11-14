@@ -71,6 +71,15 @@ SELECT gen_random_uuid(), 'DEF-2025-' || right(r.code, 5), 'Defecto de ' || r.ti
        (SELECT id FROM workflow_state WHERE entity_type = 'defect' AND is_initial), 'perf', now(), now()
 FROM requirement r WHERE r.code LIKE 'REQ-2025-%' AND right(r.code, 5)::int % 5 = 0;
 
+-- Cada DEF pasa a «Triado»: la métrica de tiempo en estado lee esa historia de la auditoría.
+INSERT INTO audit_entry (id, occurred_at, actor_id, entity_type, entity_id, entity_code, action, field, old_value, new_value, hash)
+SELECT gen_random_uuid(), now() - interval '1 hour', 'perf', 'defect', d.id, d.code, 'transition', 'state', 'open', 'triaged',
+       encode(sha256((d.code || '-triaged')::bytea), 'hex')
+FROM defect d WHERE d.code LIKE 'DEF-2025-%';
+UPDATE defect SET state_id = (SELECT id FROM workflow_state WHERE entity_type = 'defect' AND key = 'triaged'),
+                  created_at = now() - interval '1 day'
+WHERE code LIKE 'DEF-2025-%';
+
 INSERT INTO audit_entry (id, occurred_at, actor_id, entity_type, entity_id, entity_code, action, field, old_value, new_value, hash)
 SELECT gen_random_uuid(), now() - ((4 - k) || ' days')::interval, 'perf', 'requirement', r.id, r.code,
        CASE WHEN k = 1 THEN 'create' ELSE 'transition' END, 'state',
@@ -133,6 +142,11 @@ func TestPerformanceWithVolume(t *testing.T) {
 		{"lista de TC", "/api/test-cases", false},
 		{"lista de DEF", "/api/defects", false},
 		{"auditoría de un REQ", "/api/audit?entityCode=REQ-2025-05000", false},
+		{"métricas: cobertura", "/api/metrics/coverage", false},
+		{"métricas: cobertura por debajo", "/api/metrics/coverage?status=below", false},
+		{"métricas: tiempo en estado", "/api/metrics/defect-states", false},
+		{"métricas: regresión", "/api/metrics/regression", false},
+		{"métricas: DEF escapados", "/api/metrics/escaped-defects", false},
 	}
 	a.call("auditor", "GET", "/api/me", nil, 200, nil)
 	for _, route := range routes {
