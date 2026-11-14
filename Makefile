@@ -4,8 +4,40 @@
 IMAGE ?= kaoru-api:dev
 GOLANGCI_VERSION ?= v2.15.0
 
-.PHONY: check generate image offline-bundle check-go check-generated check-openapi check-migrations check-sqlvet check-perf \
+.PHONY: up seed demo front down reset password check generate image offline-bundle check-go check-generated check-openapi check-migrations check-sqlvet check-perf \
 	check-integration check-image check-web check-e2e check-front check-offline
+
+# --- Kaoru en este equipo, para probarlo: https://localhost:8443 con seis usuarios de laboratorio ---
+# Requiere Docker en marcha y `npm --prefix web ci` una vez. Los datos se conservan entre `make up`.
+#   make demo     levanta todo desde cero y siembra los datos de ejemplo (borra lo que había)
+#   make up       levanta (o actualiza) todo con el front y el backend del código actual
+#   make seed     agrega un juego de datos de ejemplo; cada corrida agrega otro
+#   make front    front con recarga al guardar en http://localhost:5173, como COMO (lab-admin por omisión)
+#   make password muestra la contraseña de los usuarios de laboratorio
+#   make down     apaga todo y conserva los datos; `make reset` apaga y los borra
+COMO ?= lab-admin
+
+up:
+	npm --prefix web run build
+	KAORU_WEB_DIR="$(CURDIR)/web/dist" ./tools/dev-up.sh
+	@echo "Contraseña de todos los usuarios: $$(cat infra/.lab-password)"
+
+seed:
+	./tools/dev-seed.sh
+
+demo: reset up seed
+
+front:
+	./tools/dev-front.sh $(COMO)
+
+password:
+	@cat infra/.lab-password
+
+down:
+	./tools/dev-down.sh
+
+reset:
+	./tools/dev-down.sh -v
 
 check: check-go check-generated check-openapi check-migrations check-sqlvet check-integration check-perf check-image check-web check-e2e check-front
 	@echo "make check: OK"
