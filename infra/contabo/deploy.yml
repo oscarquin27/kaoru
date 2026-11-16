@@ -1,0 +1,268 @@
+# Despliega Kaoru en el servidor de pruebas (contabo), detrás del nginx de ese servidor.
+#   make deploy-contabo                       → todo: compilar, subir, instalar, sitio y certificado
+#   make deploy-contabo TAGS=app              → solo la aplicación (sin tocar el nginx del servidor)
+#   make deploy-contabo TAGS=sitio            → solo el sitio y el certificado
+# Ese servidor ya corre otras aplicaciones. Kaoru vive aparte: carpeta {{ kaoru_dir }}, proyecto de
+# Compose «kaoru» y puertos solo en 127.0.0.1. Antes de tocar nada se comprueba que esos puertos,
+# ese proyecto y ese dominio no los use otro. Del nginx del servidor solo se agrega un sitio, que se
+# recarga únicamente si `nginx -t` pasa. Detalles en docs/despliegue-contabo.md.
+- name: Kaoru en contabo
+  hosts: kaoru
+  vars:
+    kaoru_domain: kaoru.aldia.services
+    kaoru_dir: /app/kaoru
+    kaoru_project: kaoru
+    # Puertos del servidor, solo en 127.0.0.1: el Nginx de Kaoru y la consola de Keycloak.
+    kaoru_https_port: 8445
+    kaoru_keycloak_admin_port: 8182
+    kaoru_acme_webroot: /var/www/letsencrypt-kaoru
+    kaoru_admin_user: kaoru-admin
+    kaoru_root: "{{ playbook_dir }}/../.."
+    kaoru_stage: "{{ kaoru_root }}/dist/contabo"
+
+  tasks:
+    # ---------- Comprobaciones: nada de esto cambia el servidor ----------
+    - name: Los puertos de Kaoru están libres o ya son de Kaoru
+      ansible.builtin.shell: |
+        set -eu
+        [ -z "$(ss -Htln "sport = :{{ item }}")" ] && exit 0
+        docker ps -q --filter "label=com.docker.compose.project={{ kaoru_project }}" --filter "publish={{ item }}" | grep -q .
+      loop:
+        - "{{ kaoru_https_port }}"
+        - "{{ kaoru_keycloak_admin_port }}"
+      changed_when: false
+      register: kaoru_puertos
+      failed_when: kaoru_puertos.rc != 0
+      tags: [always]
+
+    - name: El proyecto de Compose «{{ kaoru_project }}» no lo usa otra carpeta
+      ansible.builtin.shell: |
+        {% raw %}docker ps -a --filter "label=com.docker.compose.project={% endraw %}{{ kaoru_project }}{% raw %}" --format '{{ index .Labels "com.docker.compose.project.working_dir" }}'{% endraw %} | sort -u
+      changed_when: false
+      register: kaoru_carpetas
+      failed_when: kaoru_carpetas.stdout_lines | reject('equalto', kaoru_dir) | list | length > 0
+      tags: [always]
+
+    - name: Ningún otro sitio de nginx atiende {{ kaoru_domain }}
+      ansible.builtin.shell: |
+        grep -rlw -- "{{ kaoru_domain }}" /etc/nginx/sites-enabled/ /etc/nginx/conf.d/ | grep -vx "/etc/nginx/sites-enabled/{{ kaoru_domain }}" || true
+      changed_when: false
+      register: kaoru_otros_sitios
+      failed_when: kaoru_otros_sitios.stdout | length > 0
+      tags: [always]
+
+    # ---------- En este equipo: front, imagen de kaoru-api y configuración ----------
+    - name: Versión que se despliega
+      ansible.builtin.command: git -C "{{ kaoru_root }}" describe --always --dirty
+      delegate_to: localhost
+      run_once: true
+      changed_when: false
+      register: kaoru_git
+      tags: [app]
+
+    - name: Imagen de esta versión
+      ansible.builtin.set_fact:
+        kaoru_api_image: "kaoru-api:{{ kaoru_git.stdout }}"
+      tags: [app]
+
+    - name: Compilar el front
+      ansible.builtin.command: npm --prefix "{{ kaoru_root }}/web" run build
+      delegate_to: localhost
+      run_once: true
+      changed_when: true
+      tags: [app]
+
+    # El servidor es x86_64; este equipo puede no serlo.
+    - name: Construir la imagen de kaoru-api para linux/amd64
+      ansible.builtin.shell: |
+        set -eu
+        mkdir -p "{{ kaoru_stage }}"
+        docker buildx build --platform linux/amd64 -q -f infra/api/Dockerfile -t "{{ kaoru_api_image }}" --load . >/dev/null
+        docker save "{{ kaoru_api_image }}" | gzip >"{{ kaoru_stage }}/kaoru-api.tar.gz"
+      args:
+        chdir: "{{ kaoru_root }}"
+      delegate_to: localhost
+      run_once: true
+      changed_when: true
+      tags: [app]
+
+    - name: Empaquetar la configuración y el front
+      ansible.builtin.shell: |
+        set -eu
+        rm -rf "{{ kaoru_stage }}/kaoru" && mkdir -p "{{ kaoru_stage }}/kaoru"
+        cp -R infra/docker-compose.yml infra/nginx infra/postgres infra/keycloak infra/lib.sh \
+            infra/install.sh infra/backup.sh infra/restore.sh infra/contabo/files/crear-admin.sh \
+            "{{ kaoru_stage }}/kaoru/"
+        cp -R web/dist "{{ kaoru_stage }}/kaoru/web"
+        # Sin «._*» de macOS, y por entradas (no «.») para no cambiar los permisos de la carpeta.
+        cd "{{ kaoru_stage }}/kaoru" && COPYFILE_DISABLE=1 tar czf ../kaoru.tar.gz *
+      args:
+        chdir: "{{ kaoru_root }}"
+      delegate_to: localhost
+      run_once: true
+      changed_when: true
+      tags: [app]
+
+    # ---------- En el servidor: instalar o actualizar ----------
+    - name: Carpeta de Kaoru
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: directory
+        mode: "{{ item.mode }}"
+      loop:
+        - { path: "{{ kaoru_dir }}", mode: "0750" }
+        - { path: "{{ kaoru_dir }}/tls", mode: "0700" }
+      tags: [app]
+
+    - name: Subir la imagen de kaoru-api
+      ansible.builtin.copy:
+        src: "{{ kaoru_stage }}/kaoru-api.tar.gz"
+        dest: "{{ kaoru_dir }}/kaoru-api.tar.gz"
+        mode: "0600"
+      tags: [app]
+
+    - name: Cargar la imagen de kaoru-api
+      ansible.builtin.shell: gunzip -c "{{ kaoru_dir }}/kaoru-api.tar.gz" | docker load
+      changed_when: true
+      tags: [app]
+
+    # El front compilado lleva nombres con hash: se reemplaza entero para no acumular versiones.
+    - name: Quitar el front anterior
+      ansible.builtin.file:
+        path: "{{ kaoru_dir }}/web"
+        state: absent
+      tags: [app]
+
+    - name: Subir la configuración y el front
+      ansible.builtin.unarchive:
+        src: "{{ kaoru_stage }}/kaoru.tar.gz"
+        dest: "{{ kaoru_dir }}"
+        owner: root
+        group: root
+        extra_opts: [--no-same-owner]
+      tags: [app]
+
+    # Los secretos se generan una sola vez: si .env ya existe no se reescribe.
+    - name: Archivo de entorno con secretos nuevos
+      ansible.builtin.template:
+        src: env.j2
+        dest: "{{ kaoru_dir }}/.env"
+        mode: "0600"
+        force: false
+      tags: [app]
+
+    - name: Dirección, puertos e imagen al día en .env
+      ansible.builtin.lineinfile:
+        path: "{{ kaoru_dir }}/.env"
+        regexp: "^{{ item.key }}="
+        line: "{{ item.key }}={{ item.value }}"
+      loop: "{{ kaoru_env | dict2items }}"
+      vars:
+        kaoru_env:
+          KAORU_PUBLIC_URL: "https://{{ kaoru_domain }}"
+          KAORU_HTTPS_PORT: "127.0.0.1:{{ kaoru_https_port }}"
+          KEYCLOAK_ADMIN_PORT: "{{ kaoru_keycloak_admin_port }}"
+          KAORU_API_IMAGE: "{{ kaoru_api_image }}"
+      tags: [app]
+
+    # El certificado público lo pone el nginx del servidor; entre él y el Nginx de Kaoru basta uno
+    # autofirmado, que nunca sale del servidor.
+    - name: Certificado interno del Nginx de Kaoru
+      ansible.builtin.command: >-
+        openssl req -x509 -newkey rsa:2048 -nodes -days 3650 -subj "/CN={{ kaoru_domain }}"
+        -keyout tls/tls.key -out tls/tls.crt
+      args:
+        chdir: "{{ kaoru_dir }}"
+        creates: "{{ kaoru_dir }}/tls/tls.crt"
+      tags: [app]
+
+    - name: Instalar o actualizar Kaoru
+      ansible.builtin.command: ./install.sh
+      args:
+        chdir: "{{ kaoru_dir }}"
+      environment:
+        KAORU_PROJECT: "{{ kaoru_project }}"
+      changed_when: true
+      tags: [app]
+
+    - name: Primer usuario (qa-admin)
+      ansible.builtin.command: ./crear-admin.sh "{{ kaoru_admin_user }}"
+      args:
+        chdir: "{{ kaoru_dir }}"
+      environment:
+        KAORU_PROJECT: "{{ kaoru_project }}"
+      register: kaoru_admin
+      changed_when: "'creado' in kaoru_admin.stdout"
+      tags: [app]
+
+    # ---------- Sitio público y certificado ----------
+    - name: "{{ kaoru_domain }} apunta a este servidor"
+      ansible.builtin.shell: getent ahostsv4 "{{ kaoru_domain }}" | awk '{ print $1 }' | sort -u
+      changed_when: false
+      register: kaoru_dns
+      failed_when: kaoru_dns.stdout_lines != [ansible_default_ipv4.address]
+      tags: [sitio]
+
+    - name: Carpeta del desafío de Let's Encrypt
+      ansible.builtin.file:
+        path: "{{ kaoru_acme_webroot }}"
+        state: directory
+        mode: "0755"
+      tags: [sitio]
+
+    - name: ¿Ya hay certificado público?
+      ansible.builtin.stat:
+        path: "/etc/letsencrypt/live/{{ kaoru_domain }}/fullchain.pem"
+      register: kaoru_cert
+      tags: [sitio]
+
+    - name: Sitio (sin TLS hasta tener el certificado)
+      ansible.builtin.include_tasks:
+        file: sitio.yml
+        apply:
+          tags: [sitio]
+      vars:
+        kaoru_tls_ready: "{{ kaoru_cert.stat.exists }}"
+      tags: [sitio]
+
+    # Con la cuenta de certbot que ya tiene el servidor. Lo renueva el certbot.timer del sistema.
+    - name: Pedir el certificado público
+      ansible.builtin.command: >-
+        certbot certonly --webroot -w "{{ kaoru_acme_webroot }}" -d "{{ kaoru_domain }}"
+        --cert-name "{{ kaoru_domain }}" --non-interactive --keep-until-expiring
+        --deploy-hook "systemctl reload nginx"
+      when: not kaoru_cert.stat.exists
+      tags: [sitio]
+
+    - name: Sitio con TLS
+      ansible.builtin.include_tasks:
+        file: sitio.yml
+        apply:
+          tags: [sitio]
+      vars:
+        kaoru_tls_ready: true
+      when: not kaoru_cert.stat.exists
+      tags: [sitio]
+
+    - name: Kaoru responde en https://{{ kaoru_domain }}
+      ansible.builtin.uri:
+        url: "https://{{ kaoru_domain }}/healthz"
+        status_code: 204
+      delegate_to: localhost
+      run_once: true
+      retries: 12
+      delay: 5
+      register: kaoru_salud
+      until: kaoru_salud.status == 204
+      tags: [sitio]
+
+    - name: Sin sesión, lleva al inicio de sesión
+      ansible.builtin.uri:
+        url: "https://{{ kaoru_domain }}/"
+        follow_redirects: none
+        status_code: 302
+      delegate_to: localhost
+      run_once: true
+      register: kaoru_inicio
+      failed_when: "'/oauth2/start' not in (kaoru_inicio.location | default(''))"
+      tags: [sitio]

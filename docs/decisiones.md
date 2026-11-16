@@ -562,3 +562,10 @@ Tomadas el 11 nov 2026 al construir el core y el primer corte vertical (`workflo
 - **Por qué en trazos:** かおる está dibujada a mano como trazos SVG del mismo grosor y remate que la K (`KANA` en `tools/boceto/js/boceto.js`, `web/src/shared/ui/Kana.tsx`), no como texto: Kaoru se instala sin conexión y no puede contar con una fuente japonesa en el equipo.
 - **Dónde:** barra lateral y *Acerca de* (boceto y front), favicon (`tools/boceto/img/kaoru.svg`, copiado al tema de Keycloak) y `favicon.ico` del login, que `tools/make-favicon.py` dibuja ahora como sello. El login de Keycloak muestra el sello por `kaoru.svg`; la kana no se agregó allí.
 - **Verificación:** `npm run check` (la prueba de íconos compara también el `rect` del sello con el boceto), `make check-generated` y el navegador en tema oscuro y claro. El tema de Keycloak no se miró en el navegador.
+
+### D57 — Servidor de pruebas: contabo con Ansible, detrás del nginx que ya tiene
+- **Fecha:** 16 nov 2026
+- **Decisión:** Kaoru de prueba corre en `https://kaoru.aldia.services`, en un servidor que ya atiende otras aplicaciones. Lo despliega `infra/contabo/deploy.yml` (Ansible) con el mismo `install.sh` del paquete offline. El nginx del servidor termina el TLS público (Let's Encrypt, con su certbot) y pasa todo al Nginx de Kaoru en `127.0.0.1:8445`.
+- **Por qué así:** el servidor tiene internet, así que no hace falta el paquete offline completo: viajan solo la imagen de `kaoru-api` (construida aquí para `linux/amd64`) y la configuración; las demás imágenes se bajan por digest. El playbook comprueba puertos, proyecto de Compose y dominio antes de tocar nada, y solo recarga el nginx del servidor si `nginx -t` pasa.
+- **DNS:** un registro A en el DNS actual del dominio (GoDaddy). Cloudflare sería gratis, pero exige mover los servidores de nombres de `aldia.services`; no aporta nada para una prueba.
+- **Fuera:** vista previa de Office (memoria compartida), IP real del usuario en Kaoru y cambio automático de dominio (docs/despliegue-contabo.md, «Límites conocidos»).
