@@ -19,6 +19,10 @@ if [ -f "$here/images.tar.gz" ]; then
 fi
 echo "Levantando Kaoru…"
 compose up -d --wait --wait-timeout 300
+# Nginx monta kaoru.conf como archivo suelto: al actualizar, el paquete nuevo lo reemplaza y el
+# contenedor seguiría viendo el anterior. Se reinicia para que tome el de esta versión.
+compose restart nginx >/dev/null
+compose up -d --wait --wait-timeout 60 nginx
 # Keycloak guarda una copia comprimida de cada archivo del tema la primera vez que se pide y no la
 # renueva si el archivo cambia: tras actualizar, el login seguiría con la marca anterior. Se borra
 # en cada arranque; Keycloak la rehace sola, sin reiniciarse.
