@@ -72,12 +72,13 @@
       changed_when: true
       tags: [app]
 
-    # El servidor es x86_64; este equipo puede no serlo.
+    # El servidor es x86_64; este equipo puede no serlo. Sin el llavero de macOS, para que el
+    # despliegue no se quede esperando un aviso que nadie acepta (tools/docker-sin-llavero.sh).
     - name: Construir la imagen de kaoru-api para linux/amd64
       ansible.builtin.shell: |
         set -eu
         mkdir -p "{{ kaoru_stage }}"
-        docker buildx build --platform linux/amd64 -q -f infra/api/Dockerfile -t "{{ kaoru_api_image }}" --load . >/dev/null
+        tools/docker-sin-llavero.sh docker buildx build --platform linux/amd64 -q -f infra/api/Dockerfile -t "{{ kaoru_api_image }}" --load . >/dev/null
         docker save "{{ kaoru_api_image }}" | gzip >"{{ kaoru_stage }}/kaoru-api.tar.gz"
       args:
         chdir: "{{ kaoru_root }}"
