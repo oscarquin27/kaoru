@@ -5,7 +5,7 @@ IMAGE ?= kaoru-api:dev
 GOLANGCI_VERSION ?= v2.15.0
 
 .PHONY: up seed demo front down reset password check generate image offline-bundle check-go check-generated check-openapi check-migrations check-sqlvet check-perf \
-	check-integration check-image check-web check-e2e check-front check-offline
+	check-integration check-image check-web check-e2e check-front check-offline deploy-contabo check-deploy
 
 # --- Kaoru en este equipo, para probarlo: https://localhost:8443 con seis usuarios de laboratorio ---
 # Requiere Docker en marcha y `npm --prefix web ci` una vez. Los datos se conservan entre `make up`.
@@ -45,6 +45,15 @@ check: check-go check-generated check-openapi check-migrations check-sqlvet chec
 # Imagen de kaoru-api.
 image:
 	docker build -f infra/api/Dockerfile -t $(IMAGE) .
+
+# Despliegue en el servidor de pruebas (contabo) con Ansible: docs/despliegue-contabo.md.
+#   make deploy-contabo            todo;  TAGS=app solo la aplicación;  TAGS=sitio solo nginx y certificado
+TAGS ?= all
+deploy-contabo:
+	ansible-playbook -i infra/contabo/inventory.ini infra/contabo/deploy.yml --tags $(TAGS)
+
+check-deploy:
+	ansible-playbook -i infra/contabo/inventory.ini infra/contabo/deploy.yml --syntax-check
 
 # Paquete para instalar en un servidor sin internet: deja dist/kaoru-offline-<versión>.tar.gz
 offline-bundle:

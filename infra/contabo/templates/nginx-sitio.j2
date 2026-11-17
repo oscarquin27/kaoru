@@ -1,0 +1,52 @@
+# Lo escribe infra/contabo/deploy.yml (no se edita a mano): Kaoru detrás del nginx de este servidor,
+# que atiende también otros sitios. Este nginx termina el TLS público con el certificado de
+# {{ kaoru_domain }} (lo pide y renueva el certbot del sistema) y le pasa todo al Nginx de Kaoru, el
+# contenedor nginx en 127.0.0.1:{{ kaoru_https_port }}, que vuelve a terminar TLS con un certificado
+# interno y reparte entre el front, la API, oauth2-proxy y el login de Keycloak. Las cabeceras de
+# seguridad y los límites de cada ruta son los del Nginx de Kaoru (infra/nginx/kaoru.conf).
+
+server {
+    listen 80;
+    server_name {{ kaoru_domain }};
+
+    location /.well-known/acme-challenge/ {
+        root {{ kaoru_acme_webroot }};
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+{% if kaoru_tls_ready %}
+
+server {
+    listen 443 ssl;
+    server_name {{ kaoru_domain }};
+
+    ssl_certificate /etc/letsencrypt/live/{{ kaoru_domain }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ kaoru_domain }}/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    # El tope real lo pone kaoru-api (adjuntos de 25 MB); este solo no debe quedarse corto.
+    client_max_body_size 26m;
+    # La cookie de sesión de oauth2-proxy es grande.
+    large_client_header_buffers 4 32k;
+
+    location / {
+        proxy_pass https://127.0.0.1:{{ kaoru_https_port }};
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header Connection "";
+        # Solo la IP de quien conecta: lo que el cliente mande en X-Forwarded-For se descarta.
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_buffer_size 32k;
+        proxy_buffers 8 32k;
+        proxy_busy_buffers_size 64k;
+        # Las subidas pasan directo, como en el Nginx de Kaoru.
+        proxy_request_buffering off;
+        proxy_read_timeout 120s;
+        proxy_send_timeout 120s;
+    }
+}
+{% endif %}

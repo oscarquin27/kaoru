@@ -1,0 +1,39 @@
+# Escribe el sitio de Kaoru en el nginx del servidor y lo recarga solo si `nginx -t` pasa.
+# Lo incluye deploy.yml; espera kaoru_tls_ready (si ya hay certificado público).
+# Ese nginx atiende otros sitios: si la configuración no pasa, se quita el enlace de Kaoru y no se
+# recarga, así el nginx sigue con lo que tenía y la próxima recarga de otro no se rompe.
+- name: Sitio de Kaoru en el nginx del servidor
+  block:
+    - name: Escribir el sitio
+      ansible.builtin.template:
+        src: nginx-sitio.j2
+        dest: "/etc/nginx/sites-available/{{ kaoru_domain }}"
+        mode: "0644"
+      register: kaoru_sitio
+
+    - name: Habilitar el sitio
+      ansible.builtin.file:
+        src: "/etc/nginx/sites-available/{{ kaoru_domain }}"
+        dest: "/etc/nginx/sites-enabled/{{ kaoru_domain }}"
+        state: link
+      register: kaoru_enlace
+
+    - name: Comprobar la configuración de nginx
+      ansible.builtin.command: nginx -t
+      changed_when: false
+
+    - name: Recargar nginx
+      ansible.builtin.systemd_service:
+        name: nginx
+        state: reloaded
+      when: kaoru_sitio.changed or kaoru_enlace.changed
+
+  rescue:
+    - name: Quitar el sitio que no pasó nginx -t
+      ansible.builtin.file:
+        path: "/etc/nginx/sites-enabled/{{ kaoru_domain }}"
+        state: absent
+
+    - name: Detenerse
+      ansible.builtin.fail:
+        msg: "nginx -t no pasó con el sitio de Kaoru; se quitó el enlace y nginx no se recargó."
