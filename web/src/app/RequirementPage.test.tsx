@@ -117,6 +117,21 @@ describe('permisos: el front solo oculta lo que el rol no puede usar', () => {
   })
 })
 
+describe('enlaces', () => {
+  it('un enlace de Google Docs se agrega como cualquier otro', async () => {
+    const user = userEvent.setup()
+    const calls = renderApp(PATH, ['link.manage'], routes({ 'POST /api/requirements/REQ-2026-0001/links': { id: 'l9' } }))
+    await user.click(await screen.findByRole('tab', { name: /Enlaces/ }))
+    await user.click(await screen.findByRole('button', { name: 'Agregar enlace' }))
+    const form = screen.getByRole('form', { name: 'Agregar enlace' })
+    await user.type(within(form).getByRole('textbox', { name: 'URL' }), 'https://docs.google.com/document/d/1AbCdEfGhIjKlMnOpQrStUv/edit')
+    await user.click(within(form).getByRole('button', { name: 'Agregar enlace' }))
+
+    await waitFor(() => expect(calls.some((call) => call.method === 'POST')).toBe(true))
+    expect(calls.find((call) => call.method === 'POST')?.body).toMatchObject({ url: 'https://docs.google.com/document/d/1AbCdEfGhIjKlMnOpQrStUv/edit' })
+  })
+})
+
 describe('listas', () => {
   it('«Nuevo REQ» solo aparece con el permiso req.create', async () => {
     renderApp('/requerimientos')

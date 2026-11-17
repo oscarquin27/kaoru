@@ -1,4 +1,4 @@
-// Pestaña Enlaces. La documentación vive en Google Sheets: aquí se enlaza, no se copia.
+// Pestaña Enlaces. Cualquier enlace vale (Sheets, Docs, Drive, YouTrack, una wiki…): aquí se enlaza, no se copia.
 import { useState } from 'react'
 import type { FieldError } from '../../shared/api/errors.ts'
 import type { Link, LinkKind } from '../../shared/api/types.ts'
@@ -18,8 +18,9 @@ interface DocumentOption {
   title: string
 }
 
+/** Solo una URL de hojas de cálculo se revisa como Sheets: un Google Docs o Slides es un enlace más. */
 function isSheetsUrl(url: string): boolean {
-  return url.trim().startsWith('https://docs.google.com/')
+  return /^https?:\/\/docs\.google\.com\/spreadsheets\//.test(url.trim())
 }
 
 /** Misma regla que el dominio: una URL que dice ser de Google Sheets tiene que tener su forma. */
@@ -59,11 +60,11 @@ function AddLinkForm({ code, onClose }: { code: string; onClose: () => void }) {
         required
         value={url}
         onChange={(event) => setUrl(event.target.value)}
-        placeholder="https://docs.google.com/spreadsheets/d/…"
+        placeholder="https://…"
         hint={
           sheet
             ? `Hoja de Google reconocida${sheet.gid ? ` · pestaña ${sheet.gid}` : ''}${sheet.range ? ` · ${sheet.range}` : ''}`
-            : 'Pega la URL. No se comprueba que exista ni que tengas permiso.'
+            : 'Pega cualquier URL: Google Sheets, Docs, Drive, YouTrack… No se comprueba que exista ni que tengas permiso.'
         }
       />
       <div className="form__row">

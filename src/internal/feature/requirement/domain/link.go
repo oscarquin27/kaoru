@@ -145,7 +145,7 @@ func NewLink(p NewLinkParams) (Link, error) {
 	}
 	s.Label = validLabel(p.Label, &errs)
 	if s.Label == "" {
-		s.Label = defaultLabel(s.Sheet, parsed.Host)
+		s.Label = defaultLabel(s.Sheet, parsed)
 	}
 	if err := errs.Err(); err != nil {
 		return Link{}, err
@@ -230,10 +230,20 @@ func validLabel(raw string, errs *axis.FieldErrors) string {
 	return label
 }
 
+// googleLabels nombra los enlaces de Google que no son hojas por la primera parte de su ruta.
+var googleLabels = map[string]string{"document": "Google Docs", "presentation": "Google Slides", "forms": "Google Forms", "drawings": "Google Drawings"}
+
 // defaultLabel arma una etiqueta legible en lugar de la URL cruda.
-func defaultLabel(sheet *SheetRef, host string) string {
+func defaultLabel(sheet *SheetRef, u *url.URL) string {
 	if sheet == nil {
-		return host
+		first, _, _ := strings.Cut(strings.TrimPrefix(u.Path, "/"), "/")
+		switch {
+		case u.Host == "docs.google.com" && googleLabels[first] != "":
+			return googleLabels[first]
+		case u.Host == "drive.google.com":
+			return "Google Drive"
+		}
+		return u.Host
 	}
 	label := "Google Sheets"
 	if sheet.Gid != "" {
