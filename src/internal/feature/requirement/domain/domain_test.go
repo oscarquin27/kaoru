@@ -185,6 +185,10 @@ func TestNewLink(t *testing.T) {
 		wantSheet  bool
 	}{
 		{"hoja de Google con etiqueta legible", sheet, "", "", nil, domain.LinkGoogleSheets, "Google Sheets · pestaña 1842 · A1:F40", true},
+		{"Google Docs es un enlace más", "https://docs.google.com/document/d/1AbCdEfGhIjKlMnOpQrStUv/edit", "", "", nil, domain.LinkOther, "Google Docs", false},
+		{"Google Slides", "https://docs.google.com/presentation/d/1AbCdEfGhIjKlMnOpQrStUv/edit", "", "", nil, domain.LinkOther, "Google Slides", false},
+		{"Google Drive", "https://drive.google.com/drive/folders/1AbCdEf", "", "", nil, domain.LinkOther, "Google Drive", false},
+		{"Google Docs como carpeta compartida", "https://docs.google.com/document/d/1AbC/edit", "shared_folder", "Minuta", nil, domain.LinkSharedFolder, "Minuta", false},
 		{"hoja con etiqueta propia", sheet, "", " Especificación SyPago ", nil, domain.LinkGoogleSheets, "Especificación SyPago", true},
 		{"una hoja siempre es google_sheets", sheet, "wiki", "", nil, domain.LinkGoogleSheets, "Google Sheets · pestaña 1842 · A1:F40", true},
 		{"YouTrack se deduce del host", "https://youtrack.lab.invalid/issue/SY-12", "", "", nil, domain.LinkYouTrack, "youtrack.lab.invalid", false},
