@@ -18,10 +18,13 @@ if kcadm get users -r kaoru -q "username=$user" -q exact=true --fields username 
     exit 0
 fi
 
+# El perfil de usuario del realm exige correo: sin él, Keycloak lo pide al entrar. Kaoru no envía
+# correos, así que va uno de un dominio reservado (.invalid).
 # La política del realm pide 12 caracteres con mayúscula, minúscula y dígito.
 password="Kaoru-$(openssl rand -hex 10)"
 kcadm create users -r kaoru -s "username=$user" -s enabled=true \
-    -s firstName=Administración -s lastName=Kaoru >/dev/null || die "no se pudo crear $user"
+    -s firstName=Administración -s lastName=Kaoru \
+    -s "email=$user@kaoru.invalid" -s emailVerified=true >/dev/null || die "no se pudo crear $user"
 kcadm set-password -r kaoru --username "$user" --new-password "$password" >/dev/null || die "no se pudo poner la contraseña"
 kcadm add-roles -r kaoru --uusername "$user" --rolename qa-admin >/dev/null || die "no se pudo dar el rol qa-admin"
 (umask 077 && printf '%s\n' "$password" >"$here/.admin-password")

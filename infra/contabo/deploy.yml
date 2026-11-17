@@ -196,16 +196,9 @@
       tags: [app]
 
     # ---------- Sitio público y certificado ----------
-    - name: "{{ kaoru_domain }} apunta a este servidor"
-      ansible.builtin.shell: getent ahostsv4 "{{ kaoru_domain }}" | awk '{ print $1 }' | sort -u
-      changed_when: false
-      register: kaoru_dns
-      failed_when: kaoru_dns.stdout_lines != [ansible_default_ipv4.address]
-      tags: [sitio]
-
     - name: Carpeta del desafío de Let's Encrypt
       ansible.builtin.file:
-        path: "{{ kaoru_acme_webroot }}"
+        path: "{{ kaoru_acme_webroot }}/.well-known/acme-challenge"
         state: directory
         mode: "0755"
       tags: [sitio]
@@ -223,6 +216,35 @@
           tags: [sitio]
       vars:
         kaoru_tls_ready: "{{ kaoru_cert.stat.exists }}"
+      tags: [sitio]
+
+    # Antes de pedir el certificado, se comprueba por el mismo camino que usará Let's Encrypt que el
+    # dominio llega a este servidor. No basta con mirar el DNS: aldia.services está en Cloudflare con
+    # proxy, y el nombre resuelve a IP de Cloudflare, no a la del servidor.
+    - name: Marca de prueba en la carpeta del desafío
+      ansible.builtin.copy:
+        content: "{{ inventory_hostname }}-{{ ansible_date_time.epoch }}\n"
+        dest: "{{ kaoru_acme_webroot }}/.well-known/acme-challenge/kaoru-prueba"
+        mode: "0644"
+      register: kaoru_marca
+      tags: [sitio]
+
+    - name: "http://{{ kaoru_domain }} llega a este servidor"
+      ansible.builtin.uri:
+        url: "http://{{ kaoru_domain }}/.well-known/acme-challenge/kaoru-prueba"
+        return_content: true
+      delegate_to: localhost
+      run_once: true
+      register: kaoru_llega
+      retries: 6
+      delay: 10
+      until: kaoru_llega.content | default('') | trim == (inventory_hostname ~ '-' ~ ansible_date_time.epoch)
+      tags: [sitio]
+
+    - name: Quitar la marca de prueba
+      ansible.builtin.file:
+        path: "{{ kaoru_acme_webroot }}/.well-known/acme-challenge/kaoru-prueba"
+        state: absent
       tags: [sitio]
 
     # Con la cuenta de certbot que ya tiene el servidor. Lo renueva el certbot.timer del sistema.
