@@ -34,6 +34,7 @@ import (
 	"kaoru/internal/feature/requirement"
 	"kaoru/internal/feature/risk"
 	"kaoru/internal/feature/savedview"
+	"kaoru/internal/feature/system"
 	"kaoru/internal/feature/testdesign"
 	"kaoru/internal/feature/traceability"
 	"kaoru/internal/feature/user"
@@ -98,6 +99,13 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 	buildModule, err := build.New(build.Deps{
 		Database: d.Database, Clock: d.Clock, IdGenerator: d.IdGenerator,
 		Workflow: workflowModule.UseCases, Audit: auditModule.UseCases, Requirements: requirementModule.UseCases,
+	})
+	if err != nil {
+		return nil, err
+	}
+	systemModule, err := system.New(system.Deps{
+		Database: d.Database, Clock: d.Clock, IdGenerator: d.IdGenerator,
+		Workflow: workflowModule.UseCases, Audit: auditModule.UseCases,
 	})
 	if err != nil {
 		return nil, err
@@ -250,6 +258,7 @@ func NewRouter(d RouterDeps) (*gin.Engine, error) {
 	testdesignModule.RegisterAPI(api)
 	buildModule.RegisterAPI(api)
 	environmentModule.RegisterAPI(api)
+	systemModule.RegisterAPI(api)
 	executionModule.RegisterAPI(api)
 	defectModule.RegisterAPI(api)
 	bundleModule.RegisterAPI(api)

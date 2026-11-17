@@ -1,6 +1,6 @@
 import { api } from '../../shared/api/client.ts'
 import { useApiMutation, useApiQuery } from '../../shared/api/query.ts'
-import type { BlockingRule, Role, RolePermissions, Workflow, WorkflowEntityType } from '../../shared/api/types.ts'
+import type { BlockingRule, Role, RolePermissions, System, SystemInput, SystemPatch, Workflow, WorkflowEntityType } from '../../shared/api/types.ts'
 
 export const useRolePermissions = (enabled = true) => useApiQuery<RolePermissions>('/api/admin/role-permissions', undefined, enabled)
 export const useSetRolePermissions = () =>
@@ -28,3 +28,6 @@ export const useSetTransition = (entityType: FlowType) =>
   )
 export const useRemoveTransition = (entityType: FlowType) =>
   useApiMutation(({ from, to }: { from: string; to: string }) => api.delete(`${flow(entityType)}/transitions/${from}/${to}`))
+
+export const useCreateSystem = () => useApiMutation((input: SystemInput) => api.post<System>('/api/systems', input))
+export const useUpdateSystem = (key: string) => useApiMutation((patch: SystemPatch) => api.patch<System>(`/api/systems/${key}`, patch))

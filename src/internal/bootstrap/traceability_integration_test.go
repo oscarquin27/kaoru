@@ -265,7 +265,12 @@ func TestTraceabilityReturnsTheWholeChain(t *testing.T) {
 		} `json:"items"`
 	}
 	a.call("ops", "GET", "/api/systems", nil, 200, &systems)
-	if len(systems.Items) != 3 || systems.Items[0].Key != "SGLPAR" || systems.Items[0].DefaultRoute != "high" {
+	// Los tres que trae la instalación con su ruta; otras pruebas pueden haber agregado más.
+	routes := map[string]string{}
+	for _, s := range systems.Items {
+		routes[s.Key] = s.DefaultRoute
+	}
+	if routes["SGLPAR"] != "high" || routes["SIMF"] != "high" || routes["SYPAGO"] != "light" {
 		t.Errorf("sistemas: %+v", systems.Items)
 	}
 	a.call("auditor", "POST", "/api/comments", map[string]any{"entityType": "defect", "entityCode": def.Code, "body": "x"}, 403, nil)

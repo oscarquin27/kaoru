@@ -293,6 +293,7 @@ func TestQueriesOnlyWriteTheirOwnTables(t *testing.T) {
 		"component":   {"component", "code_sequence"},
 		"build":       {"build", "build_requirement", "code_sequence"},
 		"environment": {"environment", "deployment", "code_sequence"},
+		"system":      {"system_under_test"},
 		"bundle":      {"package", "package_build", "package_requirement", "code_sequence"},
 		"regression":  {"regression_selection", "regression_item"},
 		"production": {

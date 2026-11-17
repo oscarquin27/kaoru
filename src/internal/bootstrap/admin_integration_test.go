@@ -7,7 +7,9 @@ import (
 	"encoding/csv"
 	"slices"
 	"strconv"
+	"strings"
 	"testing"
+	"time"
 )
 
 type rolePermissionsBody struct {
@@ -365,4 +367,68 @@ func TestSavedViewsArePersonal(t *testing.T) {
 	}
 	a.call("dev", "DELETE", "/api/saved-views/"+saved.ID, nil, 404, nil)
 	a.call("qa", "DELETE", "/api/saved-views/no-es-un-id", nil, 404, nil)
+}
+
+type systemBody struct {
+	Key          string `json:"key"`
+	Name         string `json:"name"`
+	DefaultRoute string `json:"defaultRoute"`
+}
+
+// El catálogo de sistemas es configuración: qa-admin agrega uno y queda disponible para el resto.
+func TestAdminManagesSystems(t *testing.T) {
+	a := newAPI(t)
+	// La base se comparte entre corridas de la misma prueba: la clave cambia cada vez.
+	key := "SYS" + strconv.FormatInt(time.Now().UnixNano()%0xFFFFFF, 16)
+	body := map[string]any{"key": strings.ToLower(key), "name": " Sistema de activos fijos ", "defaultRoute": "high"}
+
+	a.call("qa", "POST", "/api/systems", body, 403, nil)
+	var created systemBody
+	a.call("admin", "POST", "/api/systems", body, 201, &created)
+	want := systemBody{Key: strings.ToUpper(key), Name: "Sistema de activos fijos", DefaultRoute: "high"}
+	if created != want {
+		t.Fatalf("sistema creado: %+v", created)
+	}
+	var p problemBody
+	a.call("admin", "POST", "/api/systems", body, 422, &p)
+	if len(p.Errors) != 1 || p.Errors[0].Field != "key" {
+		t.Errorf("la clave repetida es error del campo key: %+v", p)
+	}
+	a.call("admin", "POST", "/api/systems", map[string]any{"key": "1X", "name": "", "defaultRoute": "minor_fix"}, 422, &p)
+	if len(p.Errors) != 3 {
+		t.Errorf("clave, nombre y ruta inválidos: %+v", p)
+	}
+
+	var edited systemBody
+	a.call("qa", "PATCH", "/api/systems/"+want.Key, map[string]any{"defaultRoute": "light"}, 403, nil)
+	a.call("admin", "PATCH", "/api/systems/"+want.Key, map[string]any{"defaultRoute": "light"}, 200, &edited)
+	if edited.DefaultRoute != "light" || edited.Name != want.Name {
+		t.Errorf("sistema editado: %+v", edited)
+	}
+	a.call("admin", "PATCH", "/api/systems/NOEXISTE", map[string]any{"name": "x"}, 404, nil)
+
+	var systems struct {
+		Items []systemBody `json:"items"`
+	}
+	a.call("ops", "GET", "/api/systems", nil, 200, &systems)
+	if !slices.Contains(systems.Items, edited) {
+		t.Errorf("el sistema nuevo no está en la lista: %+v", systems.Items)
+	}
+	// Se puede usar como cualquier otro: un ambiente del sistema nuevo.
+	a.call("qa", "POST", "/api/environments", map[string]any{
+		"system": want.Key, "name": "QA-1", "kind": "clean", "os": "linux",
+	}, 201, nil)
+
+	var audit struct {
+		Items []struct {
+			EntityType string `json:"entityType"`
+			EntityCode string `json:"entityCode"`
+			Action     string `json:"action"`
+			Field      string `json:"field"`
+		} `json:"items"`
+	}
+	a.call("auditor", "GET", "/api/audit?entityCode="+want.Key, nil, 200, &audit)
+	if len(audit.Items) != 2 {
+		t.Errorf("se auditan el alta y el cambio de ruta: %+v", audit.Items)
+	}
 }

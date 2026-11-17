@@ -46,6 +46,8 @@ tags:
     description: Artefactos inmutables (BUILD)
   - name: environment
     description: Ambientes (ENV) y despliegues (DEP)
+  - name: system
+    description: Catálogo de sistemas bajo prueba
   - name: bundle
     description: Paquetes (PKG)
   - name: regression
@@ -121,6 +123,48 @@ paths:
                   items:
                     type: array
                     items: { $ref: '#/components/schemas/System' }
+        default: { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [system]
+      operationId: createSystem
+      summary: Agrega un sistema bajo prueba
+      description: Exige `admin.configure`. La clave se guarda en mayúsculas, no se repite y no cambia después.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SystemInput' }
+      responses:
+        '201':
+          description: Sistema creado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/System' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/systems/{key}:
+    parameters:
+      - name: key
+        in: path
+        required: true
+        description: Clave del sistema, por ejemplo `SYPAGO`.
+        schema: { type: string }
+    patch:
+      tags: [system]
+      operationId: updateSystem
+      summary: Cambia el nombre o la ruta por omisión de un sistema
+      description: Exige `admin.configure`. La clave no cambia y un sistema no se borra.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SystemPatch' }
+      responses:
+        '200':
+          description: Sistema
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/System' }
         default: { $ref: '#/components/responses/Problem' }
 
   /api/workflows/{entityType}:
@@ -3957,6 +4001,22 @@ components:
         key: { type: string }
         name: { type: string }
         defaultRoute: { $ref: '#/components/schemas/Route' }
+    SystemInput:
+      type: object
+      required: [key, name, defaultRoute]
+      properties:
+        key: { type: string, pattern: '^[A-Za-z][A-Za-z0-9]{1,11}$', description: 'De 2 a 12 letras o dígitos; se guarda en mayúsculas.' }
+        name: { type: string, minLength: 1, maxLength: 80 }
+        defaultRoute: { $ref: '#/components/schemas/SystemRoute' }
+    SystemPatch:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        defaultRoute: { $ref: '#/components/schemas/SystemRoute' }
+    SystemRoute:
+      type: string
+      enum: [high, light]
+      description: Ruta por omisión de los REQ sin CHG. `high` alta, `light` ligera.
 
     Workflow:
       type: object

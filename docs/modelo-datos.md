@@ -162,7 +162,8 @@ erDiagram
 | Feature | Tablas | Migración |
 |---|---|---|
 | `user` | `app_user` | 00001 |
-| (compartido) | `system_under_test`, `code_sequence` | 00001 |
+| `system` | `system_under_test` (la leen los demás; solo `system` la escribe) | 00001 |
+| (compartido) | `code_sequence` | 00001 |
 | `workflow` | `workflow_state`, `workflow_transition`, `permission`, `role_permission`, `blocking_rule` | 00002, 00011 |
 | `audit` | `audit_entry` | 00003 |
 | `change` | `change` | 00004 |
