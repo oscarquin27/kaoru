@@ -23,8 +23,23 @@ export function Transitions({ workflow, stateKey, can, blocked = [], onTransitio
   if (!workflow) return null
 
   const stateOf = (key: string) => workflow.states.find((state) => state.key === key)
-  const available = workflow.transitions.filter((transition) => transition.from === stateKey && can(transition.permission))
-  if (available.length === 0) return null
+  const outgoing = workflow.transitions.filter((transition) => transition.from === stateKey)
+  const available = outgoing.filter((transition) => can(transition.permission))
+  // El paso siguiente de la línea de vida que hace otro rol: se dice, para que no parezca que el REQ se trabó.
+  const othersStep = outgoing.filter((transition) => !can(transition.permission) && stateOf(transition.to)?.position !== undefined)
+  const othersNote = othersStep.length > 0 && (
+    <p className="muted">
+      {othersStep.map((transition) => `«${stateOf(transition.to)?.name ?? transition.to}»`).join(' o ')} lo hace quien tenga el permiso{' '}
+      {[...new Set(othersStep.map((transition) => transition.permission))].map((permission, index) => (
+        <span key={permission}>
+          {index > 0 && ', '}
+          <code>{permission}</code>
+        </span>
+      ))}
+      ; tus roles no lo incluyen.
+    </p>
+  )
+  if (available.length === 0) return othersNote || null
   // El paso principal es el que sigue en la línea de vida.
   const main = available.find((transition) => stateOf(transition.to)?.position !== undefined)
 
@@ -61,6 +76,7 @@ export function Transitions({ workflow, stateKey, can, blocked = [], onTransitio
           )
         })}
       </div>
+      {othersNote}
       {error && <ErrorNotice error={error} />}
       {asking && (
         <Dialog title={`Pasar a «${stateOf(asking.to)?.name ?? asking.to}»`} onClose={() => setAsking(null)}>

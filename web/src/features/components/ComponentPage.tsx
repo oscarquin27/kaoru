@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useParams } from 'react-router'
 import { useCan } from '../../shared/api/session.ts'
 import { formatDate } from '../../shared/lib/format.ts'
-import { COMPONENT_KIND_LABELS } from '../../shared/lib/labels.ts'
+import { componentKindLabel } from '../../shared/lib/labels.ts'
 import { RetiredChip } from '../../shared/ui/chips.tsx'
 import { Async, ErrorNotice, PageSkeleton } from '../../shared/ui/feedback.tsx'
 import { Icon } from '../../shared/ui/Icon.tsx'
@@ -37,7 +37,7 @@ export default function ComponentPage() {
               </div>
               <dl className="meta">
                 <MetaItem label="Sistema">{data.system.name}</MetaItem>
-                <MetaItem label="Clase">{COMPONENT_KIND_LABELS[data.kind]}</MetaItem>
+                <MetaItem label="Clase">{componentKindLabel(data.kind)}</MetaItem>
                 <MetaItem label="Registrado por">
                   {data.createdBy.displayName} · {formatDate(data.createdAt)}
                 </MetaItem>

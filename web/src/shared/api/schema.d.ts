@@ -1932,8 +1932,8 @@ export interface components {
                 related: components["schemas"]["Code"][];
             }[];
         };
-        /** @enum {string} */
-        ComponentKind: "microservice" | "library" | "script" | "kafka_topic" | "db_schema" | "other";
+        /** @description Clase del componente. Se ofrecen de entrada microservice, library, script, kafka_topic, db_schema y other; también vale cualquier otro texto (por ejemplo «Servicio de Windows»). */
+        ComponentKind: string;
         ComponentRef: {
             code: components["schemas"]["Code"];
             name: string;

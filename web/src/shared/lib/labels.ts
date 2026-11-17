@@ -2,7 +2,6 @@
 import type {
   ActivityKind,
   ActivityStatus,
-  ComponentKind,
   DeploymentResult,
   DiagnosticResult,
   DocumentKind,
@@ -50,13 +49,26 @@ export const QUALITY_LABELS: Record<QualityCharacteristic, string> = {
   maintainability: 'Mantenibilidad',
   portability: 'Portabilidad',
 }
-export const COMPONENT_KIND_LABELS: Record<ComponentKind, string> = {
+/** Clases de componente que se ofrecen de entrada. La clase es libre: una propia se muestra tal cual. */
+export const COMPONENT_KIND_LABELS: Record<string, string> = {
   microservice: 'Microservicio',
   library: 'Librería',
   script: 'Script',
   kafka_topic: 'Tópico de Kafka',
   db_schema: 'Esquema de base de datos',
   other: 'Otro',
+}
+export const componentKindLabel = (kind: string): string => COMPONENT_KIND_LABELS[kind] ?? kind
+/** La clave de una clase escrita en el formulario: si es el nombre de una de entrada, su clave; si no, el texto. */
+export function componentKindFromText(raw: string): string {
+  const typed = raw.trim()
+  const known = Object.entries(COMPONENT_KIND_LABELS).find(([key, label]) => label.toLowerCase() === typed.toLowerCase() || key === typed)
+  return known ? known[0] : typed
+}
+/** Las clases de entrada y las propias que ya usa el catálogo, para ofrecerlas al escribir o filtrar. */
+export function componentKindOptions(inUse: string[]): { value: string; label: string }[] {
+  const own = [...new Set(inUse)].filter((kind) => !(kind in COMPONENT_KIND_LABELS)).sort((a, b) => a.localeCompare(b, 'es'))
+  return [...options(COMPONENT_KIND_LABELS), ...own.map((kind) => ({ value: kind, label: kind }))]
 }
 export const ENVIRONMENT_KIND_LABELS: Record<EnvironmentKind, string> = { clean: 'Limpio', baseline: 'Línea base', offline: 'Offline', production: 'Producción' }
 export const OS_LABELS: Record<OperatingSystem, string> = { windows: 'Windows', linux: 'Linux' }

@@ -255,7 +255,7 @@ func TestCreateComponentErrors(t *testing.T) {
 		{"sistema desconocido", usecase.CreateComponentInput{Actor: dev, SystemKey: "OTRO", Kind: "script", Name: "x"}, axis.InvalidRequest, "system:invalid"},
 		{"sin nombre", usecase.CreateComponentInput{Actor: dev, SystemKey: "SYPAGO", Kind: "script"}, axis.InvalidRequest, "name:required"},
 		{"sin clase", usecase.CreateComponentInput{Actor: dev, SystemKey: "SYPAGO", Name: "x"}, axis.InvalidRequest, "kind:required"},
-		{"clase desconocida", usecase.CreateComponentInput{Actor: dev, SystemKey: "SYPAGO", Kind: "dll", Name: "x"}, axis.InvalidRequest, "kind:invalid"},
+		{"clase demasiado larga", usecase.CreateComponentInput{Actor: dev, SystemKey: "SYPAGO", Kind: strings.Repeat("x", 61), Name: "x"}, axis.InvalidRequest, "kind:invalid"},
 		{"nombre repetido en el sistema", usecase.CreateComponentInput{Actor: dev, SystemKey: "SYPAGO", Kind: "script", Name: " svc-pagos "}, axis.InvalidRequest, "name:invalid"},
 	}
 	for _, tc := range cases {
@@ -331,8 +331,8 @@ func TestListComponents(t *testing.T) {
 		})
 	}
 
-	if _, err := uc.ListComponents.Execute(ctx, usecase.ListComponentsInput{Kind: "dll"}); strings.Join(fieldsOf(err), " ") != "kind:invalid" {
-		t.Errorf("clase desconocida: %v", err)
+	if _, err := uc.ListComponents.Execute(ctx, usecase.ListComponentsInput{Kind: strings.Repeat("x", 61)}); strings.Join(fieldsOf(err), " ") != "kind:invalid" {
+		t.Errorf("clase demasiado larga: %v", err)
 	}
 }
 
@@ -402,7 +402,7 @@ func TestUpdateComponentErrors(t *testing.T) {
 		{"COMP inexistente", usecase.UpdateComponentInput{Actor: dev, Code: "COMP-2026-0099", Edit: domain.Edit{Name: ptr("x")}}, axis.NotFoundResource, ""},
 		{"código mal formado", usecase.UpdateComponentInput{Actor: dev, Code: "x", Edit: domain.Edit{Name: ptr("x")}}, axis.NotFoundResource, ""},
 		{"nombre vacío", usecase.UpdateComponentInput{Actor: dev, Code: comp1, Edit: domain.Edit{Name: ptr(" ")}}, axis.InvalidRequest, "name:required"},
-		{"clase desconocida", usecase.UpdateComponentInput{Actor: dev, Code: comp1, Edit: domain.Edit{Kind: ptr("dll")}}, axis.InvalidRequest, "kind:invalid"},
+		{"clase demasiado larga", usecase.UpdateComponentInput{Actor: dev, Code: comp1, Edit: domain.Edit{Kind: ptr(strings.Repeat("x", 61))}}, axis.InvalidRequest, "kind:invalid"},
 		{"nombre de otro componente del sistema", usecase.UpdateComponentInput{Actor: dev, Code: comp1, Edit: domain.Edit{Name: ptr("lib-firmas"), Retired: ptr(true)}}, axis.InvalidRequest, "name:invalid"},
 	}
 	for _, tc := range cases {

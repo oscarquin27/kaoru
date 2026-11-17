@@ -1,7 +1,7 @@
 // Chip de estado: color + ícono + texto, siempre los tres (boceto, «Estados»).
 import type { ReactNode } from 'react'
 import type { ComponentRef, DeploymentResult, Diagnostic, RiskLevel, RunResult, Severity, SmokeResult, StateRef } from '../api/types.ts'
-import { COMPONENT_KIND_LABELS, DEPLOYMENT_RESULT_LABELS, DIAGNOSTIC_RESULT_LABELS, RESULT_LABELS, RISK_LABELS, SEVERITY_LABELS, SMOKE_RESULT_LABELS } from '../lib/labels.ts'
+import { componentKindLabel, DEPLOYMENT_RESULT_LABELS, DIAGNOSTIC_RESULT_LABELS, RESULT_LABELS, RISK_LABELS, SEVERITY_LABELS, SMOKE_RESULT_LABELS } from '../lib/labels.ts'
 import { Icon, type IconName } from './Icon.tsx'
 
 export type Tone = 'ok' | 'curso' | 'aviso' | 'bloq' | 'neutro' | 'actual'
@@ -136,7 +136,7 @@ export function ComponentChips({ components, empty = 'Ninguno' }: { components: 
   return (
     <span className="cell-line">
       {components.map((component) => (
-        <span key={component.code} className="chip chip--neutro" title={`${component.code} · ${COMPONENT_KIND_LABELS[component.kind]}`}>
+        <span key={component.code} className="chip chip--neutro" title={`${component.code} · ${componentKindLabel(component.kind)}`}>
           <Icon name="box" />
           {component.name}
         </span>

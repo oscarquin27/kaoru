@@ -42,12 +42,15 @@ func fieldsOf(t *testing.T, err error) []string {
 func ptr[T any](v T) *T { return &v }
 
 func TestParseKind(t *testing.T) {
-	for _, raw := range []string{"microservice", "library", "script", "kafka_topic", "db_schema", "other"} {
+	for _, raw := range []string{"microservice", "library", "script", "kafka_topic", "db_schema", "other", "DLL", "Servicio de Windows"} {
 		if kind, ok := domain.ParseKind(raw); !ok || string(kind) != raw {
 			t.Errorf("ParseKind(%q) debía valer", raw)
 		}
 	}
-	for _, raw := range []string{"", "Microservice", "dll", "kafka-topic"} {
+	if kind, ok := domain.ParseKind("  Job de Control-M "); !ok || kind != "Job de Control-M" {
+		t.Errorf("ParseKind debía quitar los espacios: %q", kind)
+	}
+	for _, raw := range []string{"", "   ", strings.Repeat("x", 61)} {
 		if _, ok := domain.ParseKind(raw); ok {
 			t.Errorf("ParseKind(%q) no debía valer", raw)
 		}
@@ -66,8 +69,8 @@ func TestNew(t *testing.T) {
 		{"sin nombre", func(p *domain.NewParams) { p.Name = "   " }, []string{"name:required"}},
 		{"nombre largo", func(p *domain.NewParams) { p.Name = strings.Repeat("á", 121) }, []string{"name:invalid"}},
 		{"sin clase", func(p *domain.NewParams) { p.Kind = "" }, []string{"kind:required"}},
-		{"clase desconocida", func(p *domain.NewParams) { p.Kind = "dll" }, []string{"kind:invalid"}},
-		{"junta todos los errores", func(p *domain.NewParams) { p.Kind, p.Name = "x", "" }, []string{"kind:invalid", "name:required"}},
+		{"clase demasiado larga", func(p *domain.NewParams) { p.Kind = strings.Repeat("x", 61) }, []string{"kind:invalid"}},
+		{"junta todos los errores", func(p *domain.NewParams) { p.Kind, p.Name = " ", "" }, []string{"kind:required", "name:required"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -115,7 +118,7 @@ func TestApply(t *testing.T) {
 		{"nombre vacío", domain.Edit{Name: ptr(" ")}, []string{"name:required"}, nil},
 		{"nombre largo", domain.Edit{Name: ptr(strings.Repeat("x", 121))}, []string{"name:invalid"}, nil},
 		{"clase vacía", domain.Edit{Kind: ptr("")}, []string{"kind:required"}, nil},
-		{"clase desconocida", domain.Edit{Kind: ptr("dll"), Retired: ptr(true)}, []string{"kind:invalid"}, nil},
+		{"clase demasiado larga", domain.Edit{Kind: ptr(strings.Repeat("x", 61)), Retired: ptr(true)}, []string{"kind:invalid"}, nil},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
