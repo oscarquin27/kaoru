@@ -1,7 +1,8 @@
 #!/usr/bin/env sh
 # Crea el primer usuario de Kaoru si todavía no existe, con una contraseña al azar que queda en
-# .admin-password, legible solo por root. Lleva qa-admin y change-manager: es quien carga los CHG
-# y los REQ mientras no haya más usuarios. Lo llama infra/contabo/deploy.yml:
+# .admin-password, legible solo por root. Lleva qa-admin, change-manager, dev y ops: mientras no haya
+# más usuarios, una sola persona carga los CHG y los REQ y los lleva por todo el flujo (desarrollo,
+# entrega a QA y producción incluidos). Lo llama infra/contabo/deploy.yml:
 #   ./crear-admin.sh <usuario>
 # Los demás usuarios se crean en la consola de Keycloak (docs/instalacion.md, «Crear los usuarios»).
 set -eu
@@ -14,7 +15,7 @@ kcadm config credentials --server http://localhost:8080/auth --realm master \
     --user "$KEYCLOAK_ADMIN_USER" --password "$KEYCLOAK_ADMIN_PASSWORD" >/dev/null 2>&1 \
     || die "no se pudo entrar a la administración de Keycloak"
 
-roles="qa-admin change-manager"
+roles="qa-admin change-manager dev ops"
 add_roles() {
     for role in $roles; do
         kcadm add-roles -r kaoru --uusername "$user" --rolename "$role" >/dev/null || die "no se pudo dar el rol $role"

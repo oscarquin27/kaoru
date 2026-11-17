@@ -129,6 +129,38 @@ describe('actividades', () => {
   })
 })
 
+describe('CHG que todavía no existe', () => {
+  it('se crea desde la actividad y la actividad queda con su código', async () => {
+    const user = userEvent.setup()
+    const calls = renderApp(
+      '/planificacion/actividades',
+      ['activity.manage'],
+      routes({
+        'GET /api/activities': pageOf([]),
+        'POST /api/changes': { code: 'CHG-2026-0042', title: 'Corte de noviembre' },
+        'POST /api/activities': CERTIFICATION,
+        [`GET /api/activities/${CERTIFICATION.code}`]: CERTIFICATION,
+      }),
+    )
+
+    await user.click(await screen.findByRole('button', { name: 'Nueva actividad' }))
+    const dialog = screen.getByRole('dialog', { name: 'Nueva actividad' })
+    await user.selectOptions(within(dialog).getByRole('combobox', { name: /^CHG/ }), '＋ Crear un CHG nuevo…')
+    await user.type(within(dialog).getByRole('textbox', { name: /^Título del CHG nuevo/ }), 'Corte de noviembre')
+    await user.selectOptions(within(dialog).getByRole('combobox', { name: /^Sistema del CHG/ }), await within(dialog).findByRole('option', { name: 'SyPago' }))
+    await user.type(within(dialog).getByRole('textbox', { name: /^Actividad/ }), 'Certificación del corte')
+    await user.type(within(dialog).getByLabelText(/^Desde/), '2026-11-18')
+    await user.type(within(dialog).getByLabelText(/^Hasta/), '2026-11-24')
+    await user.click(within(dialog).getByRole('button', { name: 'Crear actividad' }))
+
+    expect(await screen.findByRole('heading', { name: CERTIFICATION.title })).toBeInTheDocument()
+    const posts = calls.filter((call) => call.method === 'POST')
+    expect(posts.map((call) => call.url)).toEqual(['/api/changes', '/api/activities'])
+    expect(posts[0]?.body).toEqual({ title: 'Corte de noviembre', system: 'SYPAGO', route: 'light' })
+    expect(posts[1]?.body).toMatchObject({ kind: 'certification', change: 'CHG-2026-0042', title: 'Certificación del corte' })
+  })
+})
+
 describe('ficha de la actividad', () => {
   const withOverlap = { ...CERTIFICATION, overlaps: [OVERLAP] }
 
@@ -188,7 +220,7 @@ describe('certificación en la ficha del CHG', () => {
 
     await user.click(within(section).getByRole('button', { name: 'Planificar certificación' }))
     const dialog = screen.getByRole('dialog', { name: 'Planificar la certificación de CHG-2026-0001' })
-    expect(within(dialog).getByRole('textbox', { name: /^CHG/ })).toHaveValue('CHG-2026-0001')
+    expect(within(dialog).getByRole('combobox', { name: /^CHG/ })).toHaveValue('CHG-2026-0001')
     await user.type(within(dialog).getByLabelText(/^Desde/), '2026-11-10')
     await user.type(within(dialog).getByLabelText(/^Hasta/), '2026-11-20')
     await user.click(within(dialog).getByRole('button', { name: 'Crear actividad' }))

@@ -1,8 +1,8 @@
 // La ficha del REQ con la respuesta real grabada (REQ-2026-0001: en pruebas y bloqueado).
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
-import { fixtureMe, problemResponse, renderApp } from '../test-utils.tsx'
+import { fixtureMe, problemResponse, renderApp, routes } from '../test-utils.tsx'
 
 const PATH = '/requerimientos/REQ-2026-0001'
 
@@ -130,5 +130,27 @@ describe('listas', () => {
     renderApp('/requerimientos', ['req.create'])
     await user.click(await screen.findByRole('button', { name: 'Nuevo REQ' }))
     expect(screen.getByRole('form', { name: 'Nuevo requerimiento' })).toBeInTheDocument()
+  })
+
+  it('un CHG que todavía no existe se crea con el sistema del REQ antes de registrarlo', async () => {
+    const user = userEvent.setup()
+    const calls = renderApp(
+      '/requerimientos',
+      ['req.create'],
+      routes({ 'POST /api/changes': { code: 'CHG-2026-0042' }, 'POST /api/requirements': { code: 'REQ-2026-0042' } }),
+    )
+    await user.click(await screen.findByRole('button', { name: 'Nuevo REQ' }))
+    const form = screen.getByRole('form', { name: 'Nuevo requerimiento' })
+    await user.type(within(form).getByRole('textbox', { name: 'Título' }), 'Tope diario')
+    await user.selectOptions(within(form).getByRole('combobox', { name: /^Sistema/ }), await within(form).findByRole('option', { name: 'SyPago' }))
+    await user.selectOptions(within(form).getByRole('combobox', { name: /^Cambio/ }), '＋ Crear un CHG nuevo…')
+    expect(within(form).queryByRole('combobox', { name: /^Sistema del CHG/ })).toBeNull()
+    await user.type(within(form).getByRole('textbox', { name: /^Título del CHG nuevo/ }), 'Corte de noviembre')
+    await user.click(within(form).getByRole('button', { name: 'Registrar REQ' }))
+
+    await waitFor(() => expect(calls.filter((call) => call.method === 'POST')).toHaveLength(2))
+    const [change, requirement] = calls.filter((call) => call.method === 'POST')
+    expect(change).toMatchObject({ url: '/api/changes', body: { title: 'Corte de noviembre', system: 'SYPAGO', route: 'light' } })
+    expect(requirement).toMatchObject({ url: '/api/requirements', body: { title: 'Tope diario', system: 'SYPAGO', change: 'CHG-2026-0042' } })
   })
 })

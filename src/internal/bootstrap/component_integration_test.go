@@ -84,7 +84,7 @@ func TestComponentCatalog(t *testing.T) {
 	if len(p.Errors) != 1 || p.Errors[0].Field != "system" || p.Errors[0].Code != "invalid" {
 		t.Errorf("sistema desconocido: %+v", p)
 	}
-	a.call("dev", "POST", "/api/components", body("SYPAGO", "dll", "  "), 422, &p)
+	a.call("dev", "POST", "/api/components", body("SYPAGO", strings.Repeat("x", 61), "  "), 422, &p)
 	if len(p.Errors) != 2 || p.Errors[0].Field != "kind" || p.Errors[1].Field != "name" || p.Errors[1].Code != "required" {
 		t.Errorf("un formulario junta todos sus errores: %+v", p.Errors)
 	}
@@ -126,7 +126,7 @@ func TestComponentCatalog(t *testing.T) {
 	if len(p.Errors) != 1 || p.Errors[0].Field != "name" || p.Errors[0].Code != "invalid" {
 		t.Errorf("renombrar a un nombre que ya existe: %+v", p)
 	}
-	a.call("qa", "PATCH", path, map[string]any{"kind": "dll", "name": ""}, 422, &p)
+	a.call("qa", "PATCH", path, map[string]any{"kind": strings.Repeat("x", 61), "name": ""}, 422, &p)
 	if len(p.Errors) != 2 {
 		t.Errorf("edición inválida: %+v", p.Errors)
 	}
@@ -185,8 +185,15 @@ func TestComponentCatalog(t *testing.T) {
 	if page.Total != 0 || page.Items == nil {
 		t.Errorf("una lista vacía es [] y no null: %+v", page)
 	}
-	a.call("ops", "GET", "/api/components?kind=dll", nil, 422, nil)
+	a.call("ops", "GET", "/api/components?kind="+strings.Repeat("x", 61), nil, 422, nil)
 	a.call("ops", "GET", "/api/components?size=500", nil, 422, nil)
+
+	// La clase es libre: una que no está entre las de entrada se guarda tal cual, sin espacios alrededor.
+	var windows componentBody
+	a.call("qa", "POST", "/api/components", body("SIMF", "  Servicio de Windows ", tag+"-win"), 201, &windows)
+	if windows.Kind != "Servicio de Windows" {
+		t.Errorf("clase propia: %+v", windows)
+	}
 
 	// Reactivar.
 	a.call("qa", "PATCH", "/api/components/"+viejo.Code, map[string]any{"retired": false}, 200, &got)

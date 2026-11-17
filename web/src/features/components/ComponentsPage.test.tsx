@@ -16,7 +16,7 @@ describe('catálogo de componentes', () => {
     const dialog = screen.getByRole('dialog', { name: 'Nuevo componente' })
     await user.type(within(dialog).getByRole('textbox', { name: 'Nombre' }), 'conciliador')
     await user.selectOptions(within(dialog).getByRole('combobox', { name: 'Sistema' }), await within(dialog).findByRole('option', { name: 'SyPago' }))
-    await user.selectOptions(within(dialog).getByRole('combobox', { name: 'Clase' }), 'Librería')
+    await user.type(within(dialog).getByRole('combobox', { name: 'Clase' }), 'librería')
     await user.type(within(dialog).getByRole('textbox', { name: 'Descripción' }), 'Cuadra los pagos del día')
     await user.click(within(dialog).getByRole('button', { name: 'Agregar COMP' }))
     await within(dialog).findByRole('alert')
@@ -25,6 +25,20 @@ describe('catálogo de componentes', () => {
       url: '/api/components',
       body: { system: 'SYPAGO', kind: 'library', name: 'conciliador', description: 'Cuadra los pagos del día' },
     })
+  })
+
+  it('una clase que no está en la lista se envía tal como se escribió', async () => {
+    const user = userEvent.setup()
+    const calls = renderApp('/pruebas/componentes', ['comp.manage'], catalog)
+
+    await user.click(await screen.findByRole('button', { name: 'Nuevo COMP' }))
+    const dialog = screen.getByRole('dialog', { name: 'Nuevo componente' })
+    await user.type(within(dialog).getByRole('textbox', { name: 'Nombre' }), 'cobros-win')
+    await user.selectOptions(within(dialog).getByRole('combobox', { name: 'Sistema' }), await within(dialog).findByRole('option', { name: 'SyPago' }))
+    await user.type(within(dialog).getByRole('combobox', { name: 'Clase' }), ' Servicio de Windows ')
+    await user.click(within(dialog).getByRole('button', { name: 'Agregar COMP' }))
+    await within(dialog).findByRole('alert')
+    expect(calls.find((call) => call.method === 'POST')?.body).toMatchObject({ kind: 'Servicio de Windows' })
   })
 
   it('retirar y reactivar cambian solo `retired`', async () => {

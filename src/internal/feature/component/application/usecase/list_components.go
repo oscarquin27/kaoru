@@ -33,7 +33,7 @@ type ListComponentsOutput struct {
 // Execute lista los COMP. Leer no exige permiso.
 func (uc *ListComponents) Execute(ctx context.Context, in ListComponentsInput) (ListComponentsOutput, error) {
 	if _, ok := domain.ParseKind(in.Kind); in.Kind != "" && !ok {
-		return ListComponentsOutput{}, axis.Invalid(axis.InvalidField("kind", "La clase de componente no es válida."))
+		return ListComponentsOutput{}, axis.Invalid(axis.InvalidField("kind", "La clase no puede pasar de 60 caracteres."))
 	}
 	views, total, err := uc.d.Repository.List(ctx, port.Filter{
 		SystemKey: in.SystemKey, Kind: in.Kind, Query: in.Query, IncludeRetired: in.IncludeRetired,

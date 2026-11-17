@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { useComponentOptions, useImpact, useSetImpact } from '../api/catalog.ts'
 import type { ComponentRef } from '../api/types.ts'
-import { COMPONENT_KIND_LABELS } from '../lib/labels.ts'
+import { componentKindLabel } from '../lib/labels.ts'
 import { ComponentChips } from './chips.tsx'
 import { Async, BlockSkeleton } from './feedback.tsx'
 import { CheckGroupField, Form } from './Form.tsx'
@@ -37,7 +37,7 @@ export function ImpactForm({ path, systemKey, selected, onClose }: ImpactProps &
               <CheckGroupField
                 name="components"
                 label="Componentes del sistema"
-                choices={choices.map((component) => ({ value: component.code, label: `${component.name} · ${COMPONENT_KIND_LABELS[component.kind]}` }))}
+                choices={choices.map((component) => ({ value: component.code, label: `${component.name} · ${componentKindLabel(component.kind)}` }))}
                 selected={selected.map((component) => component.code)}
               />
             )}

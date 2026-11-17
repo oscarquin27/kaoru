@@ -11,10 +11,11 @@ import (
 	shared "kaoru/internal/shared/domain"
 )
 
-// Kind es la clase de componente.
+// Kind es la clase de componente. Las de abajo son las que se ofrecen de entrada; QA puede escribir
+// otra (por ejemplo «Servicio de Windows») y desde ahí se ofrece también.
 type Kind string
 
-// Clases de componente.
+// Clases de componente que se ofrecen de entrada.
 const (
 	KindMicroservice Kind = "microservice"
 	KindLibrary      Kind = "library"
@@ -24,19 +25,21 @@ const (
 	KindOther        Kind = "other"
 )
 
-const maxNameLength = 120
+const (
+	maxNameLength = 120
+	maxKindLength = 60
+)
 
 // ErrNameTaken es el error de un nombre que ya usa otro componente del mismo sistema.
 var ErrNameTaken = axis.Invalid(axis.InvalidField("name", "Ya hay un componente con ese nombre en el sistema."))
 
-// ParseKind valida una clase de componente.
+// ParseKind valida una clase de componente: cualquier texto de 1 a 60 caracteres, sin espacios alrededor.
 func ParseKind(raw string) (Kind, bool) {
-	switch k := Kind(raw); k {
-	case KindMicroservice, KindLibrary, KindScript, KindKafkaTopic, KindDBSchema, KindOther:
-		return k, true
-	default:
+	kind := strings.TrimSpace(raw)
+	if kind == "" || utf8.RuneCountInString(kind) > maxKindLength {
 		return "", false
 	}
+	return Kind(kind), true
 }
 
 // System es el sistema bajo prueba al que pertenece el COMP.
@@ -160,10 +163,10 @@ func (c *Component) Apply(e Edit, now time.Time) ([]FieldChange, error) {
 func validKind(raw string, errs *axis.FieldErrors) Kind {
 	kind, ok := ParseKind(raw)
 	switch {
-	case raw == "":
+	case !ok && strings.TrimSpace(raw) == "":
 		errs.Add(axis.Required("kind", "Elige la clase de componente."))
 	case !ok:
-		errs.Add(axis.InvalidField("kind", "La clase de componente no es válida."))
+		errs.Add(axis.InvalidField("kind", "La clase no puede pasar de 60 caracteres."))
 	}
 	return kind
 }

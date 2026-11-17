@@ -5,6 +5,7 @@ import type { FieldError } from '../../shared/api/errors.ts'
 import { useUsers } from '../../shared/api/session.ts'
 import type { Activity, ActivityKind } from '../../shared/api/types.ts'
 import { ACTIVITY_KIND_LABELS, options } from '../../shared/lib/labels.ts'
+import { ChangeField, resolveChange } from '../../shared/ui/ChangeField.tsx'
 import { CheckGroupField, Form, SelectField, TextAreaField, TextField, text } from '../../shared/ui/Form.tsx'
 import { useCreateActivity, useUpdateActivity } from './api.ts'
 
@@ -46,7 +47,8 @@ export function ActivityForm({ activity, defaults, onCreated, onClose }: Props) 
       operators: data.getAll('operators').map(String),
       notes: text(data, 'notes'),
     }
-    const change = text(data, 'change').toUpperCase()
+    // Si se pidió un CHG nuevo, se crea primero.
+    const change = await resolveChange(data)
     if (activity) {
       await update.mutateAsync({ ...fields, change })
       return
@@ -66,12 +68,12 @@ export function ActivityForm({ activity, defaults, onCreated, onClose }: Props) 
             </option>
           ))}
         </SelectField>
-        <TextField
-          name="change"
+        <ChangeField
           label="CHG"
-          placeholder="CHG-2026-0001"
+          emptyLabel="Sin CHG"
+          askSystem
           defaultValue={activity?.change?.code ?? defaults?.change}
-          hint="Obligatorio en la certificación: es el período que QA reserva para ese CHG."
+          hint="Obligatorio en la certificación. Si el CHG aún no existe, créalo aquí mismo."
         />
       </div>
       <TextField name="title" label="Actividad" required maxLength={200} defaultValue={activity?.title ?? defaults?.title} />

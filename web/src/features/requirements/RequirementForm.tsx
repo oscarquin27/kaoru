@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router'
 import { useSystems } from '../../shared/api/session.ts'
 import type { UserRef } from '../../shared/api/types.ts'
 import { Form, SelectField, TextAreaField, TextField, optional, text } from '../../shared/ui/Form.tsx'
+import { ChangeField, resolveChange } from '../../shared/ui/ChangeField.tsx'
 import { UserField } from '../../shared/ui/UserField.tsx'
-import { useChangeOptions, useCreateRequirement, useUpdateRequirement } from './api.ts'
+import { useCreateRequirement, useUpdateRequirement } from './api.ts'
 
 interface Editable {
   code: string
@@ -12,23 +13,25 @@ interface Editable {
   description: string
   acceptanceCriteria: string
   change?: { code: string }
+  system?: { key: string }
   owner?: UserRef
 }
 
 export function RequirementForm({ requirement, onClose }: { requirement?: Editable; onClose: () => void }) {
   const navigate = useNavigate()
   const systems = useSystems().data?.items ?? []
-  const changes = useChangeOptions().data?.items ?? []
   const create = useCreateRequirement()
   const update = useUpdateRequirement(requirement?.code ?? '')
 
   async function submit(data: FormData) {
     const common = { title: text(data, 'title'), description: text(data, 'description'), acceptanceCriteria: text(data, 'acceptanceCriteria') }
+    // Un CHG nuevo toma el sistema del REQ; al editar, el que ya tiene el REQ.
+    const change = await resolveChange(data, { system: requirement?.system?.key ?? text(data, 'system') })
     if (requirement) {
-      await update.mutateAsync({ ...common, change: optional(data, 'change') ?? null, owner: optional(data, 'owner') ?? null })
+      await update.mutateAsync({ ...common, change: change || null, owner: optional(data, 'owner') ?? null })
       return
     }
-    const created = await create.mutateAsync({ ...common, system: text(data, 'system'), change: optional(data, 'change'), owner: optional(data, 'owner') })
+    const created = await create.mutateAsync({ ...common, system: text(data, 'system'), change: change || undefined, owner: optional(data, 'owner') })
     void navigate(`/requerimientos/${created.code}`)
   }
 
@@ -52,14 +55,7 @@ export function RequirementForm({ requirement, onClose }: { requirement?: Editab
             ))}
           </SelectField>
         )}
-        <SelectField name="change" label="Cambio (CHG)" defaultValue={requirement?.change?.code ?? ''} key={changes.length}>
-          <option value="">Sin cambio</option>
-          {changes.map((change) => (
-            <option key={change.code} value={change.code}>
-              {change.code} · {change.title}
-            </option>
-          ))}
-        </SelectField>
+        <ChangeField defaultValue={requirement?.change?.code} hint="Si el CHG aún no existe, créalo aquí mismo." />
       </div>
       <TextAreaField name="description" label="Descripción" defaultValue={requirement?.description} />
       <TextAreaField

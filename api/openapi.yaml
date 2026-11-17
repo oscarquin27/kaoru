@@ -3084,7 +3084,11 @@ components:
 
     ComponentKind:
       type: string
-      enum: [microservice, library, script, kafka_topic, db_schema, other]
+      minLength: 1
+      maxLength: 60
+      description: >-
+        Clase del componente. Se ofrecen de entrada microservice, library, script, kafka_topic,
+        db_schema y other; también vale cualquier otro texto (por ejemplo «Servicio de Windows»).
     ComponentRef:
       type: object
       required: [code, name, kind]

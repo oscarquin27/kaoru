@@ -2,7 +2,8 @@
 import { useState } from 'react'
 import { useCan, useSystems } from '../../shared/api/session.ts'
 import type { Component } from '../../shared/api/types.ts'
-import { COMPONENT_KIND_LABELS, options } from '../../shared/lib/labels.ts'
+import { useComponentOptions } from '../../shared/api/catalog.ts'
+import { componentKindLabel, componentKindOptions } from '../../shared/lib/labels.ts'
 import { useUrlFilters } from '../../shared/lib/urlFilters.ts'
 import { RetiredChip } from '../../shared/ui/chips.tsx'
 import { Code } from '../../shared/ui/Code.tsx'
@@ -21,6 +22,8 @@ export default function ComponentsPage() {
   const page = Number(params.get('page')) || 1
   const components = useComponents({ ...pick(['system', 'kind', 'q', 'includeRetired']), page: page > 1 ? page : undefined })
   const update = useUpdateComponent()
+  // Las clases propias que ya usa el catálogo se ofrecen en el filtro junto a las de entrada.
+  const kindsInUse = (useComponentOptions().data?.items ?? []).map((component) => component.kind)
   const [form, setForm] = useState<{ component?: Component } | null>(null)
 
   return (
@@ -40,7 +43,7 @@ export default function ComponentsPage() {
       />
       <FilterBar>
         <FilterSelect name="system" label="Sistema" options={systems.map((system) => ({ value: system.key, label: system.name }))} />
-        <FilterSelect name="kind" label="Clase" options={options(COMPONENT_KIND_LABELS)} />
+        <FilterSelect name="kind" label="Clase" options={componentKindOptions(kindsInUse)} />
         <FilterInput name="q" label="Texto en el nombre" />
         <FilterCheck name="includeRetired" label="Incluir retirados" />
       </FilterBar>
@@ -79,7 +82,7 @@ export default function ComponentsPage() {
                             {component.description && <span className="muted">{component.description}</span>}
                           </div>
                         </td>
-                        <td>{COMPONENT_KIND_LABELS[component.kind]}</td>
+                        <td>{componentKindLabel(component.kind)}</td>
                         <td>{component.system.name}</td>
                         <td>
                           <RetiredChip retired={component.retired} />
