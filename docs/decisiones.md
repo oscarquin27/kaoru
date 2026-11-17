@@ -569,3 +569,10 @@ Tomadas el 11 nov 2026 al construir el core y el primer corte vertical (`workflo
 - **Por qué así:** el servidor tiene internet, así que no hace falta el paquete offline completo: viajan solo la imagen de `kaoru-api` (construida aquí para `linux/amd64`) y la configuración; las demás imágenes se bajan por digest. El playbook comprueba puertos, proyecto de Compose y dominio antes de tocar nada, y solo recarga el nginx del servidor si `nginx -t` pasa.
 - **DNS:** `aldia.services` ya está en Cloudflare (plan gratuito); `kaoru` es un registro A con proxy. Como el nombre resuelve a Cloudflare y no al servidor, el playbook comprueba que el dominio llega al servidor pidiendo un archivo por la ruta del desafío de Let's Encrypt, en lugar de comparar IP.
 - **Fuera:** vista previa de Office (memoria compartida), IP real del usuario en Kaoru y cambio automático de dominio (docs/despliegue-contabo.md, «Límites conocidos»).
+
+### D58 — Catálogo de sistemas editable desde Administración
+- **Fecha:** 17 nov 2026
+- **Contexto:** los sistemas bajo prueba (SIMF, SGLPAR, SyPago) los sembraba la migración 00001 y no había cómo agregar otro, por ejemplo SysAF.
+- **Decisión:** nuevo feature `system`, dueño de `system_under_test`, con alta (`POST /api/systems`) y edición (`PATCH /api/systems/{key}`) en *Administración → Sistemas*. Exige `admin.configure` (qa-admin por omisión), que ya describía «catálogos». Cada alta y cada campo cambiado se audita con la clave como código.
+- **Reglas:** la clave tiene de 2 a 12 letras o dígitos, empieza con letra, se guarda en mayúsculas, no se repite y **no cambia**: va en filtros, enlaces y vistas guardadas. Se editan el nombre y la ruta por omisión (alta o ligera; el fix menor es solo de un CHG). Un sistema **no se borra**: lo referencian CHG, REQ, TC y ambientes. Si hace falta retirarlo, será otra decisión.
+- **La lista** sigue en `traceability` (`GET /api/systems`), que la usan todos los selectores; `system` solo escribe.

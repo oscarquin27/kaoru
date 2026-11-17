@@ -51,11 +51,38 @@ export interface paths {
         /** Sistemas bajo prueba */
         get: operations["listSystems"];
         put?: never;
-        post?: never;
+        /**
+         * Agrega un sistema bajo prueba
+         * @description Exige `admin.configure`. La clave se guarda en mayúsculas, no se repite y no cambia después.
+         */
+        post: operations["createSystem"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/systems/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Clave del sistema, por ejemplo `SYPAGO`. */
+                key: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Cambia el nombre o la ruta por omisión de un sistema
+         * @description Exige `admin.configure`. La clave no cambia y un sistema no se borra.
+         */
+        patch: operations["updateSystem"];
         trace?: never;
     };
     "/api/workflows/{entityType}": {
@@ -2607,6 +2634,21 @@ export interface components {
             name: string;
             defaultRoute: components["schemas"]["Route"];
         };
+        SystemInput: {
+            /** @description De 2 a 12 letras o dígitos; se guarda en mayúsculas. */
+            key: string;
+            name: string;
+            defaultRoute: components["schemas"]["SystemRoute"];
+        };
+        SystemPatch: {
+            name?: string;
+            defaultRoute?: components["schemas"]["SystemRoute"];
+        };
+        /**
+         * @description Ruta por omisión de los REQ sin CHG. `high` alta, `light` ligera.
+         * @enum {string}
+         */
+        SystemRoute: "high" | "light";
         Workflow: {
             entityType: string;
             states: {
@@ -3203,6 +3245,59 @@ export interface operations {
                     "application/json": {
                         items: components["schemas"]["System"][];
                     };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    createSystem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SystemInput"];
+            };
+        };
+        responses: {
+            /** @description Sistema creado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["System"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    updateSystem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Clave del sistema, por ejemplo `SYPAGO`. */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SystemPatch"];
+            };
+        };
+        responses: {
+            /** @description Sistema */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["System"];
                 };
             };
             default: components["responses"]["Problem"];

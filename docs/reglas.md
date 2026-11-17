@@ -125,6 +125,7 @@ Se crean solo en la fase que los necesita (sección 12 del requerimiento).
 | `report` | RPT- (informe de conformidad) | 4 |
 | `planning` | Hitos, ventanas de cambio y alertas de atraso | 4 |
 | `metrics` | Cobertura por REQ, tiempo en estado de los DEF, tamaño de regresión y DEF escapados (solo lectura, §A.7) | 5 |
+| `system` | Catálogo de sistemas bajo prueba: alta y edición (la lista la sirve `traceability`) | 6 |
 
 Si un feature crece demasiado, se parte en features hermanos (`defect`, `defecttriage`), no en sub-features anidados.
 

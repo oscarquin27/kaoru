@@ -135,6 +135,7 @@ export const SECTIONS: Section[] = [
       { path: '/administracion', label: 'Permisos por rol', page: lazy(() => import('../features/admin/PermissionsPage.tsx')) },
       { path: '/administracion/flujos', label: 'Flujos', page: lazy(() => import('../features/admin/WorkflowsPage.tsx')) },
       { path: '/administracion/reglas', label: 'Reglas de bloqueo', page: lazy(() => import('../features/admin/BlockingRulesPage.tsx')) },
+      { path: '/administracion/sistemas', label: 'Sistemas', page: lazy(() => import('../features/admin/SystemsPage.tsx')) },
       { path: '/administracion/auditoria', label: 'Auditoría', page: lazy(() => import('../features/audit/AuditPage.tsx')) },
     ],
   },
