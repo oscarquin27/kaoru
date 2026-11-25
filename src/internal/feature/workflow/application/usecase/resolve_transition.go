@@ -25,6 +25,8 @@ type ResolveTransitionInput struct {
 type ResolveTransitionOutput struct {
 	To             domain.State
 	RequiresReason bool
+	// Permission es el permiso de la transición: algunos pasos hacen algo más según cuál sea.
+	Permission string
 	// Rules son las reglas activas de la transición.
 	Rules []domain.Rule
 }
@@ -47,7 +49,7 @@ func (uc *ResolveTransition) Execute(ctx context.Context, in ResolveTransitionIn
 	if err != nil {
 		return ResolveTransitionOutput{}, err
 	}
-	out := ResolveTransitionOutput{To: to, RequiresReason: transition.RequiresReason}
+	out := ResolveTransitionOutput{To: to, RequiresReason: transition.RequiresReason, Permission: transition.Permission}
 	for _, r := range transition.Rules {
 		if r.Enabled {
 			out.Rules = append(out.Rules, r)

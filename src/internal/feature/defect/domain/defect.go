@@ -59,6 +59,14 @@ type RunRef struct {
 	TestCaseId string
 }
 
+// Acceptance es quién aceptó el DEF al aprobar su REQ con defectos, cuándo y por qué. Un DEF
+// aceptado sigue abierto como traza, pero ya no bloquea al REQ ni al PKG.
+type Acceptance struct {
+	By     UserRef
+	Reason string
+	At     time.Time
+}
+
 // Snapshot es el contenido de un DEF.
 type Snapshot struct {
 	Id          string
@@ -72,8 +80,10 @@ type Snapshot struct {
 	// Assignee es quien lo corrige; nil si nadie lo tiene.
 	Assignee  *UserRef
 	CreatedBy UserRef
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	// Acceptance es nil si nadie aceptó el DEF.
+	Acceptance *Acceptance
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
 
 // Defect es un DEF.
@@ -189,6 +199,17 @@ func (d *Defect) MoveTo(state State, now time.Time) FieldChange {
 	d.s.State = state
 	d.s.UpdatedAt = now
 	return change
+}
+
+// Accept deja el DEF aceptado, si no lo estaba: al aprobar su REQ con defectos. Devuelve false si
+// ya estaba aceptado o si está en un estado final, y entonces no cambia nada.
+func (d *Defect) Accept(by UserRef, reason string, now time.Time) bool {
+	if d.s.Acceptance != nil || d.s.State.IsFinal {
+		return false
+	}
+	d.s.Acceptance = &Acceptance{By: by, Reason: strings.TrimSpace(reason), At: now}
+	d.s.UpdatedAt = now
+	return true
 }
 
 // DaysInState es el tiempo que lleva el DEF en su estado actual. enteredAt es la fecha de

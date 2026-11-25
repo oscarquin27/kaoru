@@ -24,6 +24,8 @@ type ListOpenDefectsInput struct {
 type OpenDefect struct {
 	Code     string
 	Severity string
+	// Accepted dice si se aceptó al aprobar su REQ con defectos: entonces ya no bloquea.
+	Accepted bool
 }
 
 // Execute lista los defectos abiertos. Leer no exige permiso.
@@ -37,7 +39,7 @@ func (uc *ListOpenDefects) Execute(ctx context.Context, in ListOpenDefectsInput)
 	out := make([]OpenDefect, len(defects))
 	for i, defect := range defects {
 		s := defect.Snapshot()
-		out[i] = OpenDefect{Code: s.Code.String(), Severity: string(s.Severity)}
+		out[i] = OpenDefect{Code: s.Code.String(), Severity: string(s.Severity), Accepted: s.Acceptance != nil}
 	}
 	return out, nil
 }

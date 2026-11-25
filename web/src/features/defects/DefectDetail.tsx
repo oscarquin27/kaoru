@@ -62,6 +62,18 @@ export function DefectDetail({ code, activity }: { code: string; activity: React
                   {data.createdBy.displayName} · {formatDate(data.createdAt)}
                 </MetaItem>
               </dl>
+              {data.acceptance && (
+                <div className="notice" role="note">
+                  <Icon name="triangle" />
+                  <div className="notice__main">
+                    <p>
+                      Aceptado al aprobar {data.requirement} con defectos, por {data.acceptance.by.displayName} el {formatDate(data.acceptance.at)}. Sigue abierto como traza, pero
+                      ya no bloquea al REQ ni al PKG que lo incluya.
+                    </p>
+                    <p className="soft wrap">Motivo: {data.acceptance.reason}</p>
+                  </div>
+                </div>
+              )}
               <div className="row row--between">
                 <Transitions workflow={workflow} stateKey={data.state.key} can={can} onTransition={transition.mutateAsync} />
                 {can('def.edit') && (

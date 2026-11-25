@@ -1,31 +1,38 @@
 // Registro de un RUN. No se edita después: quien ejecuta y la fecha de registro los pone el servidor.
+import { useRef } from 'react'
 import type { FieldError } from '../../shared/api/errors.ts'
 import type { RunResult } from '../../shared/api/types.ts'
 import { fromLocalInput, toLocalInput } from '../../shared/lib/format.ts'
 import { RESULT_LABELS, options } from '../../shared/lib/labels.ts'
 import { Form, SelectField, TextAreaField, TextField, text } from '../../shared/ui/Form.tsx'
 import { useCreateRun } from './api.ts'
-import { TargetFields } from './Target.tsx'
+import { TargetFields, resolveBuild, validateNewBuild, type Registered } from './Target.tsx'
 
 function validateRun(data: FormData): FieldError[] {
+  const errors = validateNewBuild(data)
+  if (errors.length > 0) return errors
   if (new Date(text(data, 'executedAt')).getTime() > Date.now()) {
     return [{ field: 'executedAt', code: 'invalid', message: 'La fecha de ejecución no puede ser futura.' }]
   }
   return []
 }
 
-/** `systemKey` es el sistema del TC: de ahí salen los BUILD y los ambientes que se ofrecen. */
-export function RunForm({ testCase, systemKey, onClose }: { testCase: string; systemKey: string; onClose: () => void }) {
+/**
+ * `systemKey` es el sistema del TC: de ahí salen los BUILD y los ambientes que se ofrecen.
+ * `requirement` es el REQ desde el que se registra: un BUILD nuevo lo incluye.
+ */
+export function RunForm({ testCase, systemKey, requirement, onClose }: { testCase: string; systemKey: string; requirement?: string; onClose: () => void }) {
   const create = useCreateRun()
+  const registered = useRef<Registered>(new Map())
   return (
     <Form
       label="Registrar ejecución"
       submitLabel="Registrar RUN"
       validate={validateRun}
-      onSubmit={(data) =>
+      onSubmit={async (data) =>
         create.mutateAsync({
           testCase,
-          build: text(data, 'build'),
+          build: await resolveBuild(data, { system: systemKey, requirement, registered: registered.current }),
           environment: text(data, 'environment'),
           result: text(data, 'result') as RunResult,
           notes: text(data, 'notes'),

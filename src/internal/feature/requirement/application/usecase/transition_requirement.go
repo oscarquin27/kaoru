@@ -58,6 +58,12 @@ func (uc *TransitionRequirement) Execute(ctx context.Context, in TransitionRequi
 			return err
 		}
 		out = requirement.Snapshot()
+		if transition.Permission == PermissionApproveWithDefects {
+			// Sus DEF abiertos quedan aceptados, con el mismo motivo: siguen como traza sin bloquear.
+			if err := uc.d.Facts.AcceptOpenDefects(ctx, out.Code, in.Actor, reason); err != nil {
+				return err
+			}
+		}
 		return uc.d.AuditTrail.Record(ctx, port.AuditRecord{
 			Actor: in.Actor.Id, RequirementId: out.Id, Code: out.Code, Action: port.AuditTransition,
 			Field: moved.Field, OldValue: moved.Old, NewValue: moved.New, Reason: reason,

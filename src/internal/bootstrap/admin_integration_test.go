@@ -84,6 +84,7 @@ func TestAdminConfiguresPermissionsAndRules(t *testing.T) {
 	// Reglas de bloqueo: la cobertura mínima por nivel de riesgo se ajusta desde la administración.
 	var wf struct {
 		Transitions []struct {
+			From  string `json:"from"`
 			To    string `json:"to"`
 			Rules []struct {
 				ID      string         `json:"id"`
@@ -97,6 +98,10 @@ func TestAdminConfiguresPermissionsAndRules(t *testing.T) {
 	var coverageID string
 	var original map[string]any
 	for _, tr := range wf.Transitions {
+		// La de la aprobación normal, que bloquea; la de aprobar con defectos solo avisa.
+		if tr.From != "in_testing" {
+			continue
+		}
 		for _, r := range tr.Rules {
 			if r.RuleKey == "min_coverage" {
 				coverageID, original = r.ID, r.Params

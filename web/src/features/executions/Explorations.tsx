@@ -1,5 +1,5 @@
 // Sesiones exploratorias (EXP) de un REQ. Un hallazgo no es un defecto hasta reproducirlo en un RUN.
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { fromLocalInput, formatDateTime, toLocalInput } from '../../shared/lib/format.ts'
 import { Code } from '../../shared/ui/Code.tsx'
 import { Async, Empty } from '../../shared/ui/feedback.tsx'
@@ -8,18 +8,20 @@ import { Icon } from '../../shared/ui/Icon.tsx'
 import { Dialog } from '../../shared/ui/Modal.tsx'
 import { RunTarget } from '../../shared/ui/RunTarget.tsx'
 import { useCreateExploration, useRequirementExplorations } from './api.ts'
-import { TargetFields } from './Target.tsx'
+import { TargetFields, resolveBuild, validateNewBuild, type Registered } from './Target.tsx'
 
 function ExplorationForm({ requirementCode, systemKey, onClose }: { requirementCode: string; systemKey: string; onClose: () => void }) {
   const create = useCreateExploration()
+  const registered = useRef<Registered>(new Map())
   return (
     <Form
       label="Registrar exploración"
       submitLabel="Registrar EXP"
-      onSubmit={(data) =>
+      validate={validateNewBuild}
+      onSubmit={async (data) =>
         create.mutateAsync({
           requirement: requirementCode,
-          build: text(data, 'build'),
+          build: await resolveBuild(data, { system: systemKey, requirement: requirementCode, registered: registered.current }),
           environment: text(data, 'environment'),
           manualChanges: text(data, 'manualChanges'),
           findings: text(data, 'findings'),

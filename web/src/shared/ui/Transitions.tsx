@@ -87,6 +87,9 @@ export function Transitions({ workflow, stateKey, can, blocked = [], onTransitio
             onDone={() => setAsking(null)}
             onCancel={() => setAsking(null)}
           >
+            {asking.permission === 'req.approve_with_defects' && (
+              <p className="soft">Los DEF abiertos del REQ quedan aceptados con este motivo: siguen abiertos como traza, pero ya no bloquean al REQ ni al PKG.</p>
+            )}
             <TextAreaField name="reason" label="Motivo" required hint="Queda en la auditoría." />
           </Form>
         </Dialog>

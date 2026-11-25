@@ -67,7 +67,9 @@ func (m *Module) ConnectRisk(uc *riskuc.UseCases) { m.facts.ConnectRisk(uc.GetRi
 func (m *Module) ConnectExecution(uc *executionuc.UseCases) { m.facts.ConnectCoverage(uc.GetCoverage) }
 
 // ConnectDefect conecta el feature defect como fuente de los defectos abiertos.
-func (m *Module) ConnectDefect(uc *defectuc.UseCases) { m.facts.ConnectDefects(uc.ListOpenDefects) }
+func (m *Module) ConnectDefect(uc *defectuc.UseCases) {
+	m.facts.ConnectDefects(uc.ListOpenDefects, uc.AcceptOpenDefects)
+}
 
 // ConnectPlanning conecta el feature planning como fuente del período de certificación del CHG.
 func (m *Module) ConnectPlanning(uc *planninguc.UseCases) {

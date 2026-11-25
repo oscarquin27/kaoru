@@ -43,6 +43,8 @@ type UseCases struct {
 	UpdateDefect     *UpdateDefect
 	TransitionDefect *TransitionDefect
 	ListOpenDefects  *ListOpenDefects
+	// AcceptOpenDefects lo usa requirement al aprobar un REQ con defectos.
+	AcceptOpenDefects *AcceptOpenDefects
 }
 
 // New arma los casos de uso; falla si falta una dependencia.
@@ -52,12 +54,13 @@ func New(d Deps) (*UseCases, error) {
 		return nil, errors.New("defect: faltan dependencias")
 	}
 	return &UseCases{
-		CreateDefect:     &CreateDefect{d: d},
-		GetDefect:        &GetDefect{d: d},
-		ListDefects:      &ListDefects{d: d},
-		UpdateDefect:     &UpdateDefect{d: d},
-		TransitionDefect: &TransitionDefect{d: d},
-		ListOpenDefects:  &ListOpenDefects{d: d},
+		CreateDefect:      &CreateDefect{d: d},
+		GetDefect:         &GetDefect{d: d},
+		ListDefects:       &ListDefects{d: d},
+		UpdateDefect:      &UpdateDefect{d: d},
+		TransitionDefect:  &TransitionDefect{d: d},
+		ListOpenDefects:   &ListOpenDefects{d: d},
+		AcceptOpenDefects: &AcceptOpenDefects{d: d},
 	}, nil
 }
 

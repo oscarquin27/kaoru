@@ -30,7 +30,9 @@ type world struct {
 	risk     *domain.RiskFact
 	coverage domain.CoverageFact
 	defects  []domain.DefectFact
-	auditErr error
+	// acceptedWith es el motivo con el que se aceptaron los DEF; vacío si no se aceptaron.
+	acceptedWith string
+	auditErr     error
 }
 
 func newWorld() *world {
@@ -178,6 +180,14 @@ func (w *world) Coverage(context.Context, shared.Code) (domain.CoverageFact, err
 }
 func (w *world) OpenDefects(context.Context, shared.Code) ([]domain.DefectFact, error) {
 	return w.defects, nil
+}
+
+func (w *world) AcceptOpenDefects(_ context.Context, _ shared.Code, _ shared.Actor, reason string) error {
+	w.acceptedWith = reason
+	for i := range w.defects {
+		w.defects[i].Accepted = true
+	}
+	return nil
 }
 
 func (w *world) Certification(_ context.Context, code string) (domain.CertificationFact, error) {

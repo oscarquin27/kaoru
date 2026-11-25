@@ -95,6 +95,29 @@ func TestApplyAndMove(t *testing.T) {
 	}
 }
 
+func TestAccept(t *testing.T) {
+	defect, err := domain.New(params())
+	if err != nil {
+		t.Fatal(err)
+	}
+	qa := domain.UserRef{Id: "u2", Name: "Rosa"}
+	if !defect.Accept(qa, " El REQ vino incompleto ", now.Add(time.Hour)) {
+		t.Fatal("un DEF abierto se acepta")
+	}
+	a := defect.Snapshot().Acceptance
+	if a == nil || a.By != qa || a.Reason != "El REQ vino incompleto" || !a.At.Equal(now.Add(time.Hour)) || defect.Snapshot().State.Key != "open" {
+		t.Errorf("aceptación = %+v; el DEF sigue abierto: %s", a, defect.Snapshot().State.Key)
+	}
+	if defect.Accept(domain.UserRef{Id: "u9"}, "Otra vez", now.Add(2*time.Hour)) || defect.Snapshot().Acceptance.By != qa {
+		t.Error("aceptar dos veces no cambia quién lo aceptó")
+	}
+	closed, _ := domain.New(params())
+	closed.MoveTo(domain.State{Id: "s5", Key: "closed", Name: "Cerrado", IsFinal: true}, now)
+	if closed.Accept(qa, "No aplica", now) || closed.Snapshot().Acceptance != nil {
+		t.Error("un DEF cerrado no se acepta")
+	}
+}
+
 func TestBlockers(t *testing.T) {
 	notHigh := []domain.Rule{{Key: domain.RuleSeverityIsNot, Params: map[string]any{"severity": "high"}, Blocks: true}}
 	high, _ := domain.New(params())

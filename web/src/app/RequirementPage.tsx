@@ -180,7 +180,7 @@ function RequirementView({ overview }: { overview: RequirementOverview }) {
 
       {runFor && (
         <Dialog title={`Registrar RUN de ${runFor}`} onClose={() => setRunFor(null)}>
-          <RunForm testCase={runFor} systemKey={systemKey} onClose={() => setRunFor(null)} />
+          <RunForm testCase={runFor} systemKey={systemKey} requirement={code} onClose={() => setRunFor(null)} />
         </Dialog>
       )}
       {impactFor && (
@@ -194,6 +194,10 @@ function RequirementView({ overview }: { overview: RequirementOverview }) {
               code: run.code,
               label: `${run.code} · ${run.testCase.code} · ${RESULT_LABELS[run.result]} · ${formatDateTime(run.executedAt)}`,
             }))}
+            testCases={overview.testCases
+              .filter((testCase) => !testCase.retired)
+              .map((testCase) => ({ code: testCase.code, label: `${testCase.code} · ${testCase.title}` }))}
+            systemKey={systemKey}
             onClose={() => setOpeningDefect(false)}
           />
         </Dialog>

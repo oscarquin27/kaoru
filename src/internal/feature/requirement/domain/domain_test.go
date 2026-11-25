@@ -298,6 +298,8 @@ func TestUnmet(t *testing.T) {
 		{"defecto alto abierto", rule(domain.RuleNoOpenDefect, map[string]any{"severity": "high"}),
 			domain.Facts{OpenDefects: []domain.DefectFact{{Code: "DEF-2026-0091", Severity: "high"}, {Code: "DEF-2026-0092", Severity: "low"}}},
 			"Hay 1 DEF abierto de severidad alta: DEF-2026-0091.", []string{"DEF-2026-0091"}},
+		{"defecto alto aceptado al aprobar con defectos", rule(domain.RuleNoOpenDefect, map[string]any{"severity": "high"}),
+			domain.Facts{OpenDefects: []domain.DefectFact{{Code: "DEF-2026-0091", Severity: "high", Accepted: true}}}, "", nil},
 		{"solo defectos bajos", rule(domain.RuleNoOpenDefect, map[string]any{"severity": "high"}),
 			domain.Facts{OpenDefects: []domain.DefectFact{{Code: "DEF-2026-0092", Severity: "low"}}}, "", nil},
 		{"enlaces sin instantánea", rule(domain.RuleLinksHaveSnapshot, nil), domain.Facts{LinksWithoutSnapshot: 2},

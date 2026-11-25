@@ -56,6 +56,14 @@ type defectDTO struct {
 	CreatedBy   userRefDTO  `json:"createdBy"`
 	CreatedAt   time.Time   `json:"createdAt"`
 	UpdatedAt   time.Time   `json:"updatedAt"`
+	// Acceptance sale solo si el DEF se aceptó al aprobar su REQ con defectos.
+	Acceptance *acceptanceDTO `json:"acceptance,omitempty"`
+}
+
+type acceptanceDTO struct {
+	By     userRefDTO `json:"by"`
+	Reason string     `json:"reason"`
+	At     time.Time  `json:"at"`
 }
 
 type createDTO struct {
@@ -110,6 +118,9 @@ func toDTO(out usecase.DefectOutput) defectDTO {
 	}
 	if s.Assignee != nil {
 		dto.Assignee = &userRefDTO{ID: string(s.Assignee.Id), DisplayName: s.Assignee.Name}
+	}
+	if a := s.Acceptance; a != nil {
+		dto.Acceptance = &acceptanceDTO{By: userRefDTO{ID: string(a.By.Id), DisplayName: a.By.Name}, Reason: a.Reason, At: a.At}
 	}
 	return dto
 }

@@ -176,18 +176,21 @@ type ConformanceReport struct {
 }
 
 type Defect struct {
-	ID            uuid.UUID
-	Code          string
-	Title         string
-	Description   string
-	RequirementID uuid.UUID
-	TestRunID     uuid.UUID
-	Severity      string
-	StateID       uuid.UUID
-	AssigneeID    *string
-	CreatedBy     string
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	ID             uuid.UUID
+	Code           string
+	Title          string
+	Description    string
+	RequirementID  uuid.UUID
+	TestRunID      uuid.UUID
+	Severity       string
+	StateID        uuid.UUID
+	AssigneeID     *string
+	CreatedBy      string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	AcceptedAt     *time.Time
+	AcceptedBy     *string
+	AcceptedReason *string
 }
 
 type Deployment struct {

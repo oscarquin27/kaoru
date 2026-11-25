@@ -44,7 +44,7 @@ func (w *Workflow) ResolveTransition(ctx context.Context, from, to string, roles
 	if err != nil {
 		return port.Transition{}, err
 	}
-	return port.Transition{To: toState(out.To), RequiresReason: out.RequiresReason, Rules: toRules(out.Rules)}, nil
+	return port.Transition{To: toState(out.To), RequiresReason: out.RequiresReason, Permission: out.Permission, Rules: toRules(out.Rules)}, nil
 }
 
 // Outgoing devuelve las transiciones que salen de un estado, con sus reglas activas.
