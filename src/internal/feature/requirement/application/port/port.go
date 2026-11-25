@@ -67,7 +67,9 @@ type Components interface {
 type Transition struct {
 	To             domain.State
 	RequiresReason bool
-	Rules          []domain.Rule
+	// Permission es el permiso de la transición; vacío en Outgoing.
+	Permission string
+	Rules      []domain.Rule
 }
 
 // Workflow responde por los permisos y los estados del flujo del REQ.
@@ -87,6 +89,9 @@ type Facts interface {
 	Risk(ctx context.Context, code shared.Code) (*domain.RiskFact, error)
 	Coverage(ctx context.Context, code shared.Code) (domain.CoverageFact, error)
 	OpenDefects(ctx context.Context, code shared.Code) ([]domain.DefectFact, error)
+	// AcceptOpenDefects deja aceptados los DEF abiertos del REQ al aprobarlo con defectos, en la
+	// transacción en curso. No es un hecho, pero sale de la misma fuente.
+	AcceptOpenDefects(ctx context.Context, code shared.Code, actor shared.Actor, reason string) error
 	// Certification dice cómo está planificada hoy la certificación de un CHG.
 	Certification(ctx context.Context, changeCode string) (domain.CertificationFact, error)
 }

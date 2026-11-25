@@ -54,6 +54,9 @@ func TestUnmet(t *testing.T) {
 		{"defectos: uno alto abierto", high, with(func(f *domain.Facts) {
 			f.OpenDefects = append([]domain.DefectFact{{Code: "DEF-2026-0091", Severity: "high"}}, f.OpenDefects...)
 		}), "Hay 1 DEF abierto de severidad alta: DEF-2026-0091.", []string{"DEF-2026-0091"}},
+		{"defectos: uno alto aceptado al aprobar su REQ no bloquea", high, with(func(f *domain.Facts) {
+			f.OpenDefects = append([]domain.DefectFact{{Code: "DEF-2026-0091", Severity: "high", Accepted: true}}, f.OpenDefects...)
+		}), "", nil},
 		{"defectos: dos altos abiertos", high, with(func(f *domain.Facts) {
 			f.OpenDefects = []domain.DefectFact{{Code: "DEF-2026-0091", Severity: "high"}, {Code: "DEF-2026-0092", Severity: "high"}}
 		}), "Hay 2 DEF abiertos de severidad alta: DEF-2026-0091, DEF-2026-0092.", []string{"DEF-2026-0091", "DEF-2026-0092"}},

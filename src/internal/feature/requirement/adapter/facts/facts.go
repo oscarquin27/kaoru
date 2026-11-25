@@ -23,6 +23,7 @@ type Facts struct {
 	risk     *riskuc.GetRisk
 	coverage *executionuc.GetCoverage
 	defects  *defectuc.ListOpenDefects
+	accept   *defectuc.AcceptOpenDefects
 	planning *planninguc.CheckCertification
 }
 
@@ -38,7 +39,9 @@ func (f *Facts) ConnectRisk(get *riskuc.GetRisk) { f.risk = get }
 func (f *Facts) ConnectCoverage(get *executionuc.GetCoverage) { f.coverage = get }
 
 // ConnectDefects conecta el feature defect. Se llama una sola vez, al arrancar.
-func (f *Facts) ConnectDefects(list *defectuc.ListOpenDefects) { f.defects = list }
+func (f *Facts) ConnectDefects(list *defectuc.ListOpenDefects, accept *defectuc.AcceptOpenDefects) {
+	f.defects, f.accept = list, accept
+}
 
 // ConnectPlanning conecta el feature planning. Se llama una sola vez, al arrancar.
 func (f *Facts) ConnectPlanning(check *planninguc.CheckCertification) { f.planning = check }
@@ -99,7 +102,16 @@ func (f *Facts) OpenDefects(ctx context.Context, code shared.Code) ([]domain.Def
 	}
 	out := make([]domain.DefectFact, len(open))
 	for i, d := range open {
-		out[i] = domain.DefectFact{Code: d.Code, Severity: d.Severity}
+		out[i] = domain.DefectFact{Code: d.Code, Severity: d.Severity, Accepted: d.Accepted}
 	}
 	return out, nil
+}
+
+// AcceptOpenDefects deja aceptados los DEF abiertos del REQ. Sin la fuente conectada no hay DEF.
+func (f *Facts) AcceptOpenDefects(ctx context.Context, code shared.Code, actor shared.Actor, reason string) error {
+	if f.accept == nil {
+		return nil
+	}
+	_, err := f.accept.Execute(ctx, defectuc.AcceptOpenDefectsInput{Actor: actor, RequirementCode: code.String(), Reason: reason})
+	return err
 }

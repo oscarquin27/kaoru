@@ -71,6 +71,8 @@ type CoverageFact struct {
 type DefectFact struct {
 	Code     string
 	Severity string
+	// Accepted dice si se aceptó al aprobar el REQ con defectos: sigue abierto, pero no bloquea.
+	Accepted bool
 }
 
 // Facts son los hechos con los que se evalúan las reglas de una transición.
@@ -146,7 +148,7 @@ func evaluate(rule Rule, f Facts) (message string, related []string, ok bool) {
 	case RuleNoOpenDefect:
 		severity, _ := rule.Params["severity"].(string)
 		for _, d := range f.OpenDefects {
-			if d.Severity == severity {
+			if d.Severity == severity && !d.Accepted {
 				related = append(related, d.Code)
 			}
 		}

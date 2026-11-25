@@ -162,3 +162,7 @@ a.tab:hover { text-decoration: none; }
   color: var(--bloq); font-weight: var(--weight-strong); line-height: 16px;
 }
 .gantt__flag .icon { width: 12px; height: 12px; }
+
+/* Bloque de un registro hecho al vuelo dentro de otro formulario (el RUN nuevo de un DEF) */
+.subform { border: 1px solid var(--line); border-radius: var(--r-m); padding: var(--s-3); margin: 0; min-width: 0; }
+.subform legend { padding: 0 var(--s-1); font-size: var(--text-xs); color: var(--text-2); }

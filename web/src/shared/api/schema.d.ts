@@ -2960,6 +2960,13 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+            /** @description Solo si el DEF se aceptó al aprobar su REQ con defectos (`req.approve_with_defects`). Sigue abierto como traza, pero ya no bloquea al REQ ni al PKG que lo incluya. */
+            acceptance?: {
+                by: components["schemas"]["UserRef"];
+                reason: string;
+                /** Format: date-time */
+                at: string;
+            };
         };
         DocumentVersion: {
             version: number;

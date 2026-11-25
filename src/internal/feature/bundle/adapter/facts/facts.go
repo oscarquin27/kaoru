@@ -52,7 +52,7 @@ func (f *Facts) OpenDefects(ctx context.Context, requirementCodes []string) ([]d
 			return nil, err
 		}
 		for _, d := range open {
-			out = append(out, domain.DefectFact{Code: d.Code, Severity: d.Severity})
+			out = append(out, domain.DefectFact{Code: d.Code, Severity: d.Severity, Accepted: d.Accepted})
 		}
 	}
 	return out, nil

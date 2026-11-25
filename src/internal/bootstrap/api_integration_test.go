@@ -226,16 +226,16 @@ func TestWorkflowDefaults(t *testing.T) {
 		} `json:"transitions"`
 	}
 	a.call("qa", "GET", "/api/workflows/requirement", nil, 200, &wf)
-	if len(wf.States) != 14 || wf.States[0].Key != "registered" || len(wf.Transitions) != 24 {
+	if len(wf.States) != 14 || wf.States[0].Key != "registered" || len(wf.Transitions) != 25 {
 		t.Errorf("flujo del REQ: %d estados, %d transiciones", len(wf.States), len(wf.Transitions))
 	}
 	rules := 0
 	for _, tr := range wf.Transitions {
 		rules += len(tr.Rules)
 	}
-	// Seis de las fases 1 y 2, más certification_planned (fase 6).
-	if rules != 7 {
-		t.Errorf("reglas de bloqueo del REQ = %d, quiero 7", rules)
+	// Seis de las fases 1 y 2, certification_planned (fase 6) y los cuatro avisos de aprobar con defectos.
+	if rules != 11 {
+		t.Errorf("reglas de bloqueo del REQ = %d, quiero 11", rules)
 	}
 	a.call("qa", "GET", "/api/workflows/paquete", nil, 404, nil)
 }

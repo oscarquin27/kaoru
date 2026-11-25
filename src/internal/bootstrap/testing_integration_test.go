@@ -23,6 +23,9 @@ type defectBody struct {
 	Assignee    *struct {
 		DisplayName string `json:"displayName"`
 	} `json:"assignee"`
+	Acceptance *struct {
+		Reason string `json:"reason"`
+	} `json:"acceptance"`
 }
 
 type totalBody struct {
@@ -156,13 +159,35 @@ func TestRequirementApprovalNeedsCoverageAndNoHighDefects(t *testing.T) {
 		t.Errorf("DEF con el RUN de otro REQ: %+v", p)
 	}
 	var high, low defectBody
-	a.call("qa", "POST", "/api/defects", defect(run2.Code, "high"), 201, &high)
 	a.call("qa", "POST", "/api/defects", defect(run2.Code, "low"), 201, &low)
-	if !strings.HasPrefix(high.Code, "DEF-") || high.State.Key != "open" || high.Run != run2.Code {
+	move("qa", "with_defects", 200)
+
+	// Con defectos, QA puede aprobar aceptándolos: con motivo y aunque falte cobertura. El DEF
+	// sigue abierto como traza, aceptado con el mismo motivo.
+	approveWithDefects := func(user, reason string, wantStatus int) problemBody {
+		t.Helper()
+		var out problemBody
+		a.call(user, "POST", path+"/transitions", map[string]any{"to": "approved_qa", "reason": reason}, wantStatus, &out)
+		return out
+	}
+	approveWithDefects("dev", "El REQ vino incompleto", 403)
+	if p = approveWithDefects("qa", "", 422); len(p.Errors) != 1 || p.Errors[0].Field != "reason" {
+		t.Errorf("aprobar con defectos exige motivo: %+v", p)
+	}
+	approveWithDefects("qa", "El REQ vino incompleto; el DEF queda como traza", 200)
+	a.call("ops", "GET", "/api/defects/"+low.Code, nil, 200, &low)
+	if low.State.Key != "open" || low.Acceptance == nil || low.Acceptance.Reason != "El REQ vino incompleto; el DEF queda como traza" {
+		t.Errorf("el DEF debe seguir abierto y quedar aceptado: %+v", low)
+	}
+	// Para seguir el resto del flujo: change management lo difiere y QA retoma las pruebas.
+	a.call("manager", "POST", path+"/transitions", map[string]any{"to": "deferred", "reason": "Vuelve a pruebas"}, 200, nil)
+	move("qa", "in_testing", 200)
+
+	// Un DEF abierto después de aceptar los otros no está aceptado: ese sí bloquea.
+	a.call("qa", "POST", "/api/defects", defect(run2.Code, "high"), 201, &high)
+	if !strings.HasPrefix(high.Code, "DEF-") || high.State.Key != "open" || high.Run != run2.Code || high.Acceptance != nil {
 		t.Fatalf("DEF inesperado: %+v", high)
 	}
-	move("qa", "with_defects", 200)
-	move("qa", "in_testing", 200)
 
 	transition := func(user, code, to, reason string, wantStatus int) problemBody {
 		t.Helper()

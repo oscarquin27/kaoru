@@ -4435,6 +4435,16 @@ components:
         createdBy: { $ref: '#/components/schemas/UserRef' }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+        acceptance:
+          type: object
+          description: >-
+            Solo si el DEF se aceptó al aprobar su REQ con defectos (`req.approve_with_defects`). Sigue
+            abierto como traza, pero ya no bloquea al REQ ni al PKG que lo incluya.
+          required: [by, reason, at]
+          properties:
+            by: { $ref: '#/components/schemas/UserRef' }
+            reason: { type: string }
+            at: { type: string, format: date-time }
 
     DocumentVersion:
       type: object

@@ -53,13 +53,15 @@ SELECT d.id, d.code, d.title, d.description, d.requirement_id, r.code AS require
        d.test_run_id, t.code AS run_code, d.severity,
        st.id AS state_id, st.key AS state_key, st.name AS state_name, st.is_final AS state_is_final,
        d.assignee_id, a.display_name AS assignee_name, d.created_by, u.display_name AS created_by_name,
-       d.created_at, d.updated_at
+       d.created_at, d.updated_at,
+       d.accepted_at, d.accepted_by, ab.display_name AS accepted_by_name, d.accepted_reason
 FROM defect d
          JOIN requirement r ON r.id = d.requirement_id
          JOIN test_run t ON t.id = d.test_run_id
          JOIN workflow_state st ON st.id = d.state_id
          JOIN app_user u ON u.id = d.created_by
          LEFT JOIN app_user a ON a.id = d.assignee_id
+         LEFT JOIN app_user ab ON ab.id = d.accepted_by
 WHERE d.code = $1
 `
 
@@ -83,6 +85,10 @@ type GetDefectByCodeRow struct {
 	CreatedByName   string
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+	AcceptedAt      *time.Time
+	AcceptedBy      *string
+	AcceptedByName  *string
+	AcceptedReason  *string
 }
 
 func (q *Queries) GetDefectByCode(ctx context.Context, code string) (GetDefectByCodeRow, error) {
@@ -108,6 +114,10 @@ func (q *Queries) GetDefectByCode(ctx context.Context, code string) (GetDefectBy
 		&i.CreatedByName,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.AcceptedAt,
+		&i.AcceptedBy,
+		&i.AcceptedByName,
+		&i.AcceptedReason,
 	)
 	return i, err
 }
@@ -212,13 +222,15 @@ SELECT d.id, d.code, d.title, d.description, d.requirement_id, r.code AS require
        d.test_run_id, t.code AS run_code, d.severity,
        st.id AS state_id, st.key AS state_key, st.name AS state_name, st.is_final AS state_is_final,
        d.assignee_id, a.display_name AS assignee_name, d.created_by, u.display_name AS created_by_name,
-       d.created_at, d.updated_at
+       d.created_at, d.updated_at,
+       d.accepted_at, d.accepted_by, ab.display_name AS accepted_by_name, d.accepted_reason
 FROM defect d
          JOIN requirement r ON r.id = d.requirement_id
          JOIN test_run t ON t.id = d.test_run_id
          JOIN workflow_state st ON st.id = d.state_id
          JOIN app_user u ON u.id = d.created_by
          LEFT JOIN app_user a ON a.id = d.assignee_id
+         LEFT JOIN app_user ab ON ab.id = d.accepted_by
 WHERE ($1::text IS NULL OR st.key = $1)
   AND ($2::text IS NULL OR r.code = $2)
   AND ($3::text IS NULL OR d.severity = $3)
@@ -260,6 +272,10 @@ type ListDefectsRow struct {
 	CreatedByName   string
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+	AcceptedAt      *time.Time
+	AcceptedBy      *string
+	AcceptedByName  *string
+	AcceptedReason  *string
 }
 
 func (q *Queries) ListDefects(ctx context.Context, arg ListDefectsParams) ([]ListDefectsRow, error) {
@@ -300,6 +316,10 @@ func (q *Queries) ListDefects(ctx context.Context, arg ListDefectsParams) ([]Lis
 			&i.CreatedByName,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.AcceptedAt,
+			&i.AcceptedBy,
+			&i.AcceptedByName,
+			&i.AcceptedReason,
 		); err != nil {
 			return nil, err
 		}
@@ -352,18 +372,24 @@ SET title       = $2,
     severity    = $4,
     state_id    = $5,
     assignee_id = $6,
-    updated_at  = $7
+    updated_at  = $7,
+    accepted_at     = $8,
+    accepted_by     = $9,
+    accepted_reason = $10
 WHERE id = $1
 `
 
 type UpdateDefectParams struct {
-	ID          uuid.UUID
-	Title       string
-	Description string
-	Severity    string
-	StateID     uuid.UUID
-	AssigneeID  *string
-	UpdatedAt   time.Time
+	ID             uuid.UUID
+	Title          string
+	Description    string
+	Severity       string
+	StateID        uuid.UUID
+	AssigneeID     *string
+	UpdatedAt      time.Time
+	AcceptedAt     *time.Time
+	AcceptedBy     *string
+	AcceptedReason *string
 }
 
 func (q *Queries) UpdateDefect(ctx context.Context, arg UpdateDefectParams) (int64, error) {
@@ -375,6 +401,9 @@ func (q *Queries) UpdateDefect(ctx context.Context, arg UpdateDefectParams) (int
 		arg.StateID,
 		arg.AssigneeID,
 		arg.UpdatedAt,
+		arg.AcceptedAt,
+		arg.AcceptedBy,
+		arg.AcceptedReason,
 	)
 	if err != nil {
 		return 0, err

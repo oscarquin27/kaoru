@@ -31,7 +31,10 @@ SET title       = $2,
     severity    = $4,
     state_id    = $5,
     assignee_id = $6,
-    updated_at  = $7
+    updated_at  = $7,
+    accepted_at     = $8,
+    accepted_by     = $9,
+    accepted_reason = $10
 WHERE id = $1;
 
 -- name: GetDefectByCode :one
@@ -39,13 +42,15 @@ SELECT d.id, d.code, d.title, d.description, d.requirement_id, r.code AS require
        d.test_run_id, t.code AS run_code, d.severity,
        st.id AS state_id, st.key AS state_key, st.name AS state_name, st.is_final AS state_is_final,
        d.assignee_id, a.display_name AS assignee_name, d.created_by, u.display_name AS created_by_name,
-       d.created_at, d.updated_at
+       d.created_at, d.updated_at,
+       d.accepted_at, d.accepted_by, ab.display_name AS accepted_by_name, d.accepted_reason
 FROM defect d
          JOIN requirement r ON r.id = d.requirement_id
          JOIN test_run t ON t.id = d.test_run_id
          JOIN workflow_state st ON st.id = d.state_id
          JOIN app_user u ON u.id = d.created_by
          LEFT JOIN app_user a ON a.id = d.assignee_id
+         LEFT JOIN app_user ab ON ab.id = d.accepted_by
 WHERE d.code = $1;
 
 -- name: ListDefects :many
@@ -53,13 +58,15 @@ SELECT d.id, d.code, d.title, d.description, d.requirement_id, r.code AS require
        d.test_run_id, t.code AS run_code, d.severity,
        st.id AS state_id, st.key AS state_key, st.name AS state_name, st.is_final AS state_is_final,
        d.assignee_id, a.display_name AS assignee_name, d.created_by, u.display_name AS created_by_name,
-       d.created_at, d.updated_at
+       d.created_at, d.updated_at,
+       d.accepted_at, d.accepted_by, ab.display_name AS accepted_by_name, d.accepted_reason
 FROM defect d
          JOIN requirement r ON r.id = d.requirement_id
          JOIN test_run t ON t.id = d.test_run_id
          JOIN workflow_state st ON st.id = d.state_id
          JOIN app_user u ON u.id = d.created_by
          LEFT JOIN app_user a ON a.id = d.assignee_id
+         LEFT JOIN app_user ab ON ab.id = d.accepted_by
 WHERE (sqlc.narg(state_key)::text IS NULL OR st.key = sqlc.narg(state_key))
   AND (sqlc.narg(requirement_code)::text IS NULL OR r.code = sqlc.narg(requirement_code))
   AND (sqlc.narg(severity)::text IS NULL OR d.severity = sqlc.narg(severity))

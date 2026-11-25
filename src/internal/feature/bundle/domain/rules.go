@@ -60,6 +60,8 @@ type RegressionFact struct {
 type DefectFact struct {
 	Code     string
 	Severity string
+	// Accepted dice si se aceptó al aprobar su REQ con defectos: sigue abierto, pero no bloquea.
+	Accepted bool
 }
 
 // ProductionFact es lo que el PKG necesita saber de producción: lo último de cada cosa.
@@ -158,7 +160,7 @@ func evaluate(rule Rule, f Facts) (message string, related []string, ok bool) {
 	case RuleNoOpenDefect:
 		severity, _ := rule.Params["severity"].(string)
 		for _, d := range f.OpenDefects {
-			if d.Severity == severity {
+			if d.Severity == severity && !d.Accepted {
 				related = append(related, d.Code)
 			}
 		}

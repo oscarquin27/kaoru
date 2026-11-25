@@ -32,7 +32,14 @@ export function DefectsTable({ items, showRequirement }: { items: Defect[]; show
                 <SeverityChip severity={defect.severity} />
               </td>
               <td>
-                <StateChip state={defect.state} />
+                <span className="cell-line">
+                  <StateChip state={defect.state} />
+                  {defect.acceptance && (
+                    <span className="chip chip--neutro" title={`Aceptado al aprobar el REQ con defectos: ${defect.acceptance.reason}`}>
+                      Aceptado
+                    </span>
+                  )}
+                </span>
               </td>
               <td className="num">{formatDays(defect.daysInState)}</td>
               {showRequirement && (

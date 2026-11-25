@@ -87,10 +87,15 @@ func (r *Repository) Update(ctx context.Context, defect domain.Defect) error {
 	if err != nil {
 		return err
 	}
-	rows, err := r.queries(ctx).UpdateDefect(ctx, sqlcgen.UpdateDefectParams{
+	params := sqlcgen.UpdateDefectParams{
 		ID: ids[0], Title: s.Title, Description: s.Description, Severity: string(s.Severity), StateID: ids[1],
 		AssigneeID: assigneeID(s.Assignee), UpdatedAt: s.UpdatedAt,
-	})
+	}
+	if a := s.Acceptance; a != nil {
+		by := string(a.By.Id)
+		params.AcceptedAt, params.AcceptedBy, params.AcceptedReason = &a.At, &by, &a.Reason
+	}
+	rows, err := r.queries(ctx).UpdateDefect(ctx, params)
 	if err != nil {
 		return corepg.TranslateError(err)
 	}
@@ -154,6 +159,15 @@ func toDefect(row sqlcgen.ListDefectsRow) (domain.Defect, error) {
 		s.Assignee = &domain.UserRef{Id: shared.UserId(*row.AssigneeID)}
 		if row.AssigneeName != nil {
 			s.Assignee.Name = *row.AssigneeName
+		}
+	}
+	if row.AcceptedAt != nil && row.AcceptedBy != nil {
+		s.Acceptance = &domain.Acceptance{By: domain.UserRef{Id: shared.UserId(*row.AcceptedBy)}, At: row.AcceptedAt.UTC()}
+		if row.AcceptedByName != nil {
+			s.Acceptance.By.Name = *row.AcceptedByName
+		}
+		if row.AcceptedReason != nil {
+			s.Acceptance.Reason = *row.AcceptedReason
 		}
 	}
 	return domain.Rehydrate(s), nil

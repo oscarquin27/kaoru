@@ -20,6 +20,8 @@ const (
 	PermissionEdit          = "req.edit"
 	PermissionManageLinks   = "link.manage"
 	PermissionEntryContract = "entry_contract.check"
+	// PermissionApproveWithDefects es el de aprobar un REQ por QA aceptando sus DEF abiertos.
+	PermissionApproveWithDefects = "req.approve_with_defects"
 )
 
 // ErrRequirementNotFound es el error de un REQ que no existe.
